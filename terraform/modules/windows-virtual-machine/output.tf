@@ -4,6 +4,9 @@ output vm_id {
 output private_ip_address {
     value                      = azurerm_network_interface.vm_if.private_ip_address
 }
+output public_ip_id {
+    value                      = azurerm_public_ip.vm_pip.id
+}
 output public_ip_address {
     value                      = azurerm_public_ip.vm_pip.ip_address
 }

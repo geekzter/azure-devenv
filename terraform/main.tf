@@ -7,6 +7,7 @@ locals {
       "application",             "Development Environment",
       "environment",             "dev",
       "provisioner",             "terraform",
+      "shutdown",                "true",
       "suffix",                  local.suffix,
       "workspace",               terraform.workspace
   )
@@ -206,12 +207,12 @@ locals {
   vm_name                      = element(split("/",module.windows_vm.vm_id),length(split("/",module.windows_vm.vm_id))-1)
 }
 
-resource azurerm_dns_cname_record windows_fqdn {
-  name                         = "${local.vm_name}-cname"
+resource azurerm_dns_a_record windows_fqdn {
+  name                         = local.vm_name
   zone_name                    = data.azurerm_dns_zone.dns.name
   resource_group_name          = data.azurerm_dns_zone.dns.resource_group_name
   ttl                          = 300
-  record                       = module.windows_vm.public_fqdn
+  target_resource_id           = module.windows_vm.public_ip_id
 
   tags                         = local.tags
 }
