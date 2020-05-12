@@ -15,3 +15,9 @@ output resource_group_name {
 output windows_fqdn {
     value                      = replace(azurerm_dns_a_record.windows_fqdn.fqdn,"/\\W*$/","")
 }
+output windows_os_sku {
+    value                      = module.windows_vm.os_sku
+}
+output windows_os_version {
+    value                      = module.windows_vm.os_version
+}

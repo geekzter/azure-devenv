@@ -186,7 +186,7 @@ module windows_vm {
   bg_info                      = true
   dependency_monitor           = true
   diagnostics                  = true
-  disk_encryption              = true
+  disk_encryption              = false
   diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage.id
   enable_accelerated_networking = true
   git_email                    = var.git_email
@@ -195,6 +195,7 @@ module windows_vm {
   log_analytics_workspace_id   = var.log_analytics_workspace_id
   name                         = "windev"
   network_watcher              = true
+  os_version                   = var.windows_os_version
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   vm_size                      = var.windows_vm_size

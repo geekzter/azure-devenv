@@ -48,15 +48,8 @@ variable log_analytics_workspace_id {}
 variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"
 }
-
-variable windows_os_offer {
-  default                      = "WindowsServer"
-}
-variable windows_os_publisher {
-  default                      = "MicrosoftWindowsServer"
-}
-variable windows_os_sku {
-  default                      = "2019-Datacenter"
+variable windows_os_version {
+  default                      = "latest"
 }
 variable windows_pipeline_agent_name {
   # Defaults to VM name if empty string

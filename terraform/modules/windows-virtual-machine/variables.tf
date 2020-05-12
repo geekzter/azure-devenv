@@ -34,6 +34,12 @@ variable network_watcher {
     type                       = bool
     default                    = false
 }
+variable os_sku_match {
+    default                    = "-ent-g2"
+}
+variable os_version {
+    default                    = "latest"
+}
 variable resource_group_name {}
 variable tags {}
 variable scripts_container_id {}

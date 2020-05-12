@@ -160,6 +160,31 @@ resource azurerm_key_vault_key disk_encryption_key {
 # depends_on                   = [azurerm_firewall_application_rule_collection.*]
 }
 
+data external image_info {
+  program                      = [
+                                 "az",
+                                 "vm",
+                                 "image",
+                                 "list",
+                                 "-f",
+                                 "Windows-10",
+                                 "-p",
+                                 "MicrosoftWindowsDesktop",
+                                 "--all",
+                                 "--query",
+                                 # Get latest version of matching SKU
+                                 "max_by([?contains(sku,'${var.os_sku_match}')],&version)",
+                                 "-o",
+                                 "json",
+                                 ]
+}
+
+locals {
+  # data.external.image_info.result.sku should be same as 'latest' 
+  # This allows to override the version value with the literal version, and don't trigger a change if resolving to the same
+  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
+}
+
 resource azurerm_windows_virtual_machine vm {
   name                         = local.vm_name
   location                     = data.azurerm_resource_group.vm_resource_group.location
@@ -177,10 +202,10 @@ resource azurerm_windows_virtual_machine vm {
   }
 
   source_image_reference {
-    publisher                  = "MicrosoftWindowsServer"
-    offer                      = "WindowsServer"
-    sku                        = "2019-Datacenter"
-    version                    = "latest"
+    publisher                  = "MicrosoftWindowsDesktop"
+    offer                      = "Windows-10"
+    sku                        = data.external.image_info.result.sku
+    version                    = local.os_version
   }
 
   # TODO: Does not work with AzureDiskEncryption VM extension

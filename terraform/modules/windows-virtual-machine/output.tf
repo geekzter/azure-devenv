@@ -1,5 +1,8 @@
-output vm_id {
-    value                      = azurerm_windows_virtual_machine.vm.id
+output os_sku {
+    value                      = data.external.image_info.result.sku
+}
+output os_version {
+    value                      = data.external.image_info.result.version
 }
 output private_ip_address {
     value                      = azurerm_network_interface.vm_if.private_ip_address
@@ -12,4 +15,7 @@ output public_ip_address {
 }
 output public_fqdn {
     value                      = azurerm_public_ip.vm_pip.fqdn
+}
+output vm_id {
+    value                      = azurerm_windows_virtual_machine.vm.id
 }
