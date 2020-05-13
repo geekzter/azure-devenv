@@ -16,7 +16,7 @@ $localBatchScript = "$env:PUBLIC\setup.cmd"
 Write-Output "PowerShell.exe -ExecutionPolicy Bypass -Noexit -Command `"`& {$($MyInvocation.MyCommand.Definition)}`"" | Out-File -FilePath $localBatchScript -Encoding OEM
 
 # Schedule bootstrap command to run on every logon
-schtasks.exe /create /f /sc onlogon /tn "Bootstrap" /tr $localBatchScript
+schtasks.exe /create /f /rl HIGHEST /sc onlogon /tn "Bootstrap" /tr $localBatchScript
 Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" -Name AutoLogonCount -Value 99
 
 # Download PowerShell script
