@@ -27,9 +27,15 @@ if ($config.scripturl) {
 
 # Create shortcut
 $wsh = New-Object -ComObject WScript.Shell
-$bootstrapShortcut = $wsh.CreateShortcut("$($env:USERPROFILE)\Desktop\Setup.lnk")
+$shortcutFile = "$($env:USERPROFILE)\Desktop\Setup.lnk"
+$bootstrapShortcut = $wsh.CreateShortcut($shortcutFile)
 $bootstrapShortcut.TargetPath = $localBatchScript
 $bootstrapShortcut.Save()
+# Set shortcut to run as Administrator
+# https://stackoverflow.com/questions/28997799/how-to-create-a-run-as-administrator-shortcut-using-powershell/29002207#29002207
+$bytes = [System.IO.File]::ReadAllBytes($shortcutFile)
+$bytes[0x15] = $bytes[0x15] -bor 0x20 #set byte 21 (0x15) bit 6 (0x20) ON
+[System.IO.File]::WriteAllBytes($shortcutFile, $bytes)
 
 # Create Private DNS demo script
 $lookupScript = "$env:USERPROFILE\Desktop\privatelink_lookup.cmd"
@@ -53,9 +59,8 @@ if (!(Test-Path $settingsFile)) {
 }
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
 
-# Install software required for demo
-choco install azure-data-studio microsoftazurestorageexplorer sql-server-management-studio vscode -r -y
-choco install TelnetClient --source windowsfeatures -r -y
+# Remove password expiration
+Set-LocalUser -Name $env:USERNAME -PasswordNeverExpires 1
 
 # Clone repositories
 $repoRoot = "~\Source\GitHub\geekzter"
