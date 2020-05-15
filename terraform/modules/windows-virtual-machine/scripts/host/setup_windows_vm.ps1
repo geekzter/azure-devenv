@@ -48,6 +48,53 @@ if ($config -and $config.privatelinkfqdns) {
     Write-Output "pause" | Out-File $lookupScript -Append -Encoding OEM
 }
 
+# Remove apps not needed on a developer workstation
+# Taken from https://github.com/Disassembler0/Win10-Initial-Setup-Script/blob/master/Win10.psm1
+Get-AppxPackage "Microsoft.BingFinance" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingFoodAndDrink" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingHealthAndFitness" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingMaps" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingNews" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingSports" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingTranslator" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingTravel" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.BingWeather" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.CommsPhone" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.FreshPaint" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.GetHelp" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Getstarted" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.HelpAndTips" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Media.PlayReadyClient.2" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Messaging" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.MicrosoftSolitaireCollection" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.MicrosoftStickyNotes" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.MinecraftUWP" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.MoCamera" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Office.Sway" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.OneConnect" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.People" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Reader" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.SkypeApp" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Todos" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Wallet" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WebMediaExtensions" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsAlarms" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsCamera" | Remove-AppxPackage
+Get-AppxPackage "microsoft.windowscommunicationsapps" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsFeedbackHub" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsMaps" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsPhone" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Windows.Photos" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsReadingList" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsScan" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WindowsSoundRecorder" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WinJS.1.0" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.WinJS.2.0" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.YourPhone" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.ZuneMusic" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.ZuneVideo" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Advertising.Xaml" | Remove-AppxPackage
+
 # Invoke bootstrap script from bootstrap-os repository
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/geekzter/bootstrap-os/master/windows/bootstrap_windows.ps1'))
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
@@ -58,6 +105,11 @@ if (!(Test-Path $settingsFile)) {
     $settings | ConvertTo-Json | Out-File $settingsFile
 }
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
+
+# Developer shortcuts
+if (Get-Command PinTo) {
+    PinToQuickAccess "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState"
+}
 
 # Remove password expiration
 Set-LocalUser -Name $env:USERNAME -PasswordNeverExpires 1
