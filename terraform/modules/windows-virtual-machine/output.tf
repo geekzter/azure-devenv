@@ -4,6 +4,9 @@ output os_sku {
 output os_version {
     value                      = data.external.image_info.result.version
 }
+output os_latest_version_command {
+    value                      = join(" ",data.external.image_info.program)
+}
 output private_ip_address {
     value                      = azurerm_network_interface.vm_if.private_ip_address
 }

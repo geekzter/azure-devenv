@@ -21,3 +21,6 @@ output windows_os_sku {
 output windows_os_version {
     value                      = module.windows_vm.os_version
 }
+output windows_os_latest_version_command {
+    value                      = module.windows_vm.os_latest_version_command
+}
