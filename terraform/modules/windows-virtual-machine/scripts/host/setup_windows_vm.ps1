@@ -90,6 +90,12 @@ Get-AppxPackage "Microsoft.WindowsScan" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.WindowsSoundRecorder" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.WinJS.1.0" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.WinJS.2.0" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.XboxApp" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.XboxIdentityProvider" | Remove-AppxPackage -ErrorAction SilentlyContinue
+Get-AppxPackage "Microsoft.XboxSpeechToTextOverlay" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.XboxGameOverlay" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.XboxGamingOverlay" | Remove-AppxPackage
+Get-AppxPackage "Microsoft.Xbox.TCUI" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.YourPhone" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.ZuneMusic" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.ZuneVideo" | Remove-AppxPackage
@@ -107,8 +113,9 @@ if (!(Test-Path $settingsFile)) {
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
 
 # Developer shortcuts
-if (Get-Command PinTo) {
-    PinToQuickAccess "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState"
+$null = New-Item -ItemType symboliclink -path "$env:userprofile\Azure VPN Profiles" -value "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState" -Force
+if (Get-Command PinToQuickAccess) {
+    PinToQuickAccess $env:userprofile
 }
 
 # Remove password expiration
