@@ -2,6 +2,9 @@ output os_sku {
     value                      = data.external.image_info.result.sku
 }
 output os_version {
+    value                      = local.os_version
+}
+output os_latest_version {
     value                      = data.external.image_info.result.version
 }
 output os_latest_version_command {

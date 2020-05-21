@@ -18,9 +18,15 @@ output windows_fqdn {
 output windows_os_sku {
     value                      = module.windows_vm.os_sku
 }
-output windows_os_version {
-    value                      = module.windows_vm.os_version
+output windows_os_latest_version {
+    value                      = module.windows_vm.os_latest_version
 }
 output windows_os_latest_version_command {
     value                      = module.windows_vm.os_latest_version_command
+}
+output windows_new_os_version_available {
+    value                      = module.windows_vm.os_version != module.windows_vm.os_latest_version ? "NEW WINDOWS VERSION AVAILABLE: ${module.windows_vm.os_latest_version}" : null
+}
+output windows_os_version {
+    value                      = module.windows_vm.os_version
 }

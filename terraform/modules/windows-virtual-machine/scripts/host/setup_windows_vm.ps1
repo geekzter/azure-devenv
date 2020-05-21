@@ -106,16 +106,18 @@ Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 if (!(Test-Path $settingsFile)) {
     $settings = (Get-Content "$settingsFile.sample" | ConvertFrom-Json)
-    $settings.GitEmail = config.gitemail
-    $settings.GitName = config.gitname
+    $settings.GitEmail = $config.gitemail
+    $settings.GitName = $config.gitname
     $settings | ConvertTo-Json | Out-File $settingsFile
 }
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
 
 # Developer shortcuts
-$null = New-Item -ItemType symboliclink -path "$env:userprofile\Azure VPN Profiles" -value "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState" -Force
-if (Get-Command PinToQuickAccess) {
-    PinToQuickAccess $env:userprofile
+if (Test-Path "$env:userprofile\Azure VPN Profiles") {
+    $null = New-Item -ItemType symboliclink -path "$env:userprofile\Azure VPN Profiles" -value "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState" -Force
+    if (Get-Command PinToQuickAccess) {
+        PinToQuickAccess $env:userprofile
+    }
 }
 
 # Remove password expiration
