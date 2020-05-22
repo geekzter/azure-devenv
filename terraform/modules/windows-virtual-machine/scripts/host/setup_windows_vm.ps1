@@ -24,6 +24,10 @@ $localPSScript = "$env:PUBLIC\setup.ps1"
 if ($config.scripturl) {
     Invoke-WebRequest -UseBasicParsing -Uri $config.scripturl -OutFile $localPSScript
 }
+if ($config.environmentscripturl) {
+    $null = New-Item -ItemType directory -path $env:USERPROFILE\Documents\PowerShell -Force
+    Invoke-WebRequest -UseBasicParsing -Uri $config.environmentscripturl -OutFile $env:USERPROFILE\Documents\PowerShell\environment.ps1
+}
 
 # Create shortcut
 $wsh = New-Object -ComObject WScript.Shell

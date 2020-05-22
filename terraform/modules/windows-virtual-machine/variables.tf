@@ -25,6 +25,9 @@ variable enable_accelerated_networking {
     type                       = bool
     default                    = false
 }
+variable environment_variables {
+  type                         = map
+} 
 variable git_email {}
 variable git_name {}
 variable key_vault_id {}

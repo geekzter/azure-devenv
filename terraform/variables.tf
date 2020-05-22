@@ -18,6 +18,12 @@ variable devops_pat {
   default                      = null
 }
 variable dns_zone_id {}
+variable environment_variables {
+  type                         = map
+  default = {
+    provisioner                = "terraform"
+  }
+} 
 variable git_email {}
 variable git_name {}
 variable linux_os_offer {

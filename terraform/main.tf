@@ -189,6 +189,7 @@ module windows_vm {
   disk_encryption              = false
   diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage.id
   enable_accelerated_networking = true
+  environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
