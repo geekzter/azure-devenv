@@ -2,7 +2,6 @@ locals {
   client_config                = map(
     "gitemail",                  var.git_email,
     "gitname",                   var.git_name,
-    "scripturl",                 local.script_url,
     "environmentscripturl",      local.environment_script_url,
     "workspace",                 terraform.workspace
   )
@@ -19,8 +18,6 @@ locals {
   # Hide dependency on script blobs, so we prevent VM re-creation if script changes
   environment_filename         = "environment"
   environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}.ps1"
-  script_filename              = "setup_windows_vm"
-  script_url                   = "${var.scripts_container_id}/${local.script_filename}.ps1"
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.name}"
   vm_computer_name             = substr(lower(replace(local.vm_name,"-","")),0,15)
@@ -47,62 +44,45 @@ data azurerm_log_analytics_workspace monitor {
   resource_group_name          = local.log_analytics_workspace_rg
 }
 
-resource time_static vm_update {
-  triggers = {
-    # Save the time each switch of an VM NIC
-    vm_if_id                   = azurerm_network_interface.vm_if.id
-    vm_id                      = azurerm_windows_virtual_machine.vm.id
-  }
-}
-
-resource random_string pip_domain_name_label {
-  length                      = 16
-  upper                       = false
-  lower                       = true
-  number                      = false
-  special                     = false
-}
-
-resource azurerm_public_ip vm_pip {
+resource azurerm_public_ip pip {
   name                         = "${local.vm_name}-pip"
   location                     = data.azurerm_resource_group.vm_resource_group.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
   allocation_method            = "Static"
   sku                          = "Standard"
-  domain_name_label            = random_string.pip_domain_name_label.result
 
   tags                         = var.tags
 }
 
-resource azurerm_network_interface vm_if {
-  name                         = "${local.vm_name}-if"
+resource azurerm_network_interface nic {
+  name                         = "${local.vm_name}-nic"
   location                     = data.azurerm_resource_group.vm_resource_group.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   ip_configuration {
-    name                       = "vm_ipconfig"
+    name                       = "ipconfig"
     subnet_id                  = var.vm_subnet_id
-    public_ip_address_id       = azurerm_public_ip.vm_pip.id
-    private_ip_address_allocation = "dynamic"
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id       = azurerm_public_ip.pip.id
   }
   enable_accelerated_networking = var.enable_accelerated_networking
 
   tags                         = var.tags
 }
 
-resource azurerm_network_security_group vm_nsg {
-  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-windows-nsg"
+resource azurerm_network_security_group nsg {
+  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-linux-nsg"
   location                     = data.azurerm_resource_group.vm_resource_group.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   security_rule {
-    name                       = "InboundRDP"
-    priority                   = 201
+    name                       = "InboundSSH"
+    priority                   = 202
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
-    destination_port_range     = "3389"
+    destination_port_range     = "22"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -110,67 +90,9 @@ resource azurerm_network_security_group vm_nsg {
   tags                         = var.tags
 }
 
-resource azurerm_network_interface_security_group_association vm_nic_nsg {
-  network_interface_id         = azurerm_network_interface.vm_if.id
-  network_security_group_id    = azurerm_network_security_group.vm_nsg.id
-}
-
-resource azurerm_storage_blob setup_windows_vm_cmd {
-  name                         = "${local.script_filename}.cmd"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  source_content               = templatefile("${path.module}/scripts/host/${local.script_filename}.cmd", { 
-    scripturl                  = "${local.script_url}"
-  })
-}
-
-resource azurerm_storage_blob setup_windows_vm_ps1 {
-  name                         = "${local.script_filename}.ps1"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  # Use source_content to trigger change when file changes
-  source_content               = file("${path.module}/scripts/host/${local.script_filename}.ps1")
-}
-
-locals {
-  environment_variables        = merge(
-    var.environment_variables,
-    map(
-      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
-    )
-  )
-}
-
-resource azurerm_storage_blob environment_ps1 {
-  name                         = "${local.environment_filename}.ps1"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  source_content               = templatefile("${path.module}/scripts/host/${local.environment_filename}.ps1", local.environment_variables)
-}
-
-# Adapted from https://github.com/Azure/terraform-azurerm-diskencrypt/blob/master/main.tf
-resource azurerm_key_vault_key disk_encryption_key {
-  name                         = "${local.vm_name}-disk-key"
-  key_vault_id                 = var.key_vault_id
-  key_type                     = "RSA"
-  key_size                     = 2048
-  key_opts                     = [
-                                 "decrypt",
-                                 "encrypt",
-                                 "sign",
-                                 "unwrapKey",
-                                 "verify",
-                                 "wrapKey",
-  ]
-
-# depends_on                   = [azurerm_firewall_application_rule_collection.*]
+resource azurerm_network_interface_security_group_association nic_nsg {
+  network_interface_id         = azurerm_network_interface.nic.id
+  network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
 data external image_info {
@@ -180,13 +102,13 @@ data external image_info {
                                  "image",
                                  "list",
                                  "-f",
-                                 "Windows-10",
+                                 var.os_offer,
                                  "-p",
-                                 "MicrosoftWindowsDesktop",
+                                 var.os_publisher,
                                  "--all",
                                  "--query",
                                  # Get latest version of matching SKU
-                                 "max_by([?contains(sku,'${var.os_sku_match}')],&version)",
+                                 "max_by([?contains(sku,'${var.os_sku}')],&version)",
                                  "-o",
                                  "json",
                                  ]
@@ -198,56 +120,36 @@ locals {
   os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
 }
 
-resource azurerm_windows_virtual_machine vm {
+resource azurerm_linux_virtual_machine vm {
   name                         = local.vm_name
   location                     = data.azurerm_resource_group.vm_resource_group.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
-  network_interface_ids        = [azurerm_network_interface.vm_if.id]
   size                         = var.vm_size
-  admin_username               = var.admin_username
-  admin_password               = var.admin_password
+  admin_username               = var.user_name
+  admin_password               = var.user_password
+  disable_password_authentication = false
+  network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.vm_computer_name
 
+  admin_ssh_key {
+    username                   = var.user_name
+    public_key                 = file(var.ssh_public_key)
+  }
+
   os_disk {
-    name                       = "${local.vm_name}-osdisk"
     caching                    = "ReadWrite"
     storage_account_type       = "Premium_LRS"
   }
 
   source_image_reference {
-    publisher                  = "MicrosoftWindowsDesktop"
-    offer                      = "Windows-10"
-    sku                        = data.external.image_info.result.sku
+    publisher                  = var.os_publisher
+    offer                      = var.os_offer
+    sku                        = var.os_sku
     version                    = local.os_version
   }
 
-  # TODO: Does not work with AzureDiskEncryption VM extension
-  additional_unattend_content {
-    setting                    = "AutoLogon"
-    content                    = templatefile("${path.module}/scripts/host/AutoLogon.xml", { 
-      count                    = 99, 
-      username                 = var.admin_username, 
-      password                 = var.admin_password
-    })
-  }
-  additional_unattend_content {
-    setting                    = "FirstLogonCommands"
-    content                    = templatefile("${path.module}/scripts/host/FirstLogonCommands.xml", { 
-      username                 = var.admin_username, 
-      password                 = var.admin_password, 
-      scripturl                = local.script_url
-    })
-  }
-
-  custom_data                  = base64encode(jsonencode(local.client_config))
-
-  # Required for AAD Login
-  identity {
-    type                       = "SystemAssigned"
-  }
-
-# depends_on                   = [azurerm_firewall_application_rule_collection.*]
   tags                         = var.tags
+  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg]
 }
 
 resource null_resource start_vm {
@@ -258,21 +160,52 @@ resource null_resource start_vm {
 
   provisioner local-exec {
     # Start VM, so we can execute script through SSH
-    command                    = "az vm start --ids ${azurerm_windows_virtual_machine.vm.id}"
+    command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
   }
 }
 
+resource null_resource linux_bootstrap {
+  # Always run this
+  triggers                     = {
+    always_run                 = timestamp()
+  }
+
+  provisioner local-exec {
+    # Start VM, so we can execute script through SSH
+    command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
+  }
+
+  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
+  provisioner remote-exec {
+    inline                     = [
+      "echo ${var.user_password} | sudo -S apt-get update -y",
+      "sudo apt-get -y install curl", 
+      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  depends_on                   = [azurerm_linux_virtual_machine.vm,azurerm_network_interface_security_group_association.nic_nsg,null_resource.start_vm]
+}
+
+/*
 resource azurerm_virtual_machine_extension vm_monitor {
   name                         = "MMAExtension"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
-  type                         = "MicrosoftMonitoringAgent"
-  type_handler_version         = "1.0"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Monitor"
+  type                         = "AzureMonitorLinuxAgent"
+  type_handler_version         = "0.9"
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
       "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}",
-      "azureResourceId"        : "${azurerm_windows_virtual_machine.vm.id}",
+      "azureResourceId"        : "${azurerm_linux_virtual_machine.vm.id}",
       "stopOnMultipleConnections": "true"
     }
   EOF
@@ -286,42 +219,27 @@ resource azurerm_virtual_machine_extension vm_monitor {
   tags                         = var.tags
   depends_on                   = [null_resource.start_vm]
 }
+*/
 
 resource azurerm_virtual_machine_extension vm_aadlogin {
-  name                         = "AADLoginForWindows"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.ActiveDirectory"
-  type                         = "AADLoginForWindows"
+  name                         = "AADLoginForLinux"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.ActiveDirectory.LinuxSSH"
+  type                         = "AADLoginForLinux"
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
 
   count                        = var.aad_login ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  null_resource.start_vm
                                  ]
 } 
 
-resource azurerm_virtual_machine_extension vm_bginfo {
-  name                         = "BGInfo"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.Compute"
-  type                         = "BGInfo"
-  type_handler_version         = "2.1"
-  auto_upgrade_minor_version   = true
-
-  count                        = var.bg_info ? 1 : 0
-  tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
-                                 ]
-}
-
+/*
 resource azurerm_virtual_machine_extension vm_diagnostics {
   name                         = "Microsoft.Insights.VMDiagnosticsSettings"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Diagnostics"
   type                         = "IaaSDiagnostics"
   type_handler_version         = "1.17"
@@ -329,7 +247,7 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
 
   settings                     = templatefile("${path.module}/scripts/host/vmdiagnostics.json", { 
     storage_account_name       = data.azurerm_storage_account.diagnostics.name, 
-    virtual_machine_id         = azurerm_windows_virtual_machine.vm.id, 
+    virtual_machine_id         = azurerm_linux_virtual_machine.vm.id, 
   # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
   })
 
@@ -344,16 +262,15 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
   count                        = var.diagnostics ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor,
-                                # azurerm_firewall_network_rule_collection.*
+                                  null_resource.start_vm
                                  ]
 }
+*/
 resource azurerm_virtual_machine_extension vm_dependency_monitor {
   name                         = "DAExtension"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Monitoring.DependencyAgent"
-  type                         = "DependencyAgentWindows"
+  type                         = "DependencyAgentLinux"
   type_handler_version         = "9.5"
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
@@ -371,23 +288,21 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  null_resource.start_vm
                                  ]
 }
 resource azurerm_virtual_machine_extension vm_watcher {
   name                         = "AzureNetworkWatcherExtension"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.NetworkWatcher"
-  type                         = "NetworkWatcherAgentWindows"
+  type                         = "NetworkWatcherAgentLinux"
   type_handler_version         = "1.4"
   auto_upgrade_minor_version   = true
 
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  null_resource.start_vm
                                  ]
 }
 
@@ -395,7 +310,7 @@ resource azurerm_virtual_machine_extension vm_watcher {
 resource null_resource vm_sleep {
   # Always run this
   triggers                     = {
-    vm                         = azurerm_windows_virtual_machine.vm.id
+    vm                         = azurerm_linux_virtual_machine.vm.id
   }
 
   provisioner "local-exec" {
@@ -404,13 +319,29 @@ resource null_resource vm_sleep {
   }
 
   count                        = var.disk_encryption ? 1 : 0
-  depends_on                   = [azurerm_windows_virtual_machine.vm]
+  depends_on                   = [azurerm_linux_virtual_machine.vm]
 }
+
+resource azurerm_key_vault_key disk_encryption_key {
+  name                         = "${local.vm_name}-disk-key"
+  key_vault_id                 = var.key_vault_id
+  key_type                     = "RSA"
+  key_size                     = 2048
+  key_opts                     = [
+                                 "decrypt",
+                                 "encrypt",
+                                 "sign",
+                                 "unwrapKey",
+                                 "verify",
+                                 "wrapKey",
+  ]
+}
+
 # Does not work with AutoLogon
 # use server side encryption with azurerm_disk_encryption_set instead
 resource azurerm_virtual_machine_extension vm_disk_encryption {
   name                         = "DiskEncryption"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Security"
   type                         = "AzureDiskEncryption"
   type_handler_version         = "2.2"
@@ -432,7 +363,6 @@ SETTINGS
   tags                         = var.tags
 
   depends_on                   = [
-                                # azurerm_firewall_application_rule_collection.*,
                                   null_resource.start_vm,
                                   null_resource.vm_sleep
                                   ]
@@ -440,8 +370,8 @@ SETTINGS
 
 # HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
 resource azurerm_monitor_diagnostic_setting vm {
-  name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
-  target_resource_id           = azurerm_windows_virtual_machine.vm.id
+  name                         = "${azurerm_linux_virtual_machine.vm.name}-diagnostics"
+  target_resource_id           = azurerm_linux_virtual_machine.vm.id
   storage_account_id           = data.azurerm_storage_account.diagnostics.id
 
   metric {
@@ -460,11 +390,10 @@ resource azurerm_monitor_diagnostic_setting vm {
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.vm_aadlogin,
-                                  azurerm_virtual_machine_extension.vm_bginfo,
                                   azurerm_virtual_machine_extension.vm_dependency_monitor,
-                                  azurerm_virtual_machine_extension.vm_diagnostics,
+                                  #azurerm_virtual_machine_extension.vm_diagnostics,
                                   azurerm_virtual_machine_extension.vm_disk_encryption,
-                                  azurerm_virtual_machine_extension.vm_monitor,
+                                  # azurerm_virtual_machine_extension.vm_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
 }

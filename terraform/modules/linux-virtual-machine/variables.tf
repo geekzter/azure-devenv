@@ -2,12 +2,6 @@ variable aad_login {
     type                       = bool
     default                    = false
 }
-variable admin_username {}
-variable admin_password {}
-variable bg_info {
-    type                       = bool
-    default                    = false
-}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -37,14 +31,23 @@ variable network_watcher {
     type                       = bool
     default                    = false
 }
-variable os_sku_match {
-    default                    = "-ent-g2"
+variable os_offer {
+  default                      = "UbuntuServer"
+}
+variable os_publisher {
+  default                      = "Canonical"
+}
+variable os_sku {
+  default                      = "18.04-LTS"
 }
 variable os_version {
     default                    = "latest"
 }
 variable resource_group_name {}
 variable scripts_container_id {}
+variable ssh_public_key {}
 variable tags {}
+variable user_name {}
+variable user_password {}
 variable vm_size {}
 variable vm_subnet_id {}

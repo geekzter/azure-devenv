@@ -177,6 +177,37 @@ resource azurerm_storage_account diagnostics_storage {
   tags                         = local.tags
 }
 
+module linux_vm {
+  source                       = "./modules/linux-virtual-machine"
+
+  aad_login                    = true
+  user_name                    = var.admin_username
+  user_password                = local.password
+  dependency_monitor           = true
+  diagnostics                  = true
+  disk_encryption              = false
+  diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage.id
+  enable_accelerated_networking = false
+  environment_variables        = var.environment_variables
+  git_email                    = var.git_email
+  git_name                     = var.git_name
+  key_vault_id                 = azurerm_key_vault.vault.id
+  log_analytics_workspace_id   = var.log_analytics_workspace_id
+  name                         = "lindev"
+  network_watcher              = true
+  os_offer                     = var.linux_os_offer
+  os_publisher                 = var.linux_os_publisher
+  os_sku                       = var.linux_os_sku
+  os_version                   = var.linux_os_version
+  scripts_container_id         = azurerm_storage_container.scripts.id
+  ssh_public_key               = var.ssh_public_key
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  vm_size                      = var.linux_vm_size
+  vm_subnet_id                 = data.azurerm_subnet.vm_subnet.id
+
+  tags                         = local.tags
+}
+
 module windows_vm {
   source                       = "./modules/windows-virtual-machine"
 
@@ -196,6 +227,7 @@ module windows_vm {
   log_analytics_workspace_id   = var.log_analytics_workspace_id
   name                         = "windev"
   network_watcher              = true
+  os_sku_match                 = var.windows_sku_match
   os_version                   = var.windows_os_version
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -206,15 +238,26 @@ module windows_vm {
 }
 
 locals {
-  vm_name                      = element(split("/",module.windows_vm.vm_id),length(split("/",module.windows_vm.vm_id))-1)
+  linux_vm_name                = element(split("/",module.linux_vm.vm_id),length(split("/",module.linux_vm.vm_id))-1)
+  windows_vm_name              = element(split("/",module.windows_vm.vm_id),length(split("/",module.windows_vm.vm_id))-1)
 }
 
 resource azurerm_dns_a_record windows_fqdn {
-  name                         = local.vm_name
+  name                         = local.windows_vm_name
   zone_name                    = data.azurerm_dns_zone.dns.name
   resource_group_name          = data.azurerm_dns_zone.dns.resource_group_name
   ttl                          = 300
   target_resource_id           = module.windows_vm.public_ip_id
+
+  tags                         = local.tags
+}
+
+resource azurerm_dns_a_record linux_fqdn {
+  name                         = local.linux_vm_name
+  zone_name                    = data.azurerm_dns_zone.dns.name
+  resource_group_name          = data.azurerm_dns_zone.dns.resource_group_name
+  ttl                          = 300
+  target_resource_id           = module.linux_vm.public_ip_id
 
   tags                         = local.tags
 }
