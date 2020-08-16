@@ -117,11 +117,12 @@ if (!(Test-Path $settingsFile)) {
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
 
 # Developer shortcuts
-if (Test-Path "$env:userprofile\Azure VPN Profiles") {
+if (Test-Path "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState") {
     $null = New-Item -ItemType symboliclink -path "$env:userprofile\Azure VPN Profiles" -value "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState" -Force
-    if (Get-Command PinToQuickAccess) {
-        PinToQuickAccess $env:userprofile
-    }
+}
+if (Get-Command PinToQuickAccess) {
+    PinToQuickAccess $env:userprofile
+    PinToQuickAccess "$env:userprofile\Azure VPN Profiles"
 }
 
 # Remove password expiration
