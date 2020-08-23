@@ -2,6 +2,7 @@
 
 $env:ASPNETCORE_ENVIRONMENT="Development"
 
+
 # Terraform environment variables
 $env:TF_VAR_backend_resource_group="${tf_backend_resource_group}"
 $env:TF_VAR_backend_storage_account="${tf_backend_storage_account}"

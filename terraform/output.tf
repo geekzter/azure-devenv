@@ -32,6 +32,9 @@ output linux_new_os_version_available {
 output linux_os_version {
     value                      = module.linux_vm.os_version
 }
+output linux_vm_id {
+    value                      = module.linux_vm.vm_id
+}
 
 output windows_fqdn {
     value                      = replace(azurerm_dns_a_record.windows_fqdn.fqdn,"/\\W*$/","")
@@ -50,4 +53,7 @@ output windows_new_os_version_available {
 }
 output windows_os_version {
     value                      = module.windows_vm.os_version
+}
+output windows_vm_id {
+    value                      = module.windows_vm.vm_id
 }

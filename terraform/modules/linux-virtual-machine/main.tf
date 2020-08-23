@@ -2,7 +2,6 @@ locals {
   client_config                = map(
     "gitemail",                  var.git_email,
     "gitname",                   var.git_name,
-    "environmentscripturl",      local.environment_script_url,
     "workspace",                 terraform.workspace
   )
 
@@ -15,9 +14,13 @@ locals {
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
-  # Hide dependency on script blobs, so we prevent VM re-creation if script changes
-  environment_filename         = "environment"
-  environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}.ps1"
+  environment_variables        = merge(
+    var.environment_variables,
+    map(
+      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
+      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
+    )
+  )
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.name}"
   vm_computer_name             = substr(lower(replace(local.vm_name,"-","")),0,15)
@@ -182,6 +185,18 @@ resource null_resource linux_bootstrap {
       "sudo apt-get -y install curl", 
       "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash"
     ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  provisioner "file" {
+    content                    = templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables)
+    destination                = "/home/${var.user_name}/.config/powershell/environment.ps1"
 
     connection {
       type                     = "ssh"

@@ -16,6 +16,14 @@ locals {
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
+  environment_variables        = merge(
+    var.environment_variables,
+    map(
+      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
+      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
+    )
+  )
+
   # Hide dependency on script blobs, so we prevent VM re-creation if script changes
   environment_filename         = "environment"
   environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}.ps1"
@@ -134,16 +142,6 @@ resource azurerm_storage_blob setup_windows_vm_ps1 {
   type                         = "Block"
   # Use source_content to trigger change when file changes
   source_content               = file("${path.module}/scripts/host/${local.script_filename}.ps1")
-}
-
-locals {
-  environment_variables        = merge(
-    var.environment_variables,
-    map(
-      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
-    )
-  )
 }
 
 resource azurerm_storage_blob environment_ps1 {
