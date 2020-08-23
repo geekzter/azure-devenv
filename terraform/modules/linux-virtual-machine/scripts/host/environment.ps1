@@ -10,5 +10,5 @@ $env:ARM_SUBSCRIPTION_ID="${arm_subscription_id}"
 $env:ARM_TENANT_ID="${arm_tenant_id}"
 $loginError = $(az account show -o none 2>&1)
 if (!$loginError) {
-    $env:ARM_ACCESS_KEY=$(az storage account keys list -n $env:TF_VAR_backend_storage_account -g $env:TF_VAR_backend_resource_group --subscription $env:ARM_SUBSCRIPTION_ID --query "[0].value" -o tsv)
+    $env:ARM_ACCESS_KEY=$(az storage account keys list -n $env:TF_VAR_backend_storage_account -g $env:TF_VAR_backend_resource_group --subscription ${arm_subscription_id} --query "[0].value" -o tsv)
 }

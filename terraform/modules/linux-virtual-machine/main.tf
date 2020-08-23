@@ -206,6 +206,31 @@ resource null_resource linux_bootstrap {
     }
   }
 
+  provisioner "file" {
+    source                     = "${path.module}/scripts/host/setup_linux_vm.ps1"
+    destination                = "/home/${var.user_name}/.config/powershell/setup_linux_vm.ps1"
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  provisioner remote-exec {
+    inline                     = [
+      "pwsh -nop -file ~/.config/powershell/setup_linux_vm.ps1"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
   depends_on                   = [azurerm_linux_virtual_machine.vm,azurerm_network_interface_security_group_association.nic_nsg,null_resource.start_vm]
 }
 

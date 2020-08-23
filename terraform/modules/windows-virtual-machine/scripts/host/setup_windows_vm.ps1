@@ -1,6 +1,6 @@
 <# 
 .SYNOPSIS 
-    Script used to bootstrap Management server
+    Script used to bootstrap devevloper workstation
  
 .DESCRIPTION 
     This script is downloaded and executed during first logon
