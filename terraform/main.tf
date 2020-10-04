@@ -154,6 +154,7 @@ resource azurerm_storage_account automation_storage {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
+  allow_blob_public_access     = true
   enable_https_traffic_only    = true
 
   tags                         = local.tags

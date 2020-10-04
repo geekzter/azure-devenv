@@ -130,7 +130,7 @@ resource azurerm_storage_blob setup_windows_vm_cmd {
 
   type                         = "Block"
   source_content               = templatefile("${path.module}/scripts/host/${local.script_filename}.cmd", { 
-    scripturl                  = "${local.script_url}"
+    scripturl                  = local.script_url
   })
 }
 

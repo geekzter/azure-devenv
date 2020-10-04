@@ -6,6 +6,8 @@ $env:ASPNETCORE_ENVIRONMENT="Development"
 # Terraform environment variables
 $env:TF_VAR_backend_resource_group="${tf_backend_resource_group}"
 $env:TF_VAR_backend_storage_account="${tf_backend_storage_account}"
+#$env:ARM_PROVIDER_ENHANCED_VALIDATION="false"
+#$env:ARM_PROVIDER_STRICT="false"
 $env:ARM_SUBSCRIPTION_ID="${arm_subscription_id}"
 $env:ARM_TENANT_ID="${arm_tenant_id}"
 $loginError = $(az account show -o none 2>&1)

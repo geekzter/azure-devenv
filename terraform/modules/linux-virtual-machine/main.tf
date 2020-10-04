@@ -183,7 +183,8 @@ resource null_resource linux_bootstrap {
     inline                     = [
       "echo ${var.user_password} | sudo -S apt-get update -y",
       "sudo apt-get -y install curl", 
-      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash"
+      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash",
+      "mkdir ~/.config/powershell 2>/dev/null"
     ]
 
     connection {
