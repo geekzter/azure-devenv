@@ -1,3 +1,6 @@
+output name {
+    value                      = azurerm_windows_virtual_machine.vm.name
+}
 output os_sku {
     value                      = data.external.image_info.result.sku
 }

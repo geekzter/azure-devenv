@@ -1,39 +1,19 @@
 locals {
-  dns_zone_name                = element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1)
-  dns_zone_rg                  = element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5)
+  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
+  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
+  short_resource_name          = "dev${local.suffix}"
   suffix                       = random_string.suffix.result
-  tags                         = map(
-      "application",             "Development Environment",
-      "environment",             "dev",
-      "provisioner",             "terraform",
-      "shutdown",                "true",
-      "suffix",                  local.suffix,
-      "workspace",               terraform.workspace
-  )
 }
 
 # Data sources
 data azurerm_client_config current {}
 
-data azurerm_resource_group development_resource_group {
-  name                         = var.development_resource_group
-}
-
-data azurerm_virtual_network development_network {
-  name                         = var.development_network
-  resource_group_name          = data.azurerm_resource_group.development_resource_group.name
-}
-
-data azurerm_subnet vm_subnet {
-  name                         = var.vm_subnet
-  virtual_network_name         = data.azurerm_virtual_network.development_network.name
-  resource_group_name          = data.azurerm_resource_group.development_resource_group.name
-}
-
 data azurerm_dns_zone dns {
   name                         = local.dns_zone_name
   resource_group_name          = local.dns_zone_rg
+
+  count                        = local.dns_zone_name != null ? 1: 0
 }
 
 data http localpublicip {
@@ -69,8 +49,15 @@ resource random_string password {
 
 resource azurerm_resource_group vm_resource_group {
   name                         = "dev-${terraform.workspace}-${local.suffix}"
-  location                     = data.azurerm_resource_group.development_resource_group.location
-  tags                         = local.tags
+  location                     = var.locations[0]
+  tags                         = map(
+      "application",             "Development Environment",
+      "environment",             "dev",
+      "provisioner",             "terraform",
+      "shutdown",                "true",
+      "suffix",                  local.suffix,
+      "workspace",               terraform.workspace
+  )
 }
 
 resource azurerm_role_assignment vm_admin {
@@ -81,6 +68,28 @@ resource azurerm_role_assignment vm_admin {
   count                        = var.admin_object_id != null ? 1 : 0
 }
 
+resource azurerm_virtual_network development_network {
+  name                         = "${azurerm_resource_group.vm_resource_group.name}-${each.value}-network"
+  location                     = each.value
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  address_space                = ["10.1.0.0/16"]
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_subnet vm_subnet {
+  name                         = "VirtualMachines"
+  virtual_network_name         = azurerm_virtual_network.development_network[each.key].name
+  resource_group_name          = azurerm_virtual_network.development_network[each.key].resource_group_name
+  address_prefixes             = ["10.1.1.0/24"]
+  service_endpoints            = [
+                                  "Microsoft.KeyVault",
+  ]
+
+  for_each                     = toset(var.locations)
+}
+
 resource azurerm_key_vault vault {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-vault"
   location                     = azurerm_resource_group.vm_resource_group.location
@@ -88,9 +97,9 @@ resource azurerm_key_vault vault {
   tenant_id                    = data.azurerm_client_config.current.tenant_id
 
   enabled_for_disk_encryption  = true
-  purge_protection_enabled     = true
+  purge_protection_enabled     = false
   sku_name                     = "premium"
-  soft_delete_enabled          = true
+  soft_delete_enabled          = false
 
   # Grant access to self
   access_policy {
@@ -139,25 +148,23 @@ resource azurerm_key_vault vault {
     ip_rules                   = [
                                   jsondecode(chomp(data.http.localpublicprefix.body)).data.prefix
     ]
-    virtual_network_subnet_ids = [
-                                  data.azurerm_subnet.vm_subnet.id
-    ]
+    virtual_network_subnet_ids = [for subnet in azurerm_subnet.vm_subnet : subnet.id]
   }
 
-  tags                         = local.tags
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 resource azurerm_storage_account automation_storage {
-  name                         = "${lower(replace(data.azurerm_resource_group.development_resource_group.name,"-",""))}${local.suffix}aut"
-  location                     = data.azurerm_resource_group.development_resource_group.location
-  resource_group_name          = data.azurerm_resource_group.development_resource_group.name
+  name                         = "${lower(replace(azurerm_resource_group.vm_resource_group.name,"-",""))}${local.suffix}aut"
+  location                     = azurerm_resource_group.vm_resource_group.location
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
   allow_blob_public_access     = true
   enable_https_traffic_only    = true
 
-  tags                         = local.tags
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 resource azurerm_storage_container scripts {
@@ -167,15 +174,17 @@ resource azurerm_storage_container scripts {
 }
 
 resource azurerm_storage_account diagnostics_storage {
-  name                         = "${lower(replace(data.azurerm_resource_group.development_resource_group.name,"-",""))}${local.suffix}diag"
-  location                     = data.azurerm_resource_group.development_resource_group.location
-  resource_group_name          = data.azurerm_resource_group.development_resource_group.name
+  name                         = "${local.short_resource_name}${each.value}diag"
+  location                     = each.value
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
   enable_https_traffic_only    = true
 
-  tags                         = local.tags
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
 }
 
 module linux_vm {
@@ -184,17 +193,19 @@ module linux_vm {
   aad_login                    = true
   user_name                    = var.admin_username
   user_password                = local.password
+  bootstrap                    = var.linux_bootstrap
   dependency_monitor           = true
   diagnostics                  = true
   disk_encryption              = false
-  diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage.id
+  diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage[each.value].id
   enable_accelerated_networking = false
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
+  location                     = each.value
   log_analytics_workspace_id   = var.log_analytics_workspace_id
-  name                         = "lindev"
+  moniker                      = "l"
   network_watcher              = true
   os_offer                     = var.linux_os_offer
   os_publisher                 = var.linux_os_publisher
@@ -204,9 +215,10 @@ module linux_vm {
   ssh_public_key               = var.ssh_public_key
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   vm_size                      = var.linux_vm_size
-  vm_subnet_id                 = data.azurerm_subnet.vm_subnet.id
+  vm_subnet_id                 = azurerm_subnet.vm_subnet[each.key].id
 
-  tags                         = local.tags
+  for_each                     = toset(var.locations)
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 module windows_vm {
@@ -219,46 +231,47 @@ module windows_vm {
   dependency_monitor           = true
   diagnostics                  = true
   disk_encryption              = false
-  diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage.id
+  diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage[each.value].id
   enable_accelerated_networking = true
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
+  location                     = each.value
   log_analytics_workspace_id   = var.log_analytics_workspace_id
-  name                         = "windev"
+  moniker                      = "w"
   network_watcher              = true
   os_sku_match                 = var.windows_sku_match
   os_version                   = var.windows_os_version
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   vm_size                      = var.windows_vm_size
-  vm_subnet_id                 = data.azurerm_subnet.vm_subnet.id
+  vm_subnet_id                 = azurerm_subnet.vm_subnet[each.key].id
 
-  tags                         = local.tags
-}
-
-locals {
-  linux_vm_name                = element(split("/",module.linux_vm.vm_id),length(split("/",module.linux_vm.vm_id))-1)
-  windows_vm_name              = element(split("/",module.windows_vm.vm_id),length(split("/",module.windows_vm.vm_id))-1)
-}
-
-resource azurerm_dns_a_record windows_fqdn {
-  name                         = local.windows_vm_name
-  zone_name                    = data.azurerm_dns_zone.dns.name
-  resource_group_name          = data.azurerm_dns_zone.dns.resource_group_name
-  ttl                          = 300
-  target_resource_id           = module.windows_vm.public_ip_id
-
-  tags                         = local.tags
+  for_each                     = toset(var.locations)
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 resource azurerm_dns_a_record linux_fqdn {
-  name                         = local.linux_vm_name
-  zone_name                    = data.azurerm_dns_zone.dns.name
-  resource_group_name          = data.azurerm_dns_zone.dns.resource_group_name
+  name                         = replace(each.value.name,"-${local.suffix}","") # Canonical name
+  zone_name                    = data.azurerm_dns_zone.dns.0.name
+  resource_group_name          = data.azurerm_dns_zone.dns.0.resource_group_name
   ttl                          = 300
-  target_resource_id           = module.linux_vm.public_ip_id
+  target_resource_id           = each.value.public_ip_id
 
-  tags                         = local.tags
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = local.dns_zone_name != null ? module.linux_vm : null
+}
+
+resource azurerm_dns_a_record windows_fqdn {
+  name                         = replace(each.value.name,"-${local.suffix}","") # Canonical name
+  zone_name                    = data.azurerm_dns_zone.dns.0.name
+  resource_group_name          = data.azurerm_dns_zone.dns.0.resource_group_name
+  ttl                          = 300
+  target_resource_id           = each.value.public_ip_id
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = local.dns_zone_name != null ? module.windows_vm : null
 }

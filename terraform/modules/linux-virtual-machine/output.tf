@@ -1,3 +1,6 @@
+output name {
+    value                      = local.vm_name
+}
 output os_sku {
     value                      = data.external.image_info.result.sku
 }

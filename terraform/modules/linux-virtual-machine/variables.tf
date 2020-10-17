@@ -6,6 +6,10 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
+variable bootstrap {
+    type                       = bool
+    default                    = false
+}
 variable diagnostics {
     type                       = bool
     default                    = false
@@ -25,8 +29,9 @@ variable environment_variables {
 variable git_email {}
 variable git_name {}
 variable key_vault_id {}
+variable location {}
 variable log_analytics_workspace_id {}
-variable name {}
+variable moniker {}
 variable network_watcher {
     type                       = bool
     default                    = false

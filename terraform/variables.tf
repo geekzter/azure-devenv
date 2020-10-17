@@ -26,6 +26,10 @@ variable environment_variables {
 } 
 variable git_email {}
 variable git_name {}
+variable linux_bootstrap {
+    type                       = bool
+    default                    = false
+}
 variable linux_os_offer {
   default                      = "UbuntuServer"
 }
@@ -42,6 +46,10 @@ variable linux_vm_size {
   default                      = "Standard_D2s_v3"
 }
 
+variable locations {
+  type                         = list
+  default                      = ["westeurope"]
+}
 variable log_analytics_workspace_id {}
 
 variable ssh_public_key {

@@ -22,7 +22,7 @@ locals {
     )
   )
 
-  vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.name}"
+  vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
   vm_computer_name             = substr(lower(replace(local.vm_name,"-","")),0,15)
 }
 
@@ -47,19 +47,28 @@ data azurerm_log_analytics_workspace monitor {
   resource_group_name          = local.log_analytics_workspace_rg
 }
 
+resource random_string pip_domain_name_label {
+  length                      = 16
+  upper                       = false
+  lower                       = true
+  number                      = false
+  special                     = false
+}
+
 resource azurerm_public_ip pip {
-  name                         = "${local.vm_name}-pip"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  name                         = "${local.vm_name}-pip-nic"
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
   allocation_method            = "Static"
   sku                          = "Standard"
+  domain_name_label            = random_string.pip_domain_name_label.result
 
   tags                         = var.tags
 }
 
 resource azurerm_network_interface nic {
   name                         = "${local.vm_name}-nic"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   ip_configuration {
@@ -74,8 +83,8 @@ resource azurerm_network_interface nic {
 }
 
 resource azurerm_network_security_group nsg {
-  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-linux-nsg"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-linux-nsg"
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   security_rule {
@@ -125,7 +134,7 @@ locals {
 
 resource azurerm_linux_virtual_machine vm {
   name                         = local.vm_name
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
   size                         = var.vm_size
   admin_username               = var.user_name
@@ -165,74 +174,6 @@ resource null_resource start_vm {
     # Start VM, so we can execute script through SSH
     command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
   }
-}
-
-resource null_resource linux_bootstrap {
-  # Always run this
-  triggers                     = {
-    always_run                 = timestamp()
-  }
-
-  provisioner local-exec {
-    # Start VM, so we can execute script through SSH
-    command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
-  }
-
-  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
-  provisioner remote-exec {
-    inline                     = [
-      "echo ${var.user_password} | sudo -S apt-get update -y",
-      "sudo apt-get -y install curl", 
-      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash",
-      "mkdir ~/.config/powershell 2>/dev/null"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner "file" {
-    content                    = templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables)
-    destination                = "/home/${var.user_name}/.config/powershell/environment.ps1"
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner "file" {
-    source                     = "${path.module}/scripts/host/setup_linux_vm.ps1"
-    destination                = "/home/${var.user_name}/.config/powershell/setup_linux_vm.ps1"
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner remote-exec {
-    inline                     = [
-      "pwsh -nop -file ~/.config/powershell/setup_linux_vm.ps1"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  depends_on                   = [azurerm_linux_virtual_machine.vm,azurerm_network_interface_security_group_association.nic_nsg,null_resource.start_vm]
 }
 
 /*
@@ -437,4 +378,72 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   # azurerm_virtual_machine_extension.vm_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
+}
+
+resource time_rotating update_rotation {
+  rotation_days                = 7
+}
+
+resource null_resource linux_bootstrap {
+  triggers                     = {
+    # always                     = timestamp()
+    rotation                   = time_rotating.update_rotation.day
+  }
+
+  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
+  provisioner remote-exec {
+    inline                     = [
+      "echo ${var.user_password} | sudo -S apt-get update -y",
+      "sudo apt-get -y install curl", 
+      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash",
+      "mkdir ~/.config/powershell 2>/dev/null"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  provisioner "file" {
+    content                    = templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables)
+    destination                = "/home/${var.user_name}/.config/powershell/environment.ps1"
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  provisioner "file" {
+    source                     = "${path.module}/scripts/host/setup_linux_vm.ps1"
+    destination                = "/home/${var.user_name}/.config/powershell/setup_linux_vm.ps1"
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  provisioner remote-exec {
+    inline                     = [
+      "pwsh -nop -file ~/.config/powershell/setup_linux_vm.ps1"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  count                        = var.bootstrap ? 1 : 0
+  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg,azurerm_monitor_diagnostic_setting.vm]
 }

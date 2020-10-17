@@ -26,11 +26,11 @@ locals {
 
   # Hide dependency on script blobs, so we prevent VM re-creation if script changes
   environment_filename         = "environment"
-  environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}.ps1"
+  environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}_${var.location}.ps1"
   script_filename              = "setup_windows_vm"
-  script_url                   = "${var.scripts_container_id}/${local.script_filename}.ps1"
+  script_url                   = "${var.scripts_container_id}/${local.script_filename}_${var.location}.ps1"
 
-  vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.name}"
+  vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
   vm_computer_name             = substr(lower(replace(local.vm_name,"-","")),0,15)
 }
 
@@ -73,7 +73,7 @@ resource random_string pip_domain_name_label {
 
 resource azurerm_public_ip vm_pip {
   name                         = "${local.vm_name}-pip"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
   allocation_method            = "Static"
   sku                          = "Standard"
@@ -84,7 +84,7 @@ resource azurerm_public_ip vm_pip {
 
 resource azurerm_network_interface vm_if {
   name                         = "${local.vm_name}-if"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   ip_configuration {
@@ -99,8 +99,8 @@ resource azurerm_network_interface vm_if {
 }
 
 resource azurerm_network_security_group vm_nsg {
-  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-windows-nsg"
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-windows-nsg"
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
   security_rule {
@@ -124,7 +124,7 @@ resource azurerm_network_interface_security_group_association vm_nic_nsg {
 }
 
 resource azurerm_storage_blob setup_windows_vm_cmd {
-  name                         = "${local.script_filename}.cmd"
+  name                         = "${local.script_filename}_${var.location}.cmd"
   storage_account_name         = local.scripts_storage_name
   storage_container_name       = local.scripts_container_name
 
@@ -135,7 +135,7 @@ resource azurerm_storage_blob setup_windows_vm_cmd {
 }
 
 resource azurerm_storage_blob setup_windows_vm_ps1 {
-  name                         = "${local.script_filename}.ps1"
+  name                         = "${local.script_filename}_${var.location}.ps1"
   storage_account_name         = local.scripts_storage_name
   storage_container_name       = local.scripts_container_name
 
@@ -145,7 +145,7 @@ resource azurerm_storage_blob setup_windows_vm_ps1 {
 }
 
 resource azurerm_storage_blob environment_ps1 {
-  name                         = "${local.environment_filename}.ps1"
+  name                         = "${local.environment_filename}_${var.location}.ps1"
   storage_account_name         = local.scripts_storage_name
   storage_container_name       = local.scripts_container_name
 
@@ -198,7 +198,7 @@ locals {
 
 resource azurerm_windows_virtual_machine vm {
   name                         = local.vm_name
-  location                     = data.azurerm_resource_group.vm_resource_group.location
+  location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
   network_interface_ids        = [azurerm_network_interface.vm_if.id]
   size                         = var.vm_size
