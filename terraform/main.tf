@@ -1,4 +1,5 @@
 locals {
+  address_space                = "10.16.0.0/12"
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
@@ -72,7 +73,7 @@ resource azurerm_virtual_network development_network {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-${each.value}-network"
   location                     = each.value
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  address_space                = ["10.1.0.0/16"]
+  address_space                = [cidrsubnet(local.address_space,4,index(var.locations,each.value))]
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
   for_each                     = toset(var.locations)
@@ -82,7 +83,7 @@ resource azurerm_subnet vm_subnet {
   name                         = "VirtualMachines"
   virtual_network_name         = azurerm_virtual_network.development_network[each.key].name
   resource_group_name          = azurerm_virtual_network.development_network[each.key].resource_group_name
-  address_prefixes             = ["10.1.1.0/24"]
+  address_prefixes             = [cidrsubnet(azurerm_virtual_network.development_network[each.value].address_space[0],8,1)]
   service_endpoints            = [
                                   "Microsoft.KeyVault",
   ]
