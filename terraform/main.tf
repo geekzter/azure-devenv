@@ -3,6 +3,7 @@ locals {
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
+  peering_pairs                = [for pair in setproduct(var.locations,var.locations) : pair if pair[0] != pair[1]]
   short_resource_name          = "dev${local.suffix}"
   suffix                       = random_string.suffix.result
 }
@@ -89,6 +90,20 @@ resource azurerm_subnet vm_subnet {
   ]
 
   for_each                     = toset(var.locations)
+}
+
+resource azurerm_virtual_network_peering global_peering {
+  name                         = "${azurerm_virtual_network.development_network[local.peering_pairs[count.index][0]].name}-${local.peering_pairs[count.index][1]}-peering"
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  virtual_network_name         = azurerm_virtual_network.development_network[local.peering_pairs[count.index][0]].name
+  remote_virtual_network_id    = azurerm_virtual_network.development_network[local.peering_pairs[count.index][1]].id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+
+  # Must be set to false for Global Peering
+  allow_gateway_transit        = false
+
+  count                        = var.global_vnet_peering ? length(local.peering_pairs) : 0
 }
 
 resource azurerm_key_vault vault {

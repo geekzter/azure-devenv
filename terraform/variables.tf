@@ -26,6 +26,10 @@ variable environment_variables {
 } 
 variable git_email {}
 variable git_name {}
+variable global_vnet_peering {
+    type                       = bool
+    default                    = true
+}
 variable linux_bootstrap {
     type                       = bool
     default                    = false
