@@ -11,13 +11,6 @@ locals {
 # Data sources
 data azurerm_client_config current {}
 
-data azurerm_dns_zone dns {
-  name                         = local.dns_zone_name
-  resource_group_name          = local.dns_zone_rg
-
-  count                        = local.dns_zone_name != null ? 1: 0
-}
-
 data http localpublicip {
 # Get public IP address of the machine running this terraform template
   url                          = "http://ipinfo.io/ip"
@@ -266,6 +259,81 @@ module windows_vm {
 
   for_each                     = toset(var.locations)
   tags                         = azurerm_resource_group.vm_resource_group.tags
+}
+
+# Private DNS
+resource azurerm_private_dns_zone internal_dns {
+  name                         = "dev.internal"
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+}
+
+resource azurerm_private_dns_zone_virtual_network_link internal_link {
+  name                         = "${azurerm_virtual_network.development_network[each.key].name}-internal-link"
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
+  virtual_network_id           = azurerm_virtual_network.development_network[each.key].id
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_private_dns_a_record linux_vm_computer_name {
+  name                         = module.linux_vm[each.key].computer_name
+  zone_name                    = azurerm_private_dns_zone.internal_dns.name
+  resource_group_name          = azurerm_private_dns_zone.internal_dns.resource_group_name
+  ttl                          = 300
+  records                      = [module.linux_vm[each.key].private_ip_address]
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_private_dns_a_record linux_vm_name {
+  name                         = module.linux_vm[each.key].name
+  zone_name                    = azurerm_private_dns_zone.internal_dns.name
+  resource_group_name          = azurerm_private_dns_zone.internal_dns.resource_group_name
+  ttl                          = 300
+  records                      = [module.linux_vm[each.key].private_ip_address]
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_private_dns_a_record windows_vm_computer_name {
+  name                         = module.windows_vm[each.key].computer_name
+  zone_name                    = azurerm_private_dns_zone.internal_dns.name
+  resource_group_name          = azurerm_private_dns_zone.internal_dns.resource_group_name
+  ttl                          = 300
+  records                      = [module.windows_vm[each.key].private_ip_address]
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_private_dns_a_record windows_vm_name {
+  name                         = module.windows_vm[each.key].name
+  zone_name                    = azurerm_private_dns_zone.internal_dns.name
+  resource_group_name          = azurerm_private_dns_zone.internal_dns.resource_group_name
+  ttl                          = 300
+  records                      = [module.windows_vm[each.key].private_ip_address]
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  for_each                     = toset(var.locations)
+}
+
+# Public DNS
+data azurerm_dns_zone dns {
+  name                         = local.dns_zone_name
+  resource_group_name          = local.dns_zone_rg
+
+  count                        = local.dns_zone_name != null ? 1: 0
 }
 
 resource azurerm_dns_a_record linux_fqdn {

@@ -23,7 +23,7 @@ locals {
   )
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
-  vm_computer_name             = substr(lower(replace(local.vm_name,"-","")),0,15)
+  vm_computer_name             = substr(lower(replace("linux${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
 
 data azurerm_client_config current {}

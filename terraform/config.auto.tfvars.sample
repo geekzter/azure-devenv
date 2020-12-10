@@ -5,8 +5,9 @@ git_name                       = "John Doe"
 log_analytics_workspace_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/shared/providers/microsoft.operationalinsights/workspaces/loganalytics"
 linux_os_offer                 = "UbuntuServer"
 linux_os_publisher             = "Canonical"
-linux_os_version               = "18.04.202007290"
-linux_sku                      = "18.04-LTS"
-windows_os_version             = "18363.836.2005082047"
-windows_sku_match              = "19h2-ent-g2"
+linux_os_sku                   = "18.04-LTS"
+linux_os_version               = "18.04.202012010"
+locations                      = ["westeurope","northeurope"]
+windows_sku_match              = "20h2-ent-g2"
+windows_os_version             = "19041.572.2010091946"
 

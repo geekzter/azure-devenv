@@ -1,6 +1,6 @@
 # Microsoft Azure Resource Manager Provider
 provider "azurerm" {
-    version = "~> 2.19"
+    version = ">= 2.19"
     features {
         virtual_machine {
             # Don't do this in production
