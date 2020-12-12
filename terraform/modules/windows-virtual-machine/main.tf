@@ -466,3 +466,11 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
 }
+
+resource local_file rdp_file {
+  content                      = templatefile("${path.module}/rdp.tpl",
+  {
+    host                       = azurerm_public_ip.vm_pip.ip_address
+  })
+  filename                     = "${path.root}/../${azurerm_windows_virtual_machine.vm.name}.rdp"
+}

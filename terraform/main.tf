@@ -199,14 +199,15 @@ resource azurerm_storage_account diagnostics_storage {
 module linux_vm {
   source                       = "./modules/linux-virtual-machine"
 
-  aad_login                    = true
   user_name                    = var.admin_username
   user_password                = local.password
   bootstrap                    = var.linux_bootstrap
   dependency_monitor           = true
+  domain                       = var.vm_domain
   diagnostics                  = true
   disk_encryption              = false
   diagnostics_storage_id       = azurerm_storage_account.diagnostics_storage[each.value].id
+  enable_aad_login             = false
   enable_accelerated_networking = false
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
@@ -263,7 +264,7 @@ module windows_vm {
 
 # Private DNS
 resource azurerm_private_dns_zone internal_dns {
-  name                         = "dev.internal"
+  name                         = var.vm_domain
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
 
   tags                         = azurerm_resource_group.vm_resource_group.tags

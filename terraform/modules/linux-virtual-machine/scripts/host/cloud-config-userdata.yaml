@@ -1,0 +1,113 @@
+#cloud-config
+bootcmd:
+  # Get apt repository signing keys
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0    # GitHub
+  - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -                  # Helm
+  - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add # Kubernetes
+  - curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - # Microsoft
+
+apt:
+  sources:
+    git-core:
+      source: "ppa:git-core/ppa"
+    github:
+      source: "deb-src https://cli.github.com/packages bionic main"
+    helm-stable-debian.list:
+      source: "deb https://baltocdn.com/helm/stable/debian/ all main"
+    kubernetes.list:
+      source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+    azure-cli.list:
+      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bionic main"
+    microsoft-prod.list:
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
+
+package_update: true
+package_upgrade: true
+packages:
+  # Core
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - dirmngr
+  - gnupg
+  - lsb-release
+  - software-properties-common
+  - wget
+  # Tools
+  - ansible
+  - coreutils
+  - dnsutils
+  - docker
+  - dos2unix
+  - findutils
+  - fish
+  - fuse
+  - git
+  - htop
+  - jq
+  - less
+  - man
+  - mc
+  - nano
+  - nmap
+  - node-typescript
+  - sed
+  - snapd
+  - telnet
+  - tmux
+  - traceroute
+  - tree
+  - unixodbc-dev
+  - unzip
+  - whois
+  # Services
+  - dnsmasq
+  # GitHub
+  # - gh
+  # Kubernetes
+  - helm
+  - kubectl
+  # Microsoft
+  - azure-cli
+  - azure-functions-core-tools
+  - blobfuse
+  - dotnet-sdk-3.1
+  # - msodbcsql17
+  # - mssql-tools
+  - powershell
+
+write_files: 
+  # Configure dnsmasq
+  - path: /etc/resolv.conf.new
+    # Azure DNS
+    content: |
+      # This file has been created by Terraform -> cloud-config 
+      nameserver 127.0.0.1
+      options trust-ad
+      search ${nic_domain_suffix}
+      search ${domain_suffix}
+  - path: /etc/dnsmasq.conf
+    content: |
+      # This file has been created by Terraform -> cloud-config 
+      listen-address=::1,127.0.0.1,127.0.0.53,${private_ip_address}
+      expand-hosts
+      no-resolv
+      server=168.63.129.16
+      #server=/${domain_suffix}/168.63.129.16
+
+runcmd:
+  # DNS: replace resolved with dnsmasq
+  - dnsmasq --test
+  - sudo systemctl disable systemd-resolved
+  - sudo systemctl stop systemd-resolved
+  - sudo systemctl start dnsmasq.service
+  - sudo cp /etc/resolv.conf /etc/resolv.backup
+  - sudo rm /etc/resolv.conf
+  - sudo cp /etc/resolv.conf.new /etc/resolv.conf
+  - sudo chattr +i /etc/resolv.conf # Mark immutable to prevent NetworkManager from making changes
+  - sudo systemctl restart dnsmasq.service
+  # Microsoft packages
+  - sudo ACCEPT_EULA=Y apt install msodbcsql17 -y
+  - sudo ACCEPT_EULA=Y apt install mssql-tools -y
+
+final_message: "${host_name} is up after $UPTIME seconds"

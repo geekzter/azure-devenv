@@ -1,7 +1,3 @@
-variable aad_login {
-    type                       = bool
-    default                    = false
-}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -10,6 +6,7 @@ variable bootstrap {
     type                       = bool
     default                    = false
 }
+variable domain {}
 variable diagnostics {
     type                       = bool
     default                    = false
@@ -19,6 +16,10 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
+variable enable_aad_login {
+    type                       = bool
+    default                    = false
+}
 variable enable_accelerated_networking {
     type                       = bool
     default                    = false

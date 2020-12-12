@@ -132,6 +132,25 @@ locals {
   os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
 }
 
+# TODO: Use Cloud Init
+data cloudinit_config user_data {
+  gzip                         = false
+  base64_encode                = true
+
+  part {
+    content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",
+    {
+      domain_suffix            = var.domain
+      host_name                = local.vm_computer_name
+      nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
+      private_ip_address       = azurerm_network_interface.nic.private_ip_address
+    })
+    content_type               = "text/cloud-config"
+  }
+
+  #merge_type                   = "list(append)+dict(recurse_array)+str()"
+}
+
 resource azurerm_linux_virtual_machine vm {
   name                         = local.vm_name
   location                     = var.location
@@ -142,6 +161,11 @@ resource azurerm_linux_virtual_machine vm {
   disable_password_authentication = false
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.vm_computer_name
+  custom_data                  = data.cloudinit_config.user_data.rendered
+
+  boot_diagnostics {
+    storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
+  }
 
   admin_ssh_key {
     username                   = var.user_name
@@ -211,11 +235,12 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
 
-  count                        = var.aad_login ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm
                                  ]
+
+  count                        = var.enable_aad_login ? 1 : 0
 } 
 
 /*
@@ -378,6 +403,30 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   # azurerm_virtual_machine_extension.vm_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
+}
+
+resource null_resource cloud_config_output {
+  triggers                     = {
+    # always                     = timestamp()
+    vm                         = azurerm_linux_virtual_machine.vm.id
+  }
+
+  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
+  provisioner remote-exec {
+    inline                     = [
+      "systemctl status cloud-final.service --no-pager -l"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  # count                        = var.bootstrap ? 1 : 0
+  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg,azurerm_monitor_diagnostic_setting.vm]
 }
 
 resource time_rotating update_rotation {

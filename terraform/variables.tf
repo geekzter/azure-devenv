@@ -68,6 +68,9 @@ variable windows_os_version {
 variable windows_vm_size {
   default                      = "Standard_D4s_v3"
 }
+variable vm_domain {
+  default                      = "dev.internal"
+}
 variable vm_subnet {
   default                      = "default"
 }

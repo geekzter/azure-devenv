@@ -1,0 +1,6 @@
+
+# Ignore generated RDP files
+*.rdp
+
+# Ignore temporary files
+tmp*.*
