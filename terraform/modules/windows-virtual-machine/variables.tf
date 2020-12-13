@@ -21,6 +21,7 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
+variable dns_zone_id {}
 variable enable_accelerated_networking {
     type                       = bool
     default                    = false
@@ -44,6 +45,7 @@ variable os_sku_match {
 variable os_version {
     default                    = "latest"
 }
+variable private_dns_zone {}
 variable resource_group_name {}
 variable scripts_container_id {}
 variable tags {}

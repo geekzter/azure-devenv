@@ -1,5 +1,5 @@
 output computer_name {
-    value                      = local.vm_computer_name
+    value                      = local.computer_name
 }
 output name {
     value                      = local.vm_name
@@ -26,7 +26,7 @@ output public_ip_address {
     value                      = azurerm_public_ip.pip.ip_address
 }
 output public_fqdn {
-    value                      = azurerm_public_ip.pip.fqdn
+    value                      = local.dns_zone_name != null ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
 }
 output vm_id {
     value                      = azurerm_linux_virtual_machine.vm.id

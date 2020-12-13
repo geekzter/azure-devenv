@@ -9,6 +9,8 @@ locals {
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
+  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
+  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
   log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
@@ -31,7 +33,7 @@ locals {
   script_url                   = "${var.scripts_container_id}/${local.script_filename}_${var.location}.ps1"
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
-  vm_computer_name             = substr(lower(replace("windows${var.location}","/a|e|i|o|u|y/","")),0,15)
+  computer_name                = substr(lower(replace("windows${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
 
 data azurerm_client_config current {}
@@ -58,7 +60,7 @@ data azurerm_log_analytics_workspace monitor {
 resource time_static vm_update {
   triggers = {
     # Save the time each switch of an VM NIC
-    vm_if_id                   = azurerm_network_interface.vm_if.id
+    nic_id                   = azurerm_network_interface.nic.id
     vm_id                      = azurerm_windows_virtual_machine.vm.id
   }
 }
@@ -71,7 +73,7 @@ resource random_string pip_domain_name_label {
   special                     = false
 }
 
-resource azurerm_public_ip vm_pip {
+resource azurerm_public_ip pip {
   name                         = "${local.vm_name}-pip"
   location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
@@ -82,7 +84,20 @@ resource azurerm_public_ip vm_pip {
   tags                         = var.tags
 }
 
-resource azurerm_network_interface vm_if {
+# Public DNS
+resource azurerm_dns_a_record fqdn {
+  name                         = replace(local.vm_name,"-${var.tags["suffix"]}","") # Canonical name
+  zone_name                    = local.dns_zone_name
+  resource_group_name          = local.dns_zone_rg
+  ttl                          = 300
+  target_resource_id           = azurerm_public_ip.pip.id
+
+  tags                         = var.tags
+
+  count                        = local.dns_zone_name != null ? 1 : 0
+}
+
+resource azurerm_network_interface nic {
   name                         = "${local.vm_name}-if"
   location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
@@ -90,10 +105,30 @@ resource azurerm_network_interface vm_if {
   ip_configuration {
     name                       = "vm_ipconfig"
     subnet_id                  = var.vm_subnet_id
-    public_ip_address_id       = azurerm_public_ip.vm_pip.id
+    public_ip_address_id       = azurerm_public_ip.pip.id
     private_ip_address_allocation = "dynamic"
   }
   enable_accelerated_networking = var.enable_accelerated_networking
+
+  tags                         = var.tags
+}
+
+# Private DNS
+resource azurerm_private_dns_a_record computer_name {
+  name                         = local.computer_name
+  zone_name                    = var.private_dns_zone
+  resource_group_name          = var.resource_group_name
+  ttl                          = 300
+  records                      = [azurerm_network_interface.nic.private_ip_address]
+
+  tags                         = var.tags
+}
+resource azurerm_private_dns_a_record vm_name {
+  name                         = local.vm_name
+  zone_name                    = var.private_dns_zone
+  resource_group_name          = var.resource_group_name
+  ttl                          = 300
+  records                      = [azurerm_network_interface.nic.private_ip_address]
 
   tags                         = var.tags
 }
@@ -119,7 +154,7 @@ resource azurerm_network_security_group vm_nsg {
 }
 
 resource azurerm_network_interface_security_group_association vm_nic_nsg {
-  network_interface_id         = azurerm_network_interface.vm_if.id
+  network_interface_id         = azurerm_network_interface.nic.id
   network_security_group_id    = azurerm_network_security_group.vm_nsg.id
 }
 
@@ -200,11 +235,11 @@ resource azurerm_windows_virtual_machine vm {
   name                         = local.vm_name
   location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
-  network_interface_ids        = [azurerm_network_interface.vm_if.id]
+  network_interface_ids        = [azurerm_network_interface.nic.id]
   size                         = var.vm_size
   admin_username               = var.admin_username
   admin_password               = var.admin_password
-  computer_name                = local.vm_computer_name
+  computer_name                = local.computer_name
 
   os_disk {
     name                       = "${local.vm_name}-osdisk"
@@ -470,7 +505,7 @@ resource azurerm_monitor_diagnostic_setting vm {
 resource local_file rdp_file {
   content                      = templatefile("${path.module}/rdp.tpl",
   {
-    host                       = azurerm_public_ip.vm_pip.ip_address
+    host                       = azurerm_public_ip.pip.ip_address
   })
   filename                     = "${path.root}/../${azurerm_windows_virtual_machine.vm.name}.rdp"
 }

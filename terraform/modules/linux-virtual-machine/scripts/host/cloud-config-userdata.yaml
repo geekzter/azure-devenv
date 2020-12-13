@@ -2,6 +2,7 @@
 bootcmd:
   # Get apt repository signing keys
   - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0    # GitHub
+  - sudo apt-add-repository https://cli.github.com/packages
   - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -                  # Helm
   - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add # Kubernetes
   - curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - # Microsoft
@@ -10,8 +11,6 @@ apt:
   sources:
     git-core:
       source: "ppa:git-core/ppa"
-    github:
-      source: "deb-src https://cli.github.com/packages bionic main"
     helm-stable-debian.list:
       source: "deb https://baltocdn.com/helm/stable/debian/ all main"
     kubernetes.list:
@@ -28,7 +27,7 @@ packages:
   - apt-transport-https
   - ca-certificates
   - curl
-  - dirmngr
+  # - dirmngr
   - gnupg
   - lsb-release
   - software-properties-common
@@ -89,7 +88,7 @@ write_files:
   - path: /etc/dnsmasq.conf
     content: |
       # This file has been created by Terraform -> cloud-config 
-      listen-address=::1,127.0.0.1,127.0.0.53,${private_ip_address}
+      listen-address=::1,127.0.0.1,${private_ip_address}
       expand-hosts
       no-resolv
       server=168.63.129.16
@@ -111,3 +110,4 @@ runcmd:
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
 
 final_message: "${host_name} is up after $UPTIME seconds"
+

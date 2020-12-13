@@ -16,6 +16,7 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
+variable dns_zone_id {}
 variable enable_aad_login {
     type                       = bool
     default                    = false
@@ -49,6 +50,7 @@ variable os_sku {
 variable os_version {
     default                    = "latest"
 }
+variable private_dns_zone {}
 variable resource_group_name {}
 variable scripts_container_id {}
 variable ssh_public_key {}

@@ -15,8 +15,7 @@ output resource_group_name {
 }
 
 output linux_fqdn {
-    value                      = [for record in azurerm_dns_a_record.linux_fqdn : replace(record.fqdn,"/\\W*$/","")]
-    # value                      = [for record in azurerm_dns_a_record.linux_fqdn : replace("${record.name}.${record.zone_name}","/\\W*$/","")]
+    value                      = [for vm in module.linux_vm : vm.public_fqdn]
 }
 output linux_os_sku {
     value                      = [for vm in module.linux_vm : vm.os_sku]
@@ -38,8 +37,7 @@ output linux_vm_id {
 }
 
 output windows_fqdn {
-    value                      = [for record in azurerm_dns_a_record.windows_fqdn : replace(record.fqdn,"/\\W*$/","")]
-    # value                      = [for record in azurerm_dns_a_record.windows_fqdn : replace("${record.name}.${record.zone_name}","/\\W*$/","")]
+    value                      = [for vm in module.windows_vm : vm.public_fqdn]
 }
 output windows_os_sku {
     value                      = [for vm in module.windows_vm : vm.os_sku]

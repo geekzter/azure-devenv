@@ -7,6 +7,8 @@ locals {
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
+  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
+  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
   log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
@@ -23,7 +25,7 @@ locals {
   )
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
-  vm_computer_name             = substr(lower(replace("linux${var.location}","/a|e|i|o|u|y/","")),0,15)
+  computer_name                = substr(lower(replace("linux${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
 
 data azurerm_client_config current {}
@@ -66,6 +68,19 @@ resource azurerm_public_ip pip {
   tags                         = var.tags
 }
 
+# Public DNS
+resource azurerm_dns_a_record fqdn {
+  name                         = replace(local.vm_name,"-${var.tags["suffix"]}","") # Canonical name
+  zone_name                    = local.dns_zone_name
+  resource_group_name          = local.dns_zone_rg
+  ttl                          = 300
+  target_resource_id           = azurerm_public_ip.pip.id
+
+  tags                         = var.tags
+
+  count                        = local.dns_zone_name != null ? 1 : 0
+}
+
 resource azurerm_network_interface nic {
   name                         = "${local.vm_name}-nic"
   location                     = var.location
@@ -78,6 +93,26 @@ resource azurerm_network_interface nic {
     public_ip_address_id       = azurerm_public_ip.pip.id
   }
   enable_accelerated_networking = var.enable_accelerated_networking
+
+  tags                         = var.tags
+}
+
+# Private DNS
+resource azurerm_private_dns_a_record computer_name {
+  name                         = local.computer_name
+  zone_name                    = var.private_dns_zone
+  resource_group_name          = var.resource_group_name
+  ttl                          = 300
+  records                      = [azurerm_network_interface.nic.private_ip_address]
+
+  tags                         = var.tags
+}
+resource azurerm_private_dns_a_record vm_name {
+  name                         = local.vm_name
+  zone_name                    = var.private_dns_zone
+  resource_group_name          = var.resource_group_name
+  ttl                          = 300
+  records                      = [azurerm_network_interface.nic.private_ip_address]
 
   tags                         = var.tags
 }
@@ -132,7 +167,7 @@ locals {
   os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
 }
 
-# TODO: Use Cloud Init
+# Cloud Init
 data cloudinit_config user_data {
   gzip                         = false
   base64_encode                = true
@@ -141,7 +176,7 @@ data cloudinit_config user_data {
     content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",
     {
       domain_suffix            = var.domain
-      host_name                = local.vm_computer_name
+      host_name                = local.computer_name
       nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
       private_ip_address       = azurerm_network_interface.nic.private_ip_address
     })
@@ -160,7 +195,7 @@ resource azurerm_linux_virtual_machine vm {
   admin_password               = var.user_password
   disable_password_authentication = false
   network_interface_ids        = [azurerm_network_interface.nic.id]
-  computer_name                = local.vm_computer_name
+  computer_name                = local.computer_name
   custom_data                  = data.cloudinit_config.user_data.rendered
 
   boot_diagnostics {
@@ -185,7 +220,10 @@ resource azurerm_linux_virtual_machine vm {
   }
 
   tags                         = var.tags
-  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg]
+  depends_on                   = [
+    azurerm_private_dns_a_record.computer_name,
+    azurerm_network_interface_security_group_association.nic_nsg
+  ]
 }
 
 resource null_resource start_vm {
@@ -411,10 +449,10 @@ resource null_resource cloud_config_output {
     vm                         = azurerm_linux_virtual_machine.vm.id
   }
 
-  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
+  # Get cloud-init status, waiting for completion if needed
   provisioner remote-exec {
     inline                     = [
-      "systemctl status cloud-final.service --no-pager -l"
+      "systemctl status cloud-final.service --no-pager -l --wait"
     ]
 
     connection {
@@ -426,7 +464,10 @@ resource null_resource cloud_config_output {
   }
 
   # count                        = var.bootstrap ? 1 : 0
-  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg,azurerm_monitor_diagnostic_setting.vm]
+  depends_on                   = [
+    azurerm_network_interface_security_group_association.nic_nsg,
+    azurerm_monitor_diagnostic_setting.vm
+  ]
 }
 
 resource time_rotating update_rotation {
@@ -442,8 +483,8 @@ resource null_resource linux_bootstrap {
   # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
   provisioner remote-exec {
     inline                     = [
-      "echo ${var.user_password} | sudo -S apt-get update -y",
-      "sudo apt-get -y install curl", 
+      "echo ${var.user_password} | sudo -S apt update -y",
+      "sudo apt -y install curl", 
       "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash",
       "mkdir ~/.config/powershell 2>/dev/null"
     ]
@@ -494,5 +535,7 @@ resource null_resource linux_bootstrap {
   }
 
   count                        = var.bootstrap ? 1 : 0
-  depends_on                   = [azurerm_network_interface_security_group_association.nic_nsg,azurerm_monitor_diagnostic_setting.vm]
+  depends_on                   = [
+    null_resource.cloud_config_output
+  ]
 }
