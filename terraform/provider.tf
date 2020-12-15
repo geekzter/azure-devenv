@@ -8,6 +8,7 @@ terraform {
     null                       = "~> 2.1"
     random                     = "~> 2.3"
     time                       = "~> 0.6"
+    tls                        = "~> 2.2"
   }
   required_version             = "~> 0.13.0"
 }

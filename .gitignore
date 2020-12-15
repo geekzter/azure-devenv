@@ -4,3 +4,10 @@
 
 # Ignore temporary files
 tmp*.*
+
+# Ignore Certificates
+*.cer
+*.der
+*.p12
+*.pem
+*.pfx
