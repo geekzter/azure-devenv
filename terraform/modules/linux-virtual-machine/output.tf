@@ -1,3 +1,6 @@
+output cloud_config {
+    value                      = data.cloudinit_config.user_data.rendered
+}
 output computer_name {
     value                      = local.computer_name
 }

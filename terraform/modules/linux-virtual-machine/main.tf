@@ -170,16 +170,21 @@ locals {
 # Cloud Init
 data cloudinit_config user_data {
   gzip                         = false
-  base64_encode                = true
+  base64_encode                = false
 
   part {
-    content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",
+    content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",merge(
     {
       domain_suffix            = var.domain
+      environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       host_name                = local.computer_name
       nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
       private_ip_address       = azurerm_network_interface.nic.private_ip_address
-    })
+      setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
+      user_name                = var.user_name
+    },
+    local.environment_variables
+    ))
     content_type               = "text/cloud-config"
   }
 
@@ -196,7 +201,7 @@ resource azurerm_linux_virtual_machine vm {
   disable_password_authentication = false
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
-  custom_data                  = data.cloudinit_config.user_data.rendered
+  custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
 
   boot_diagnostics {
     storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
@@ -443,7 +448,7 @@ resource azurerm_monitor_diagnostic_setting vm {
   ]
 }
 
-resource null_resource cloud_config_output {
+resource null_resource cloud_config_status {
   triggers                     = {
     # always                     = timestamp()
     vm                         = azurerm_linux_virtual_machine.vm.id
@@ -452,6 +457,8 @@ resource null_resource cloud_config_output {
   # Get cloud-init status, waiting for completion if needed
   provisioner remote-exec {
     inline                     = [
+      "echo -n 'waiting for cloud-init to complete'",
+      "/usr/bin/cloud-init status -l --wait",
       "systemctl status cloud-final.service --no-pager -l --wait"
     ]
 
@@ -463,79 +470,8 @@ resource null_resource cloud_config_output {
     }
   }
 
-  # count                        = var.bootstrap ? 1 : 0
   depends_on                   = [
     azurerm_network_interface_security_group_association.nic_nsg,
     azurerm_monitor_diagnostic_setting.vm
-  ]
-}
-
-resource time_rotating update_rotation {
-  rotation_days                = 7
-}
-
-resource null_resource linux_bootstrap {
-  triggers                     = {
-    # always                     = timestamp()
-    rotation                   = time_rotating.update_rotation.day
-  }
-
-  # Bootstrap using https://github.com/geekzter/bootstrap-os/tree/master/linux
-  provisioner remote-exec {
-    inline                     = [
-      "echo ${var.user_password} | sudo -S apt update -y",
-      "sudo apt -y install curl", 
-      "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | bash",
-      "mkdir ~/.config/powershell 2>/dev/null"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner "file" {
-    content                    = templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables)
-    destination                = "/home/${var.user_name}/.config/powershell/environment.ps1"
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner "file" {
-    source                     = "${path.module}/scripts/host/setup_linux_vm.ps1"
-    destination                = "/home/${var.user_name}/.config/powershell/setup_linux_vm.ps1"
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  provisioner remote-exec {
-    inline                     = [
-      "pwsh -nop -file ~/.config/powershell/setup_linux_vm.ps1"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  count                        = var.bootstrap ? 1 : 0
-  depends_on                   = [
-    null_resource.cloud_config_output
   ]
 }

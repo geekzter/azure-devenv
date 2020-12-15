@@ -7,6 +7,11 @@ output admin_username {
     value                      = var.admin_username
 }
 
+output cloud_config {
+    sensitive                  = true
+    value                      = [for vm in module.linux_vm : vm.cloud_config]
+}
+
 output resource_group_id {
     value                      = azurerm_resource_group.vm_resource_group.id
 }

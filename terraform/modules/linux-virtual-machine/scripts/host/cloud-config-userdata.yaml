@@ -1,5 +1,9 @@
 #cloud-config
 bootcmd:
+  - echo ${private_ip_address} ${host_name} >> /etc/hosts # Make sure this still resolves when cutting over DNS
+  # Disable automatic updates to get rid of the following race condition:
+  #   Could not get lock /var/lib/dpkg/lock-frontend - open (11: Resource temporarily unavailable)
+  - sudo apt remove unattended-upgrades -y
   # Get apt repository signing keys
   - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0    # GitHub
   - sudo apt-add-repository https://cli.github.com/packages
@@ -21,7 +25,9 @@ apt:
       source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
 
 package_update: true
-package_upgrade: true
+  # Disable package upgrades to get rid of the following error
+  #   Could not get lock /var/lib/dpkg/lock-frontend - open (11: Resource temporarily unavailable)
+# package_upgrade: true
 packages:
   # Core
   - apt-transport-https
@@ -93,6 +99,14 @@ write_files:
       no-resolv
       server=168.63.129.16
       #server=/${domain_suffix}/168.63.129.16
+  - path: /home/${user_name}/.config/powershell/setup_linux_vm.ps1
+    encoding: base64
+    content: ${setup_linux_vm_ps1}
+    permissions: '0744'
+  - path: /home/${user_name}/.config/powershell/environment.ps1
+    encoding: base64
+    content: ${environment_ps1}
+    permissions: '0744'
 
 runcmd:
   # DNS: replace resolved with dnsmasq
@@ -108,6 +122,12 @@ runcmd:
   # Microsoft packages
   - sudo ACCEPT_EULA=Y apt install msodbcsql17 -y
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
+  # User configuration
+  - chown -R ${user_name}:${user_name} /home/${user_name}
+  - 'su -c "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | sudo bash -s" ${user_name}'
+  - chown -R ${user_name}:${user_name} /home/${user_name}
+  - 'su -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
+  # Automatic updates: re-enable them
+  - sudo apt install unattended-upgrades -y
 
 final_message: "${host_name} is up after $UPTIME seconds"
-
