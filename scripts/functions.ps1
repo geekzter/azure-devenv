@@ -1,6 +1,7 @@
 $rootCertificateCommonName = "P2SRootCert"
 $clientCertificateCommonName = "P2SChildCert"
 
+
 function AzLogin (
     [parameter(Mandatory=$false)][switch]$DisplayMessages=$false
 ) {
@@ -43,23 +44,28 @@ function DownloadAndExtract-VPNProfile (
 }
 
 function Get-CertificatesDirectory() {
-    $certificateDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) "certificates")
-    if (!(Test-Path $certificateDirectory)) {
-        $null = New-Item -ItemType Directory -Force -Path $certificateDirectory 
+    $directory = (Join-Path (Split-Path $PSScriptRoot -Parent) "certificates")
+    if (!(Test-Path $directory)) {
+        $null = New-Item -ItemType Directory -Force -Path $directory 
     }
 
-    return $certificateDirectory
+    return $directory
 }
 
-function Install-Certificates() {
+function Install-Certificates(
+    [parameter(Mandatory=$true)][string]$CertPassword
+) {
+
     if ($IsMacOS) {
-        Install-CertificatesMacOS
+        Install-CertificatesMacOS -CertPassword $CertPassword
         return
     }
     throw "OS not supported"
 }
 
-function Install-CertificatesMacOS() {
+function Install-CertificatesMacOS (
+    [parameter(Mandatory=$true)][string]$CertPassword
+) {
     $certificateDirectory = Get-CertificatesDirectory
 
     # Install certificates
@@ -101,23 +107,23 @@ function Install-CertificatesMacOS() {
 }
 
 function Update-AzureVPNProfile (
-    [parameter(Mandatory=$true)][string]$ProfileFileName,
+    [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$false)][string]$ClientCert,
     [parameter(Mandatory=$false)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer
 ) {
-    if (!(Test-Path $ProfileFileName)) {
-        Write-Warning "$ProfileFileName not found"
+    $profileFileName = Join-Path $PackagePath AzureVPN azurevpnconfig.xml
+    if (!(Test-Path $profileFileName)) {
+        Write-Error "$ProfileFileName not found"
         return
     }
-
     Write-Verbose "Azure VPN Profile ${ProfileFileName}"
 
     # TODO: Add client secrets
 
     # Edit VPN Profile
     Write-Host "Modifying VPN profile DNS configuration..."
-    $vpnProfileXml = [xml](Get-Content $ProfileFileName)
+    $vpnProfileXml = [xml](Get-Content $profileFileName)
     $clientconfig = $vpnProfileXml.SelectSingleNode("//*[name()='clientconfig']")
     $dnsserversNode = $vpnProfileXml.CreateElement("dnsservers", $vpnProfileXml.AzVpnProfile.xmlns)
     $dnsserverNode = $vpnProfileXml.CreateElement("dnsserver", $vpnProfileXml.AzVpnProfile.xmlns)
@@ -125,48 +131,57 @@ function Update-AzureVPNProfile (
     $dnsserversNode.AppendChild($dnsserverNode) | Out-Null
     $clientconfig.AppendChild($dnsserversNode) | Out-Null
     $clientconfig.RemoveAttribute("nil","http://www.w3.org/2001/XMLSchema-instance")
-    $vpnProfileXml.Save($ProfileFileName)
+
+    Copy-Item $profileFileName "${profileFileName}.backup"
+    $vpnProfileXml.Save($profileFileName)
 }
 
 function Update-GenericVPNProfile (
-    [parameter(Mandatory=$true)][string]$ProfileFileName,
+    [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$false)][string]$ClientCert,
     [parameter(Mandatory=$false)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer
 ) {
-    if (!(Test-Path $ProfileFileName)) {
-        Write-Warning "$ProfileFileName not found"
+    $profileFileName = Join-Path $PackagePath Generic VpnSettings.xml
+    if (!(Test-Path $profileFileName)) {
+        Write-Warning "$profileFileName not found"
         return
     }
+    Write-Error "Generic Profile is ${ProfileFileName}"
 
-    Write-Verbose "Generic Profile is ${ProfileFileName}"
+    $genericProfileXml = [xml](Get-Content $profileFileName)
 
-    # Locate VPN Server setting
-    $genericProfileXml = [xml](Get-Content $ProfileFileName)
+    # Locate DNS Server setting
     $dnsServersNode = $genericProfileXml.SelectSingleNode("//*[name()='CustomDnsServers']")
     $dnsServersNode.InnerText = $dnsServer
-    $genericProfileXml.Save($ProfileFileName)
+
+    # Locate VPN Server setting
+    $vpnServersNode = $genericProfileXml.SelectSingleNode("//*[name()='VpnServer']")
+    Write-Host "VPN Server is $($vpnServersNode.InnerText)"
+
+    Copy-Item $profileFileName "${profileFileName}.backup"
+    $genericProfileXml.Save($profileFileName)
 }
 
 function Update-OpenVPNProfile (
-    [parameter(Mandatory=$true)][string]$ProfileFileName,
+    [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$true)][string]$ClientCert,
     [parameter(Mandatory=$true)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer
 ) {
-    if (!(Test-Path $ProfileFileName)) {
-        Write-Warning "$ProfileFileName not found"
+    $profileFileName = Join-Path $tempPackagePath OpenVPN vpnconfig.ovpn
+    if (!(Test-Path $profileFileName)) {
+        Write-Warning "$profileFileName not found"
         return
     }
+    Write-Error "OpenVPN Profile is ${profileFileName}"
+    Copy-Item $ProfileFileName "${profileFileName}.backup"
 
-    Write-Verbose "OpenVPN Profile is ${ProfileFileName}"
-
-
-    (Get-Content $ProfileFileName) -replace '\$CLIENTCERTIFICATE',($ClientCert -replace "$","`n") | Out-File $ProfileFileName
-    (Get-Content $ProfileFileName) -replace '\$PRIVATEKEY',($ClientKey -replace "$","`n")         | Out-File $openVPNProfileFile
+    (Get-Content $profileFileName) -replace '\$CLIENTCERTIFICATE',($ClientCert -replace "$","`n") | Out-File $profileFileName
+    (Get-Content $profileFileName) -replace '\$PRIVATEKEY',($ClientKey -replace "$","`n")         | Out-File $profileFileName
 
     # Add DNS
-    Write-Output "`ndhcp-option DNS ${DnsServer}`n" | Out-File $ProfileFileName -Append
+    Write-Output "`ndhcp-option DNS ${DnsServer}`n" | Out-File $profileFileName -Append
 
-    Write-Verbose "OpenVPN Profile:`n$(Get-Content $ProfileFileName -Raw)"
+    Write-Debug "OpenVPN Profile:`n$(Get-Content $profileFileName -Raw)"
 }

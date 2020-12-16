@@ -6,8 +6,12 @@
 tmp*.*
 
 # Ignore Certificates
+certificates/*.*
 *.cer
 *.der
 *.p12
 *.pem
 *.pfx
+
+# Ignore VPN Profiles
+profiles/*.*

@@ -13,38 +13,46 @@ if (!$IsMacOS) {
 $terraformDirectory = (Join-Path (Split-Path -parent -Path $PSScriptRoot) "terraform")
 Push-Location $terraformDirectory
 $certPassword = $(terraform output cert_password      2>$null)
-Write-Verbose "`$certPassword: $certPassword"
+Write-Debug "`$certPassword: $certPassword"
 $clientCert   = $(terraform output client_cert        2>$null | Out-String)
-Write-Verbose "`$clientCert: $clientCert"
+Write-Debug "`$clientCert: $clientCert"
 $clientKey    = $(terraform output client_key         2>$null | Out-String)
-Write-Verbose "`$clientKey: $clientKey"
+Write-Debug "`$clientKey: $clientKey"
 $dnsServer    = $(terraform output dns_server_address 2>$null)
-Write-Verbose "`$dnsServer: $dnsServer"
+Write-Debug "`$dnsServer: $dnsServer"
 $gatewayId    = $(terraform output gateway_id         2>$null)
-Write-Verbose "`$gatewayId: $gatewayId"
+Write-Debug "`$gatewayId: $gatewayId"
 Pop-Location
 
+# Install certificates
+Install-Certificates -CertPassword $certPassword
 
 # Download VPN package
 AzLogin
 if ($gatewayId) {
     $tempPackagePath = (DownloadAndExtract-VPNProfile -GatewayID $gatewayId)
 
+
     # Azure VPN
-    $azureVPNProfileFile = Join-Path $tempPackagePath AzureVPN azurevpnconfig.xml
-    Update-AzureVPNProfile -ProfileFileName $azureVPNProfileFile -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    if ($IsWindows) {
+        Update-AzureVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    }
 
     # IKEv2
-    $genericProfileFile = Join-Path $tempPackagePath Generic VpnSettings.xml
-    Update-GenericVPNProfile -ProfileFileName $genericProfileFile -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    if (!$IsWindows) {
+        Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    }
+    if ($IsMacOS) {
+        security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $tempPackagePath/VpnServerRoot.cer
+    }
 
     # OpenVPN
-    $openVPNProfileFile = Join-Path $tempPackagePath OpenVPN vpnconfig.ovpn
-    Update-OpenVPNProfile -ProfileFileName $openVPNProfileFile -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Update-OpenVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
 
 } else {
     Write-Warning "Gateway not found, have you run 'terraform apply' yet?"    
 }
+Write-Host "Profiles are stored in $tempPackagePath"
 
 # Configure VPN
 # AppleScript???

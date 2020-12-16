@@ -8,18 +8,18 @@ output admin_username {
 }
 
 output cert_password {
-  sensitive   = true
-  value       = module.vpn.cert_password
+  sensitive                    = true
+  value                        = module.vpn.cert_password
 }
 
 output client_cert {
-  sensitive   = true
-  value       = module.vpn.client_cert
+  sensitive                    = true
+  value                        = module.vpn.client_cert
 }
 
 output client_key {
-  sensitive   = true
-  value       = module.vpn.client_key
+  sensitive                    = true
+  value                        = module.vpn.client_key
 }
 
 output cloud_config {
@@ -32,7 +32,7 @@ output dns_server_address {
 }
 
 output gateway_id {
-  value       = module.vpn.gateway_id
+  value                        = module.vpn.gateway_id
 }
 
 output linux_fqdn {
@@ -65,8 +65,12 @@ output resource_group_name {
 }
 
 output root_cert_cer {
-  sensitive   = true
-  value       = module.vpn.root_cert_cer
+  sensitive                    = true
+  value                        = module.vpn.root_cert_cer
+}
+
+output virtual_network_id {
+    value                      = {for region in var.locations : region => azurerm_virtual_network.development_network[region].id}
 }
 
 output windows_fqdn {
