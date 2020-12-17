@@ -144,10 +144,10 @@ function Update-GenericVPNProfile (
 ) {
     $profileFileName = Join-Path $PackagePath Generic VpnSettings.xml
     if (!(Test-Path $profileFileName)) {
-        Write-Warning "$profileFileName not found"
+        Write-Error "$profileFileName not found"
         return
     }
-    Write-Error "Generic Profile is ${ProfileFileName}"
+    Write-Verbose "Generic Profile is ${ProfileFileName}"
 
     $genericProfileXml = [xml](Get-Content $profileFileName)
 
@@ -171,10 +171,10 @@ function Update-OpenVPNProfile (
 ) {
     $profileFileName = Join-Path $tempPackagePath OpenVPN vpnconfig.ovpn
     if (!(Test-Path $profileFileName)) {
-        Write-Warning "$profileFileName not found"
+        Write-Error "$profileFileName not found"
         return
     }
-    Write-Error "OpenVPN Profile is ${profileFileName}"
+    Write-Verbose "OpenVPN Profile is ${profileFileName}"
     Copy-Item $ProfileFileName "${profileFileName}.backup"
 
     (Get-Content $profileFileName) -replace '\$CLIENTCERTIFICATE',($ClientCert -replace "$","`n") | Out-File $profileFileName

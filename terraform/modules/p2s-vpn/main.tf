@@ -52,11 +52,6 @@ resource tls_private_key root_cert {
   rsa_bits                     = "2048"
 }
 
-# resource null_resource root_cert_private_pem_file {
-#   provisioner local-exec {
-#     command                    = "echo '${tls_private_key.root_cert.private_key_pem}' > '${var.root_cert_private_pem_file}'"
-#   }  
-# }
 resource local_file root_cert_private_pem_file {
   content                      = tls_private_key.root_cert.private_key_pem
   filename                     = var.root_cert_private_pem_file
@@ -81,28 +76,19 @@ resource tls_self_signed_cert root_cert {
   validity_period_hours        = 8766 # 1 year
 }
 
-# resource null_resource root_cert_public_pem_file {
-#   provisioner local-exec {
-#     command                    = "echo '${tls_self_signed_cert.root_cert.cert_pem}' > '${var.root_cert_public_pem_file}'"
-#   }  
-# }
 resource local_file root_cert_public_pem_file {
   content                      = tls_self_signed_cert.root_cert.cert_pem
   filename                     = var.root_cert_public_pem_file
 }
 
 resource null_resource root_cert_files {
-  # provisioner local-exec {
-  #   command                    = "echo '${tls_private_key.root_cert.private_key_pem}' > '${var.root_cert_pem_file}'"
-  # }  
-
-  # provisioner local-exec {
-  #   command                    = "echo '${tls_self_signed_cert.root_cert.cert_pem}' >> '${var.root_cert_pem_file}'"
-  # }  
-
   provisioner local-exec {
     command                    = "openssl x509 -in '${var.root_cert_public_pem_file}' -outform der > '${var.root_cert_der_file}'"
   }  
+
+  depends_on                   = [
+    local_file.root_cert_public_pem_file
+  ]
 }
 resource local_file root_cert_files {
   content                      = <<-EOT
@@ -117,11 +103,6 @@ resource tls_private_key client_cert {
   rsa_bits                     = "2048"
 }
 
-# resource null_resource client_cert_private_pem_file {
-#   provisioner local-exec {
-#     command                    = "echo '${tls_private_key.client_cert.private_key_pem}' > '${var.client_cert_private_pem_file}'"
-#   }  
-# }
 resource local_file client_cert_private_pem_file {
   content                      = tls_private_key.client_cert.private_key_pem
   filename                     = var.client_cert_private_pem_file
@@ -151,28 +132,20 @@ resource tls_locally_signed_cert client_cert {
   validity_period_hours        = 43800
 }
 
-# resource null_resource client_cert_public_pem_file {
-#   provisioner local-exec {
-#     command                    = "echo '${tls_locally_signed_cert.client_cert.cert_pem}' > '${var.client_cert_public_pem_file}'"
-#   }  
-# }
 resource local_file client_cert_public_pem_file {
   content                      = tls_locally_signed_cert.client_cert.cert_pem
   filename                     = var.client_cert_public_pem_file
 }
 
 resource null_resource client_cert_files {
-  # provisioner local-exec {
-  #   command                    = "echo '${tls_private_key.client_cert.private_key_pem}' > '${var.client_cert_pem_file}'"
-  # }  
-
-  # provisioner local-exec {
-  #   command                    = "echo '${tls_locally_signed_cert.client_cert.cert_pem}' >> '${var.client_cert_pem_file}'"
-  # }  
-
   provisioner local-exec {
     command                    = "openssl pkcs12 -in '${var.client_cert_public_pem_file}' -inkey '${var.client_cert_private_pem_file}' -certfile '${var.root_cert_public_pem_file}' -out '${var.client_cert_p12_file}' -export -password 'pass:${local.cert_password}'"
   }  
+
+  depends_on                   = [
+    local_file.client_cert_public_pem_file,
+    local_file.client_cert_private_pem_file
+  ]
 }
 
 resource local_file client_cert_files {
@@ -189,11 +162,6 @@ data local_file root_cert_der_file {
   depends_on                   = [null_resource.root_cert_files]
 }
 
-# resource null_resource root_cert_cer_file {
-#   provisioner local-exec {
-#     command                    = "echo ${data.local_file.root_cert_der_file.content_base64} > '${var.root_cert_cer_file}'"
-#   }  
-# }
 resource local_file root_cert_cer_file {
   content                      = data.local_file.root_cert_der_file.content_base64
   filename                     = var.root_cert_cer_file

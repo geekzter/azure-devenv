@@ -3,6 +3,10 @@ variable admin_object_id {
   default                      = null
 }
 variable admin_username {}
+variable deploy_vpn {
+    type                       = bool
+    default                    = true
+}
 variable development_resource_group {
   default                      = "Development"
 }

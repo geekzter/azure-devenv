@@ -9,17 +9,17 @@ output admin_username {
 
 output cert_password {
   sensitive                    = true
-  value                        = module.vpn.cert_password
+  value                        = var.deploy_vpn ? module.vpn.0.cert_password : null
 }
 
 output client_cert {
   sensitive                    = true
-  value                        = module.vpn.client_cert
+  value                        = var.deploy_vpn ? module.vpn.0.client_cert : null
 }
 
 output client_key {
   sensitive                    = true
-  value                        = module.vpn.client_key
+  value                        = var.deploy_vpn ? module.vpn.0.client_key : null
 }
 
 output cloud_config {
@@ -32,7 +32,7 @@ output dns_server_address {
 }
 
 output gateway_id {
-  value                        = module.vpn.gateway_id
+  value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
 output linux_fqdn {
@@ -66,7 +66,7 @@ output resource_group_name {
 
 output root_cert_cer {
   sensitive                    = true
-  value                        = module.vpn.root_cert_cer
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_cer : null
 }
 
 output virtual_network_id {

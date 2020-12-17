@@ -92,11 +92,12 @@ resource azurerm_virtual_network_peering global_peering {
   remote_virtual_network_id    = azurerm_virtual_network.development_network[local.peering_pairs[count.index][1]].id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-
-  # Must be set to false for Global Peering
-  allow_gateway_transit        = false
+  allow_gateway_transit        = (var.deploy_vpn && (local.peering_pairs[count.index][0] == azurerm_resource_group.vm_resource_group.location)) ? true : false
+  use_remote_gateways          = (var.deploy_vpn && (local.peering_pairs[count.index][1] == azurerm_resource_group.vm_resource_group.location)) ? true : false
 
   count                        = var.global_vnet_peering ? length(local.peering_pairs) : 0
+
+  depends_on                   = [module.vpn]
 }
 
 # Private DNS
@@ -309,4 +310,6 @@ module vpn {
   virtual_network_id           = azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].id
   subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],8,0)
   vpn_range                    = var.vpn_range
+
+  count                        = var.deploy_vpn ? 1 : 0
 }

@@ -32,22 +32,12 @@ AzLogin
 if ($gatewayId) {
     $tempPackagePath = (DownloadAndExtract-VPNProfile -GatewayID $gatewayId)
 
-
-    # Azure VPN
-    if ($IsWindows) {
-        Update-AzureVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
-    }
-
-    # IKEv2
-    if (!$IsWindows) {
-        Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
-    }
+    Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Update-OpenVPNProfile    -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
     if ($IsMacOS) {
         security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $tempPackagePath/VpnServerRoot.cer
     }
-
-    # OpenVPN
-    Update-OpenVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
 
 } else {
     Write-Warning "Gateway not found, have you run 'terraform apply' yet?"    
