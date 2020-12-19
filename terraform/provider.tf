@@ -10,7 +10,7 @@ terraform {
     time                       = "~> 0.6"
     tls                        = "~> 2.2"
   }
-  required_version             = "~> 0.13.0"
+  required_version             = "~> 0.13"
 }
 
 

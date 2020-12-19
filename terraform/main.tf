@@ -49,6 +49,7 @@ resource azurerm_resource_group vm_resource_group {
       "application",             "Development Environment",
       "environment",             "dev",
       "provisioner",             "terraform",
+      "repository",              basename(abspath("${path.root}/..")),
       "shutdown",                "true",
       "suffix",                  local.suffix,
       "workspace",               terraform.workspace
