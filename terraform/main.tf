@@ -49,6 +49,7 @@ resource azurerm_resource_group vm_resource_group {
       "application",             "Development Environment",
       "environment",             "dev",
       "provisioner",             "terraform",
+      "repository",              basename(abspath("${path.root}/..")),
       "shutdown",                "true",
       "suffix",                  local.suffix,
       "workspace",               terraform.workspace
@@ -92,11 +93,12 @@ resource azurerm_virtual_network_peering global_peering {
   remote_virtual_network_id    = azurerm_virtual_network.development_network[local.peering_pairs[count.index][1]].id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-
-  # Must be set to false for Global Peering
-  allow_gateway_transit        = false
+  allow_gateway_transit        = (var.deploy_vpn && (local.peering_pairs[count.index][0] == azurerm_resource_group.vm_resource_group.location)) ? true : false
+  use_remote_gateways          = (var.deploy_vpn && (local.peering_pairs[count.index][1] == azurerm_resource_group.vm_resource_group.location)) ? true : false
 
   count                        = var.global_vnet_peering ? length(local.peering_pairs) : 0
+
+  depends_on                   = [module.vpn]
 }
 
 # Private DNS
@@ -215,7 +217,6 @@ resource azurerm_storage_account diagnostics_storage {
   for_each                     = toset(var.locations)
 }
 
-
 module linux_vm {
   source                       = "./modules/linux-virtual-machine"
 
@@ -286,4 +287,30 @@ module windows_vm {
 
   for_each                     = toset(var.locations)
   depends_on                   = [azurerm_private_dns_zone_virtual_network_link.internal_link]
+}
+
+module vpn {
+  source                       = "./modules/p2s-vpn"
+  resource_group_id            = azurerm_resource_group.vm_resource_group.id
+  location                     = azurerm_resource_group.vm_resource_group.location
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
+
+  root_cert_cer_file           = var.root_cert_cer_file
+  root_cert_der_file           = var.root_cert_der_file
+  root_cert_pem_file           = var.root_cert_pem_file
+  root_cert_private_pem_file   = var.root_cert_private_pem_file
+  root_cert_public_pem_file    = var.root_cert_public_pem_file
+  client_cert_pem_file         = var.client_cert_pem_file
+  client_cert_p12_file         = var.client_cert_p12_file
+  client_cert_public_pem_file  = var.client_cert_public_pem_file
+  client_cert_private_pem_file = var.client_cert_private_pem_file
+
+  organization                 = var.organization
+  virtual_network_id           = azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].id
+  subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],8,0)
+  vpn_range                    = var.vpn_range
+
+  count                        = var.deploy_vpn ? 1 : 0
 }
