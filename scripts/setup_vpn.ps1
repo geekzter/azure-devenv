@@ -44,19 +44,3 @@ if ($gatewayId) {
 }
 Write-Host "Profiles are stored in $tempPackagePath"
 
-# Configure VPN
-# AppleScript???
-# https://apple.stackexchange.com/questions/128297/how-to-create-a-vpn-connection-via-terminal/228582
-# https://docs.microsoft.com/en-us/azure/vpn-gateway/point-to-site-vpn-client-configuration-azure-cert#installmac
-# https://raw.githubusercontent.com/MacMiniVault/Mac-Scripts/master/vpnscript/vpnscript.sh
-# strongswan?
-# macosvpn?
-# https://gist.github.com/iloveitaly/462760
-#osascript (Join-Path (Split-Path -parent -Path $MyInvocation.MyCommand.Path) "setup_vpn.applescript")
-
-
-# Connect VPN
-# networksetup -connectpppoeservice "DevelopersInc VPN"
-
-
-# Mount File share
