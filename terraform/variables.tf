@@ -2,7 +2,9 @@
 variable admin_object_id {
   default                      = null
 }
-variable admin_username {}
+variable admin_username {
+    default                    = "dev"
+}
 variable deploy_vpn {
     type                       = bool
     default                    = true
@@ -21,15 +23,21 @@ variable devops_org {
 variable devops_pat {
   default                      = null
 }
-variable dns_zone_id {}
+variable dns_zone_id {
+  default                      = ""
+}
 variable environment_variables {
   type                         = map
   default = {
     provisioner                = "terraform"
   }
 } 
-variable git_email {}
-variable git_name {}
+variable git_email {
+  default                      = ""
+}
+variable git_name {
+  default                      = ""
+}
 variable global_vnet_peering {
     type                       = bool
     default                    = true
@@ -58,7 +66,9 @@ variable locations {
   type                         = list
   default                      = ["westeurope"]
 }
-variable log_analytics_workspace_id {}
+variable log_analytics_workspace_id {
+  default                      = null
+}
 
 variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"

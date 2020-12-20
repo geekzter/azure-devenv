@@ -52,6 +52,26 @@ function Get-CertificatesDirectory() {
     return $directory
 }
 
+function Get-TerraformOutput (
+    [parameter(Mandatory=$true)][string]$OutputVariable
+) {
+    Invoke-Command -ScriptBlock {
+        $Private:ErrorActionPreference    = "SilentlyContinue"
+        Write-Verbose "terraform output ${OutputVariable}: evaluating..."
+        $result = $(terraform output $OutputVariable 2>$null)
+        $result = (($result -replace '^"','') -replace '"$','') # Remove surrounding quotes (Terraform 0.14)
+        if ($result -match "\[\d+m") {
+            # Terraform warning, return null for missing output
+            Write-Verbose "terraform output ${OutputVariable}: `$null (${result})"
+            return $null
+        } else {
+            Write-Verbose "terraform output ${OutputVariable}: ${result}"
+            return $result
+        }
+    }
+}
+
+
 function Install-Certificates(
     [parameter(Mandatory=$true)][string]$CertPassword
 ) {
@@ -60,7 +80,7 @@ function Install-Certificates(
         Install-CertificatesMacOS -CertPassword $CertPassword
         return
     }
-    throw "OS not supported"
+    Write-Warning "Skipping certificate import on $($PSversionTable.OS)"
 }
 
 function Install-CertificatesMacOS (
@@ -110,7 +130,8 @@ function Update-AzureVPNProfile (
     [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$false)][string]$ClientCert,
     [parameter(Mandatory=$false)][string]$ClientKey,
-    [parameter(Mandatory=$true)][string]$DnsServer
+    [parameter(Mandatory=$true)][string]$DnsServer,
+    [parameter(Mandatory=$true)][string]$ProfileName
 ) {
     $profileFileName = Join-Path $PackagePath AzureVPN azurevpnconfig.xml
     if (!(Test-Path $profileFileName)) {
@@ -118,8 +139,6 @@ function Update-AzureVPNProfile (
         return
     }
     Write-Verbose "Azure VPN Profile ${ProfileFileName}"
-
-    # TODO: Add client secrets
 
     # Edit VPN Profile
     Write-Host "Modifying VPN profile DNS configuration..."
@@ -134,6 +153,17 @@ function Update-AzureVPNProfile (
 
     Copy-Item $profileFileName "${profileFileName}.backup"
     $vpnProfileXml.Save($profileFileName)
+
+    if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
+        $vpnProfileFile = (Join-Path $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState "${ProfileName}.xml")
+        $vpnProfileXml.Save($vpnProfileFile)
+        Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
+        azurevpn -f -i (Split-Path $vpnProfileFile -Leaf)
+    } else {
+        $vpnProfileXml.Save($vpnProfileTempFile)
+        Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${vpnProfileTempFile}"
+    }
+
 }
 
 function Update-GenericVPNProfile (

@@ -3,8 +3,8 @@
 terraform {
   backend "azurerm" {
     # Use partial configuration, as we do not want to expose these details in source control
-    #resource_group_name        = "automation"
-    #storage_account_name       = "tfbackend"
+    resource_group_name        = "automation"
+    storage_account_name       = "ewterraformstate"
     container_name             = "devenv" 
     key                        = "terraform.tfstate"
   }

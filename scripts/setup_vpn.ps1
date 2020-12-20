@@ -3,25 +3,15 @@
 
 . (Join-Path $PSScriptRoot functions.ps1)
 
-
-if (!$IsMacOS) {
-    Write-Error "This only runs on MacOS, exiting"
-    exit
-}
-
 # Get configuration
 $terraformDirectory = (Join-Path (Split-Path -parent -Path $PSScriptRoot) "terraform")
 Push-Location $terraformDirectory
-$certPassword = $(terraform output cert_password      2>$null)
-Write-Debug "`$certPassword: $certPassword"
-$clientCert   = $(terraform output client_cert        2>$null | Out-String)
-Write-Debug "`$clientCert: $clientCert"
-$clientKey    = $(terraform output client_key         2>$null | Out-String)
-Write-Debug "`$clientKey: $clientKey"
-$dnsServer    = $(terraform output dns_server_address 2>$null)
-Write-Debug "`$dnsServer: $dnsServer"
-$gatewayId    = $(terraform output gateway_id         2>$null)
-Write-Debug "`$gatewayId: $gatewayId"
+$certPassword  = (Get-TerraformOutput cert_password)
+$clientCert    = (Get-TerraformOutput client_cert | Out-String)
+$clientKey     = (Get-TerraformOutput client_key | Out-String)
+$dnsServer     = (Get-TerraformOutput dns_server_address)
+$gatewayId     = (Get-TerraformOutput gateway_id)
+$resourceGroup = (Get-TerraformOutput resource_group_name)
 Pop-Location
 
 # Install certificates
@@ -32,12 +22,22 @@ AzLogin
 if ($gatewayId) {
     $tempPackagePath = (DownloadAndExtract-VPNProfile -GatewayID $gatewayId)
 
-    Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer -ProfileName $resourceGroup
     Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
     Update-OpenVPNProfile    -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
     # if ($IsMacOS) {
     #     security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $tempPackagePath/VpnServerRoot.cer
     # }
+
+    if ($InformationPreference -ieq "Continue") {
+        Write-Information "DNS Configuration:"
+        if ($IsMacOS) {
+            scutil --dns
+        }
+        if ($IsWindows) {
+            Get-DnsClientNrptPolicy
+        }
+    }
 
 } else {
     Write-Warning "Gateway not found, have you run 'terraform apply' yet?"    
