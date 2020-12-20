@@ -295,10 +295,10 @@ resource null_resource start_vm {
     always_run                 = timestamp()
   }
 
-  # provisioner local-exec {
-  #   # Start VM, so we can execute script through SSH
-  #   command                    = "az vm start --ids ${azurerm_windows_virtual_machine.vm.id}"
-  # }
+  provisioner local-exec {
+    # Start VM, so we can execute script through SSH
+    command                    = "az vm start --ids ${azurerm_windows_virtual_machine.vm.id}"
+  }
 }
 
 resource azurerm_virtual_machine_extension vm_monitor {
@@ -492,10 +492,10 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 
   # Start VM, so we can destroy VM extensions
-  # provisioner local-exec {
-  #   command                    = "az vm start --ids ${self.target_resource_id}"
-  #   when                       = destroy
-  # }
+  provisioner local-exec {
+    command                    = "az vm start --ids ${self.target_resource_id}"
+    when                       = destroy
+  }
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.vm_aadlogin,

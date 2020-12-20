@@ -6,6 +6,7 @@ backend.tf
 
 # Ignore temporary files
 tmp*.*
+*.*_
 
 # Ignore Certificates
 certificates/*.*
