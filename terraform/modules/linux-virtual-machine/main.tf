@@ -11,17 +11,21 @@ locals {
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
-  log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
-  log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
+  log_analytics_workspace_name = try(element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1),null)
+  log_analytics_workspace_rg   = try(element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5),null)
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
   environment_variables        = merge(
-    var.environment_variables,
     map(
       "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
-    )
+      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id,
+      # Defaults, will be overriden by variables passed into map merge
+      "tf_backend_resource_group", "",
+      "tf_backend_storage_account", "",
+      "tf_backend_storage_container", "",
+    ),
+    var.environment_variables
   )
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
@@ -47,6 +51,8 @@ data azurerm_key_vault vault {
 data azurerm_log_analytics_workspace monitor {
   name                         = local.log_analytics_workspace_name
   resource_group_name          = local.log_analytics_workspace_rg
+
+  count                        = local.log_analytics_workspace_name != null ? 1 : 0
 }
 
 resource random_string pip_domain_name_label {
@@ -78,7 +84,7 @@ resource azurerm_dns_a_record fqdn {
 
   tags                         = var.tags
 
-  count                        = local.dns_zone_name != null ? 1 : 0
+  count                        = local.dns_zone_rg != null ? 1 : 0
 }
 
 resource azurerm_network_interface nic {
@@ -237,10 +243,10 @@ resource null_resource start_vm {
     always_run                 = timestamp()
   }
 
-  provisioner local-exec {
-    # Start VM, so we can execute script through SSH
-    command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
-  }
+  # provisioner local-exec {
+  #   # Start VM, so we can execute script through SSH
+  #   command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
+  # }
 }
 
 /*
@@ -325,17 +331,17 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
+      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.0.id}"
     }
   EOF
 
   protected_settings = <<EOF
     { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
+      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.0.primary_shared_key}"
     } 
   EOF
 
-  count                        = var.dependency_monitor ? 1 : 0
+  count                        = var.dependency_monitor && local.log_analytics_workspace_name != null ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm
@@ -433,10 +439,10 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 
   # Start VM, so we can destroy VM extensions
-  provisioner local-exec {
-    command                    = "az vm start --ids ${self.target_resource_id}"
-    when                       = destroy
-  }
+  # provisioner local-exec {
+  #   command                    = "az vm start --ids ${self.target_resource_id}"
+  #   when                       = destroy
+  # }
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.vm_aadlogin,

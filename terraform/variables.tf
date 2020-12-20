@@ -7,7 +7,7 @@ variable admin_username {
 }
 variable deploy_vpn {
     type                       = bool
-    default                    = true
+    default                    = false
 }
 variable development_resource_group {
   default                      = "Development"
