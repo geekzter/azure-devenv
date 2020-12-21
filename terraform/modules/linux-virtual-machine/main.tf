@@ -255,8 +255,8 @@ resource null_resource cloud_config_status {
   provisioner remote-exec {
     inline                     = [
       "echo -n 'waiting for cloud-init to complete'",
-      "/usr/bin/cloud-init status -l --wait",
-      "systemctl status cloud-final.service --no-pager -l --wait"
+      "/usr/bin/cloud-init status --long --wait >/dev/null", # Let Terraform print progress
+      "systemctl status cloud-final.service --full --no-pager --wait"
     ]
 
     connection {
@@ -390,22 +390,6 @@ resource azurerm_virtual_machine_extension vm_watcher {
                                  ]
 }
 
-# Delay DiskEncryption to mitigate race condition
-resource null_resource vm_sleep {
-  # Always run this
-  triggers                     = {
-    vm                         = azurerm_linux_virtual_machine.vm.id
-  }
-
-  provisioner local-exec {
-    command                    = "Start-Sleep 300"
-    interpreter                = ["pwsh", "-nop", "-Command"]
-  }
-
-  count                        = var.disk_encryption ? 1 : 0
-  depends_on                   = [azurerm_linux_virtual_machine.vm]
-}
-
 resource azurerm_key_vault_key disk_encryption_key {
   name                         = "${local.vm_name}-disk-key"
   key_vault_id                 = var.key_vault_id
@@ -449,7 +433,6 @@ SETTINGS
   depends_on                   = [
                                   null_resource.start_vm,
                                   null_resource.cloud_config_status,
-                                  null_resource.vm_sleep
                                  ]
 }
 

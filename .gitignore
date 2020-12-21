@@ -9,8 +9,8 @@ tmp*.*
 *.*_
 *.log
 
-# Ignore Certificates
-certificates/*.*
+# Ignore generated files
+data/*.*
 *.cer
 *.der
 *.p12

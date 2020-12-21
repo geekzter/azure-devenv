@@ -8,6 +8,6 @@ linux_os_publisher             = "Canonical"
 linux_os_sku                   = "18.04-LTS"
 linux_os_version               = "18.04.202012111"
 locations                      = ["westeurope","northeurope"]
-windows_sku_match              = "20h2-ent-g2"
+windows_sku                    = "20h2-ent-g2"
 windows_os_version             = "19042.685.2012032244"
 

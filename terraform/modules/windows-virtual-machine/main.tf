@@ -507,5 +507,5 @@ resource local_file rdp_file {
   {
     host                       = azurerm_public_ip.pip.ip_address
   })
-  filename                     = "${path.root}/../${azurerm_windows_virtual_machine.vm.name}.rdp"
+  filename                     = "${path.root}/../data/${terraform.workspace}/${azurerm_windows_virtual_machine.vm.name}.rdp"
 }
