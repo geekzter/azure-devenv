@@ -249,6 +249,35 @@ resource null_resource start_vm {
   }
 }
 
+resource null_resource cloud_config_status {
+  triggers                     = {
+    # always                     = timestamp()
+    vm                         = azurerm_linux_virtual_machine.vm.id
+  }
+
+  # Get cloud-init status, waiting for completion if needed
+  provisioner remote-exec {
+    inline                     = [
+      "echo -n 'waiting for cloud-init to complete'",
+      "/usr/bin/cloud-init status -l --wait",
+      "systemctl status cloud-final.service --no-pager -l --wait"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  depends_on                   = [
+    null_resource.start_vm,
+    azurerm_network_interface_security_group_association.nic_nsg,
+    # azurerm_monitor_diagnostic_setting.vm
+  ]
+}
+
 /*
 resource azurerm_virtual_machine_extension vm_monitor {
   name                         = "MMAExtension"
@@ -286,7 +315,8 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
 
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
 
   count                        = var.enable_aad_login ? 1 : 0
@@ -344,7 +374,8 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   count                        = var.dependency_monitor && local.log_analytics_workspace_name != null ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
 }
 resource azurerm_virtual_machine_extension vm_watcher {
@@ -358,7 +389,8 @@ resource azurerm_virtual_machine_extension vm_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
 }
 
@@ -420,8 +452,9 @@ SETTINGS
 
   depends_on                   = [
                                   null_resource.start_vm,
+                                  null_resource.cloud_config_status,
                                   null_resource.vm_sleep
-                                  ]
+                                 ]
 }
 
 # HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
@@ -451,33 +484,5 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.vm_disk_encryption,
                                   # azurerm_virtual_machine_extension.vm_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
-  ]
-}
-
-resource null_resource cloud_config_status {
-  triggers                     = {
-    # always                     = timestamp()
-    vm                         = azurerm_linux_virtual_machine.vm.id
-  }
-
-  # Get cloud-init status, waiting for completion if needed
-  provisioner remote-exec {
-    inline                     = [
-      "echo -n 'waiting for cloud-init to complete'",
-      "/usr/bin/cloud-init status -l --wait",
-      "systemctl status cloud-final.service --no-pager -l --wait"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  depends_on                   = [
-    azurerm_network_interface_security_group_association.nic_nsg,
-    azurerm_monitor_diagnostic_setting.vm
   ]
 }
