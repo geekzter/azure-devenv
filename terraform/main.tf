@@ -141,6 +141,7 @@ resource azurerm_key_vault vault {
                                 "get",
                                 "delete",
                                 "list",
+                                "purge",
                                 "recover",
                                 "wrapkey",
                                 "unwrapkey"
@@ -148,6 +149,7 @@ resource azurerm_key_vault vault {
     secret_permissions         = [
                                 "get",
                                 "delete",
+                                "purge",
                                 "set",
     ]
   }
