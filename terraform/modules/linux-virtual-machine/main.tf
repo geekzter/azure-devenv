@@ -7,12 +7,12 @@ locals {
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
-  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
-  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
+  dns_zone_name                = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1) : null
+  dns_zone_rg                  = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5) : null
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
-  log_analytics_workspace_name = try(element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1),null)
-  log_analytics_workspace_rg   = try(element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5),null)
+  log_analytics_workspace_name = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1) : null
+  log_analytics_workspace_rg   = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5) : null
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
@@ -84,7 +84,7 @@ resource azurerm_dns_a_record fqdn {
 
   tags                         = var.tags
 
-  count                        = local.dns_zone_rg != null ? 1 : 0
+  count                        = local.dns_zone_name != null ? 1 : 0
 }
 
 resource azurerm_network_interface nic {

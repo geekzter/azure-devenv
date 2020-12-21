@@ -24,7 +24,7 @@ variable devops_pat {
   default                      = null
 }
 variable dns_zone_id {
-  default                      = ""
+  default                      = null
 }
 variable environment_variables {
   type                         = map
