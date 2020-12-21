@@ -280,7 +280,7 @@ module windows_vm {
   log_analytics_workspace_id   = var.log_analytics_workspace_id
   moniker                      = "w"
   network_watcher              = true
-  os_sku_match                 = var.windows_sku_match
+  os_sku                       = var.windows_sku
   os_version                   = var.windows_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   scripts_container_id         = azurerm_storage_container.scripts.id

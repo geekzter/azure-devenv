@@ -148,29 +148,9 @@ resource azurerm_network_interface_security_group_association nic_nsg {
   network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
-data external image_info {
-  program                      = [
-                                 "az",
-                                 "vm",
-                                 "image",
-                                 "list",
-                                 "-f",
-                                 var.os_offer,
-                                 "-p",
-                                 var.os_publisher,
-                                 "--all",
-                                 "--query",
-                                 # Get latest version of matching SKU
-                                 "max_by([?contains(sku,'${var.os_sku}')],&version)",
-                                 "-o",
-                                 "json",
-                                 ]
-}
-
 locals {
-  # data.external.image_info.result.sku should be same as 'latest' 
-  # This allows to override the version value with the literal version, and don't trigger a change if resolving to the same
-  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
+  # Quote query
+  jmes_path_query              = replace(format("%q","value"),"value","max_by([?contains(sku,'${var.os_sku}')],&version)")
 }
 
 # Cloud Init
@@ -195,6 +175,20 @@ data cloudinit_config user_data {
   }
 
   #merge_type                   = "list(append)+dict(recurse_array)+str()"
+}
+
+data azurerm_platform_image latest_image {
+  location                     = var.location
+  publisher                    = var.os_publisher
+  offer                        = var.os_offer
+  sku                          = var.os_sku
+}
+
+locals {
+  # Workaround for:
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
+  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
 }
 
 resource azurerm_linux_virtual_machine vm {
@@ -223,6 +217,8 @@ resource azurerm_linux_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  # source_image_id              = local.vm_image_id
   source_image_reference {
     publisher                  = var.os_publisher
     offer                      = var.os_offer
@@ -401,7 +397,7 @@ resource null_resource vm_sleep {
     vm                         = azurerm_linux_virtual_machine.vm.id
   }
 
-  provisioner "local-exec" {
+  provisioner local-exec {
     command                    = "Start-Sleep 300"
     interpreter                = ["pwsh", "-nop", "-Command"]
   }

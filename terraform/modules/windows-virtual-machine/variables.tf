@@ -43,8 +43,8 @@ variable network_watcher {
     type                       = bool
     default                    = false
 }
-variable os_sku_match {
-    default                    = "-ent-g2"
+variable os_sku {
+    default                    = "20h2-ent-g2"
 }
 variable os_version {
     default                    = "latest"

@@ -212,29 +212,21 @@ resource azurerm_key_vault_key disk_encryption_key {
 # depends_on                   = [azurerm_firewall_application_rule_collection.*]
 }
 
-data external image_info {
-  program                      = [
-                                 "az",
-                                 "vm",
-                                 "image",
-                                 "list",
-                                 "-f",
-                                 "Windows-10",
-                                 "-p",
-                                 "MicrosoftWindowsDesktop",
-                                 "--all",
-                                 "--query",
-                                 # Get latest version of matching SKU
-                                 "max_by([?contains(sku,'${var.os_sku_match}')],&version)",
-                                 "-o",
-                                 "json",
-                                 ]
+data azurerm_platform_image latest_image {
+  location                     = var.location
+  publisher                    = local.os_publisher
+  offer                        = local.os_offer
+  sku                          = var.os_sku
+  # version                      = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : "latest"
 }
 
 locals {
-  # data.external.image_info.result.sku should be same as 'latest' 
-  # This allows to override the version value with the literal version, and don't trigger a change if resolving to the same
-  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
+  # Workaround for:
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  os_offer                     = "Windows-10"
+  os_publisher                 = "MicrosoftWindowsDesktop"
+  os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
+  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
 }
 
 resource azurerm_windows_virtual_machine vm {
@@ -253,10 +245,12 @@ resource azurerm_windows_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  # source_image_id              = local.vm_image_id
   source_image_reference {
-    publisher                  = "MicrosoftWindowsDesktop"
-    offer                      = "Windows-10"
-    sku                        = data.external.image_info.result.sku
+    publisher                  = local.os_publisher
+    offer                      = local.os_offer
+    sku                        = var.os_sku
     version                    = local.os_version
   }
 

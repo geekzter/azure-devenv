@@ -78,8 +78,8 @@ variable vpn_range {
   default                      = "192.168.0.0/24"
 }
 
-variable windows_sku_match {
-  default                      = "-ent-g2"
+variable windows_sku {
+  default                      = "20h2-ent-g2"
 }
 variable windows_os_version {
   default                      = "latest"

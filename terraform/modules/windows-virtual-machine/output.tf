@@ -4,17 +4,11 @@ output computer_name {
 output name {
     value                      = azurerm_windows_virtual_machine.vm.name
 }
-output os_sku {
-    value                      = data.external.image_info.result.sku
-}
 output os_version {
     value                      = local.os_version
 }
-output os_latest_version {
-    value                      = data.external.image_info.result.version
-}
-output os_latest_version_command {
-    value                      = join(" ",data.external.image_info.program)
+output os_version_latest {
+    value                      = local.os_version_latest
 }
 output private_ip_address {
     value                      = azurerm_network_interface.nic.private_ip_address
