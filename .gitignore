@@ -1,4 +1,4 @@
-Ignore files with sensitive information
+# Ignore files with sensitive information
 backend.tf
 
 # Ignore generated RDP files
