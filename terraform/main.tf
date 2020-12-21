@@ -163,9 +163,11 @@ resource azurerm_key_vault vault {
                                 "create",
                                 "get",
                                 "list",
+                                "purge",
       ]
 
       secret_permissions       = [
+                                "purge",
                                 "set",
       ]
     }
