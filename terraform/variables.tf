@@ -98,30 +98,3 @@ variable vm_subnet {
 variable organization {
   default                      = "DevelopersInc"
 }
-variable root_cert_pem_file {
-  default                      = "../certificates/root_cert.pem"
-}
-variable root_cert_cer_file {
-  default                      = "../certificates/root_cert.cer"
-}
-variable root_cert_der_file {
-  default                      = "../certificates/root_cert.der"
-}
-variable root_cert_private_pem_file {
-  default                      = "../certificates/root_cert_private.pem"
-}
-variable root_cert_public_pem_file {
-  default                      = "../certificates/root_cert_public.pem"
-}
-variable client_cert_pem_file {
-  default                      = "../certificates/client_cert.pem"
-}
-variable client_cert_p12_file {
-  default                      = "../certificates/client_cert.p12"
-}
-variable client_cert_public_pem_file {
-  default                      = "../certificates/client_cert_public.pem"
-}
-variable client_cert_private_pem_file {
-  default                      = "../certificates/client_cert_private.pem"
-}

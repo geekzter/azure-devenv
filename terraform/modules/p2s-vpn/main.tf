@@ -1,6 +1,7 @@
 data azurerm_client_config current {}
 
 locals {
+  certificates_directory       = "${path.root}/../certificates/${terraform.workspace}"
   tenant_url                   = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}/"
   issuer_url                   = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/"
   resource_group_name          = element(split("/",var.resource_group_id),length(split("/",var.resource_group_id))-1)
@@ -54,7 +55,7 @@ resource tls_private_key root_cert {
 
 resource local_file root_cert_private_pem_file {
   content                      = tls_private_key.root_cert.private_key_pem
-  filename                     = var.root_cert_private_pem_file
+  filename                     = "${local.certificates_directory}/root_cert_private.pem"
 }
 
 resource tls_self_signed_cert root_cert {
@@ -78,24 +79,20 @@ resource tls_self_signed_cert root_cert {
 
 resource local_file root_cert_public_pem_file {
   content                      = tls_self_signed_cert.root_cert.cert_pem
-  filename                     = var.root_cert_public_pem_file
+  filename                     = "${local.certificates_directory}/root_cert_public.pem"
 }
 
 resource null_resource root_cert_files {
   provisioner local-exec {
-    command                    = "openssl x509 -in '${var.root_cert_public_pem_file}' -outform der > '${var.root_cert_der_file}'"
+    command                    = "openssl x509 -in '${local_file.root_cert_public_pem_file.filename}' -outform der > '${local.certificates_directory}/root_cert.der'"
   }  
-
-  depends_on                   = [
-    local_file.root_cert_public_pem_file
-  ]
 }
 resource local_file root_cert_files {
   content                      = <<-EOT
     ${tls_private_key.root_cert.private_key_pem}
     ${tls_self_signed_cert.root_cert.cert_pem}
   EOT
-  filename                     = var.root_cert_pem_file
+  filename                     = "${local.certificates_directory}/root_cert.pem"
 }
 
 resource tls_private_key client_cert {
@@ -105,7 +102,7 @@ resource tls_private_key client_cert {
 
 resource local_file client_cert_private_pem_file {
   content                      = tls_private_key.client_cert.private_key_pem
-  filename                     = var.client_cert_private_pem_file
+  filename                     = "${local.certificates_directory}/client_cert_private.pem"
 }
 
 resource tls_cert_request client_cert {
@@ -134,18 +131,13 @@ resource tls_locally_signed_cert client_cert {
 
 resource local_file client_cert_public_pem_file {
   content                      = tls_locally_signed_cert.client_cert.cert_pem
-  filename                     = var.client_cert_public_pem_file
+  filename                     = "${local.certificates_directory}/client_cert_public.pem"
 }
 
 resource null_resource client_cert_files {
   provisioner local-exec {
-    command                    = "openssl pkcs12 -in '${var.client_cert_public_pem_file}' -inkey '${var.client_cert_private_pem_file}' -certfile '${var.root_cert_public_pem_file}' -out '${var.client_cert_p12_file}' -export -password 'pass:${local.cert_password}'"
+    command                    = "openssl pkcs12 -in '${local_file.client_cert_public_pem_file.filename}' -inkey '${local_file.client_cert_private_pem_file.filename}' -certfile '${local_file.root_cert_public_pem_file.filename}' -out '${local.certificates_directory}/client_cert.p12' -export -password 'pass:${local.cert_password}'"
   }  
-
-  depends_on                   = [
-    local_file.client_cert_public_pem_file,
-    local_file.client_cert_private_pem_file
-  ]
 }
 
 resource local_file client_cert_files {
@@ -153,18 +145,18 @@ resource local_file client_cert_files {
     ${tls_private_key.client_cert.private_key_pem}
     ${tls_locally_signed_cert.client_cert.cert_pem}
   EOT
-  filename                     = var.client_cert_pem_file
+  filename                     = "${local.certificates_directory}/client_cert.pem"
 }
 
 data local_file root_cert_der_file {
-  filename                     = var.root_cert_der_file
+  filename                     = "${local.certificates_directory}/root_cert.der"
 
   depends_on                   = [null_resource.root_cert_files]
 }
 
 resource local_file root_cert_cer_file {
   content                      = data.local_file.root_cert_der_file.content_base64
-  filename                     = var.root_cert_cer_file
+  filename                     = "${local.certificates_directory}/root_cert.cer"
 }
 
 resource azurerm_virtual_network_gateway vpn_gw {

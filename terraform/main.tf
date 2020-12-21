@@ -129,7 +129,7 @@ resource azurerm_key_vault vault {
   enabled_for_disk_encryption  = true
   purge_protection_enabled     = false
   sku_name                     = "premium"
-  soft_delete_enabled          = false
+  soft_delete_enabled          = true
 
   # Grant access to self
   access_policy {
@@ -296,17 +296,6 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
-
-  root_cert_cer_file           = var.root_cert_cer_file
-  root_cert_der_file           = var.root_cert_der_file
-  root_cert_pem_file           = var.root_cert_pem_file
-  root_cert_private_pem_file   = var.root_cert_private_pem_file
-  root_cert_public_pem_file    = var.root_cert_public_pem_file
-  client_cert_pem_file         = var.client_cert_pem_file
-  client_cert_p12_file         = var.client_cert_p12_file
-  client_cert_public_pem_file  = var.client_cert_public_pem_file
-  client_cert_private_pem_file = var.client_cert_private_pem_file
-
   organization                 = var.organization
   virtual_network_id           = azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].id
   subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],8,0)
