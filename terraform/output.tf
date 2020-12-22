@@ -58,10 +58,10 @@ output resource_group_name {
     value                      = azurerm_resource_group.vm_resource_group.name
 }
 
-output root_cert_cer {
-  sensitive                    = true
-  value                        = var.deploy_vpn ? module.vpn.0.root_cert_cer : null
-}
+# output root_cert_cer {
+#   sensitive                    = true
+#   value                        = var.deploy_vpn ? module.vpn.0.root_cert_cer : null
+# }
 
 output virtual_network_id {
     value                      = {for region in var.locations : region => azurerm_virtual_network.development_network[region].id}
