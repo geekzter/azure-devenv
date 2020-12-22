@@ -44,7 +44,7 @@ function DownloadAndExtract-VPNProfile (
 }
 
 function Get-CertificatesDirectory() {
-    $directory = (Join-Path (Split-Path $PSScriptRoot -Parent) "certificates")
+    $directory = (Join-Path (Split-Path $PSScriptRoot -Parent) "data" (Get-TerraformWorkspace) "certificates")
     if (!(Test-Path $directory)) {
         $null = New-Item -ItemType Directory -Force -Path $directory 
     }
@@ -52,11 +52,15 @@ function Get-CertificatesDirectory() {
     return $directory
 }
 
+function Get-TerraformDirectory {
+    return (Join-Path (Split-Path $PSScriptRoot -Parent) "terraform")
+}
+
 function Get-TerraformOutput (
     [parameter(Mandatory=$true)][string]$OutputVariable
 ) {
     Invoke-Command -ScriptBlock {
-        $Private:ErrorActionPreference    = "SilentlyContinue"
+        $Private:ErrorActionPreference = "SilentlyContinue"
         Write-Verbose "terraform output ${OutputVariable}: evaluating..."
         $result = $(terraform output $OutputVariable 2>$null)
         $result = (($result -replace '^"','') -replace '"$','') # Remove surrounding quotes (Terraform 0.14)
@@ -71,6 +75,14 @@ function Get-TerraformOutput (
     }
 }
 
+function Get-TerraformWorkspace () {
+    Push-Location (Get-TerraformDirectory)
+    try {
+        return $(terraform workspace show)
+    } finally {
+        Pop-Location
+    }
+}
 
 function Install-Certificates(
     [parameter(Mandatory=$true)][string]$CertPassword
@@ -156,14 +168,12 @@ function Update-AzureVPNProfile (
 
     if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
         $vpnProfileFile = (Join-Path $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState "${ProfileName}.xml")
-        $vpnProfileXml.Save($vpnProfileFile)
+        Copy-Item $profileFileName $vpnProfileFile
         Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
         azurevpn -f -i (Split-Path $vpnProfileFile -Leaf)
     } else {
-        $vpnProfileXml.Save($vpnProfileTempFile)
-        Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${vpnProfileTempFile}"
+        Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${profileFileName}"
     }
-
 }
 
 function Update-GenericVPNProfile (
