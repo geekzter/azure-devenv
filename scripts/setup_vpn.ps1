@@ -21,13 +21,14 @@ Install-Certificates -CertPassword $certPassword
 AzLogin
 if ($gatewayId) {
     $tempPackagePath = (DownloadAndExtract-VPNProfile -GatewayID $gatewayId)
-
-    Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer -ProfileName $resourceGroup
-    Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
-    Update-OpenVPNProfile    -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Write-Host "Profiles are stored in $tempPackagePath"
     # if ($IsMacOS) {
     #     security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $tempPackagePath/VpnServerRoot.cer
     # }
+
+    Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer -ProfileName $resourceGroup -Install
+    Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
+    Update-OpenVPNProfile    -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
 
     if ($InformationPreference -ieq "Continue") {
         Write-Information "DNS Configuration:"
@@ -42,5 +43,3 @@ if ($gatewayId) {
 } else {
     Write-Warning "Gateway not found, have you run 'terraform apply' yet?"    
 }
-Write-Host "Profiles are stored in $tempPackagePath"
-

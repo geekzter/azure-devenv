@@ -86,6 +86,7 @@ function Install-Certificates(
     Push-Location (Get-TerraformDirectory)
     $clientCertificateCommonName = (Get-TerraformOutput "client_cert_common_name")
     $clientCertMergedPEMFile = (Get-TerraformOutput "client_cert_merged_pem_file")
+    $clientCertPublicPEMFile = (Get-TerraformOutput "client_cert_pem_file")
     $rootCertificateCommonName = (Get-TerraformOutput "root_cert_common_name")
     $rootCertPublicPEMFile = (Get-TerraformOutput "root_cert_pem_file")
     Pop-Location
@@ -101,7 +102,7 @@ function Install-Certificates(
     if ($IsWindows) {
         Install-CertificatesWindows -CertPassword $CertPassword `
                                     -ClientCertificateCommonName $clientCertificateCommonName `
-                                    -ClientCertMergedPEMFile $clientCertMergedPEMFile `
+                                    -ClientCertPublicPEMFile $clientCertPublicPEMFile `
                                     -RootCertificateCommonName $rootCertificateCommonName `
                                     -RootCertPublicPEMFile $rootCertPublicPEMFile
         return
@@ -158,7 +159,7 @@ function Install-CertificatesMacOS (
 function Install-CertificatesWindows (
     [parameter(Mandatory=$true)][string]$CertPassword,
     [parameter(Mandatory=$true)][string]$ClientCertificateCommonName,
-    [parameter(Mandatory=$true)][string]$ClientCertMergedPEMFile,
+    [parameter(Mandatory=$true)][string]$ClientCertPublicPEMFile,
     [parameter(Mandatory=$true)][string]$RootCertificateCommonName,
     [parameter(Mandatory=$true)][string]$RootCertPublicPEMFile
 ) {
@@ -166,6 +167,7 @@ function Install-CertificatesWindows (
         Write-Warning "certutil not found, skipping certificate import"
         return
     }
+
     # Install certificates
     if (Test-Path $RootCertPublicPEMFile) {
         Write-Host "Importing root certificate ${RootCertPublicPEMFile}..."
@@ -176,9 +178,9 @@ function Install-CertificatesWindows (
     }
     if (Test-Path $ClientCertMergedPEMFile) {
         $clientCertMergedPFXFile = ($ClientCertMergedPEMFile -replace ".pem", ".pfx")
-        # certutil -mergepfx -p "tmpew,tmpew" .\tmproot.pem .\tmproot.pfx
         Write-Verbose "Creating ${clientCertMergedPFXFile} from ${ClientCertMergedPEMFile}..."
-        certutil -f -user -mergepfx -p "${CertPassword},${CertPassword}" $ClientCertMergedPEMFile $clientCertMergedPFXFile
+        certutil -f -user -mergepfx -p "${CertPassword},${CertPassword}" $ClientCertPublicPEMFile $clientCertMergedPFXFile
+        #openssl pkcs12 -in $ClientCertPublicPEMFile -inkey ($ClientCertPublicPEMFile replace ".pem",".key") -certfile $RootCertPublicPEMFile -out $clientCertMergedPFXFile -export -password 'pass:$CertPassword'
         Write-Host "Importing ${clientCertMergedPFXFile}..."
         certutil -f -user -importpfx -p $CertPassword "My" $clientCertMergedPFXFile
     } else {
@@ -187,12 +189,28 @@ function Install-CertificatesWindows (
     }
 }
 
+function Install-ClassicWindowsClient (
+    [parameter(Mandatory=$true)][string]$PackagePath
+) {
+    if ([environment]::Is64BitOperatingSystem) {
+        $vpnPackage = (Join-Path $PackagePath WindowsAmd64 VpnClientSetupAmd64.exe)
+    } else {
+        $vpnPackage = (Join-Path $PackagePath WindowsX86 VpnClientSetupX86.exe)
+    }
+    if (!(Test-Path $vpnPackage)) {
+        Write-Error "Package $vpnPackage not found"
+    }
+
+    $vpnPackage
+}
+
 function Update-AzureVPNProfile (
     [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$false)][string]$ClientCert,
     [parameter(Mandatory=$false)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer,
-    [parameter(Mandatory=$true)][string]$ProfileName
+    [parameter(Mandatory=$true)][string]$ProfileName,
+    [parameter(Mandatory=$false)][switch]$Install
 ) {
     $profileFileName = Join-Path $PackagePath AzureVPN azurevpnconfig.xml
     if (!(Test-Path $profileFileName)) {
@@ -215,13 +233,15 @@ function Update-AzureVPNProfile (
     Copy-Item $profileFileName "${profileFileName}.backup"
     $vpnProfileXml.Save($profileFileName)
 
-    if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
-        $vpnProfileFile = (Join-Path $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState "${ProfileName}.xml")
-        Copy-Item $profileFileName $vpnProfileFile
-        Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
-        azurevpn -f -i (Split-Path $vpnProfileFile -Leaf)
-    } else {
-        Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${profileFileName}"
+    if ($Install) {
+        if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
+            $vpnProfileFile = (Join-Path $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState "${ProfileName}.xml")
+            Copy-Item $profileFileName $vpnProfileFile
+            Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
+            azurevpn -f -i (Split-Path $vpnProfileFile -Leaf)
+        } else {
+            Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${profileFileName}"
+        }
     }
 }
 
