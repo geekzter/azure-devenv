@@ -39,6 +39,40 @@ function DownloadAndExtract-VPNProfile (
     return $tempPackagePath
 }
 
+function Export-Certificate(
+    [parameter(Mandatory=$true)][string]$OutputVariable,
+    [parameter(Mandatory=$true)][string]$Filename
+) {
+    $certificateData = (Get-TerraformOutput $OutputVariable)
+    Write-Debug "${OutputVariable}:`n${certificateData}"
+    Set-Content -Path $Filename -Value $certificateData -Force
+    Write-Debug "Data written to ${Filename}"
+}
+
+function Export-Certificates() {
+    $certificateDirectory = Get-CertificatesDirectory
+
+    Push-Location (Get-TerraformDirectory)
+    try {
+        $clientCertPrivatePEM = (Join-Path $certificateDirectory "client_cert.key")
+        Export-Certificate -OutputVariable "client_cert_private_pem" -Filename $clientCertPrivatePEM
+        $clientCertPublicPEM = (Join-Path $certificateDirectory "client_cert.pem")
+        Export-Certificate -OutputVariable "client_cert_public_pem" -Filename $clientCertPublicPEM
+        $clientCertMergedPEM = (Join-Path $certificateDirectory "client_cert_merged.pem")
+        Get-Content $clientCertPrivatePEM, $clientCertPublicPEM | Set-Content $clientCertMergedPEM
+
+        $rootCertPrivatePEM = (Join-Path $certificateDirectory "root_cert.key")
+        Export-Certificate -OutputVariable "root_cert_private_pem" -Filename $rootCertPrivatePEM
+        $rootCertPublicPEM = (Join-Path $certificateDirectory "root_cert.pem")
+        Export-Certificate -OutputVariable "root_cert_public_pem" -Filename $rootCertPublicPEM
+        $rootCertMergedPEM = (Join-Path $certificateDirectory "root_cert_merged.pem")
+        Get-Content $rootCertPrivatePEM, $rootCertPublicPEM | Set-Content $rootCertMergedPEM
+    } finally {
+        Pop-Location
+    }
+    
+}
+
 function Get-CertificatesDirectory() {
     $directory = (Join-Path (Split-Path $PSScriptRoot -Parent) "data" (Get-TerraformWorkspace) "certificates")
     if (!(Test-Path $directory)) {
@@ -57,9 +91,8 @@ function Get-TerraformOutput (
 ) {
     Invoke-Command -ScriptBlock {
         $Private:ErrorActionPreference = "SilentlyContinue"
-        Write-Verbose "terraform output ${OutputVariable}: evaluating..."
-        $result = $(terraform output $OutputVariable 2>$null)
-        $result = (($result -replace '^"','') -replace '"$','') # Remove surrounding quotes (Terraform 0.14)
+        Write-Verbose "terraform output -raw ${OutputVariable}: evaluating..."
+        $result = $(terraform output -raw $OutputVariable 2>$null)
         if ($result -match "\[\d+m") {
             # Terraform warning, return null for missing output
             Write-Verbose "terraform output ${OutputVariable}: `$null (${result})"
@@ -133,7 +166,7 @@ function Install-CertificatesMacOS (
             security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $RootCertPublicPEMFile
         }
     } else {
-        Write-Host "Certificate $RootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
+        Write-Warning "Certificate $RootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
     if (Test-Path $ClientCertMergedPEMFile) {
@@ -147,11 +180,10 @@ function Install-CertificatesMacOS (
 
         if (!$skipClientCertImport) {
             Write-Host "Importing client certificate ${ClientCertMergedPEMFile}..."
-            # security import $certificateDirectory/client_cert.p12 -P $certPassword
             security import $ClientCertMergedPEMFile -P $certPassword
         }
     } else {
-        Write-Host "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
+        Write-Warning "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
 }
@@ -173,7 +205,7 @@ function Install-CertificatesWindows (
         Write-Host "Importing root certificate ${RootCertPublicPEMFile}..."
         certutil -f -user -addstore "My" $RootCertPublicPEMFile
     } else {
-        Write-Host "Certificate $RootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
+        Write-Warning "Certificate $RootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
     if (Test-Path $ClientCertMergedPEMFile) {
@@ -184,7 +216,7 @@ function Install-CertificatesWindows (
         Write-Host "Importing ${clientCertMergedPFXFile}..."
         certutil -f -user -importpfx -p $CertPassword "My" $clientCertMergedPFXFile
     } else {
-        Write-Host "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
+        Write-Warning "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
 }

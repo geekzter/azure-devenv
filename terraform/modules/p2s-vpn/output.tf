@@ -2,10 +2,6 @@ output cert_password {
   value       = random_string.cert_password.result
 }
 
-output client_cert {
-  value       = tls_locally_signed_cert.client_cert.cert_pem
-}
-
 output client_cert_common_name {
   value       = local.client_cert_common_name
 }
@@ -18,8 +14,12 @@ output client_cert_pem_file {
   value       = abspath(local_file.client_cert_public_pem_file.filename)
 }
 
-output client_key {
+output client_cert_private_pem {
   value       = tls_private_key.client_cert.private_key_pem
+}
+
+output client_cert_public_pem {
+  value       = tls_locally_signed_cert.client_cert.cert_pem
 }
 
 output gateway_id {
@@ -44,4 +44,12 @@ output root_cert_merged_pem_file {
 
 output root_cert_pem_file {
   value       = abspath(local_file.root_cert_public_pem_file.filename)
+}
+
+output root_cert_private_pem {
+  value       = tls_private_key.root_cert.private_key_pem
+}
+
+output root_cert_public_pem {
+  value       = tls_self_signed_cert.root_cert.cert_pem
 }

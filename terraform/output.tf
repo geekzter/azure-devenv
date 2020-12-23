@@ -12,11 +12,6 @@ output cert_password {
   value                        = var.deploy_vpn ? module.vpn.0.cert_password : null
 }
 
-output client_cert {
-  sensitive                    = true
-  value                        = var.deploy_vpn ? module.vpn.0.client_cert : null
-}
-
 output client_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_common_name : null
 }
@@ -29,9 +24,14 @@ output client_cert_pem_file {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_pem_file : null
 }
 
-output client_key {
+output client_cert_private_pem {
   sensitive                    = true
-  value                        = var.deploy_vpn ? module.vpn.0.client_key : null
+  value                        = var.deploy_vpn ? module.vpn.0.client_cert_private_pem : null
+}
+
+output client_cert_public_pem {
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
 output cloud_config {
@@ -70,11 +70,6 @@ output resource_group_name {
     value                      = azurerm_resource_group.vm_resource_group.name
 }
 
-# output root_cert_cer {
-#   sensitive                    = true
-#   value                        = var.deploy_vpn ? module.vpn.0.root_cert_cer : null
-# }
-
 output root_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_common_name : null
 }
@@ -85,6 +80,16 @@ output root_cert_merged_pem_file {
 
 output root_cert_pem_file {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_pem_file : null
+}
+
+output root_cert_private_pem {
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_private_pem : null
+}
+
+output root_cert_public_pem {
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem : null
 }
 
 output virtual_network_id {

@@ -7,8 +7,8 @@
 $terraformDirectory = (Join-Path (Split-Path -parent -Path $PSScriptRoot) "terraform")
 Push-Location $terraformDirectory
 $certPassword  = (Get-TerraformOutput cert_password)
-$clientCert    = (Get-TerraformOutput client_cert | Out-String)
-$clientKey     = (Get-TerraformOutput client_key | Out-String)
+$clientCert    = (Get-TerraformOutput client_cert_public_pem | Out-String)
+$clientKey     = (Get-TerraformOutput client_cert_private_pem | Out-String)
 $dnsServer     = (Get-TerraformOutput dns_server_address)
 $gatewayId     = (Get-TerraformOutput gateway_id)
 $resourceGroup = (Get-TerraformOutput resource_group_name)

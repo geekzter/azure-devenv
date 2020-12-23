@@ -10,7 +10,7 @@ terraform {
     time                       = "~> 0.6"
     tls                        = "~> 2.2"
   }
-  required_version             = "~> 0.13"
+  required_version             = "~> 0.14.0"
 }
 
 # Microsoft Azure Resource Manager Provider
