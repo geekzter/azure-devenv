@@ -91,14 +91,22 @@ function Install-Certificates(
     Pop-Location
 
     if ($IsMacOS) {
-        Install-CertificatesMacOS -CertPassword $CertPassword `
-                                  -ClientCertificateCommonName $clientCertificateCommonName `
-                                  -ClientCertMergedPEMFile $clientCertMergedPEMFile `
-                                  -RootCertificateCommonName $rootCertificateCommonName `
-                                  -RootCertPublicPEMFile $rootCertPublicPEMFile
+        Install-CertificatesMacOS   -CertPassword $CertPassword `
+                                    -ClientCertificateCommonName $clientCertificateCommonName `
+                                    -ClientCertMergedPEMFile $clientCertMergedPEMFile `
+                                    -RootCertificateCommonName $rootCertificateCommonName `
+                                    -RootCertPublicPEMFile $rootCertPublicPEMFile
         return
     }
-    Write-Warning "Skipping certificate import on $($PSversionTable.OS)"
+    if ($IsWindows) {
+        Install-CertificatesWindows -CertPassword $CertPassword `
+                                    -ClientCertificateCommonName $clientCertificateCommonName `
+                                    -ClientCertMergedPEMFile $clientCertMergedPEMFile `
+                                    -RootCertificateCommonName $rootCertificateCommonName `
+                                    -RootCertPublicPEMFile $rootCertPublicPEMFile
+        return
+    }
+    Write-Error "Skipping certificate import on $($PSversionTable.OS)"
 }
 
 function Install-CertificatesMacOS (
@@ -141,6 +149,38 @@ function Install-CertificatesMacOS (
             # security import $certificateDirectory/client_cert.p12 -P $certPassword
             security import $ClientCertMergedPEMFile -P $certPassword
         }
+    } else {
+        Write-Host "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
+        return
+    }
+}
+
+function Install-CertificatesWindows (
+    [parameter(Mandatory=$true)][string]$CertPassword,
+    [parameter(Mandatory=$true)][string]$ClientCertificateCommonName,
+    [parameter(Mandatory=$true)][string]$ClientCertMergedPEMFile,
+    [parameter(Mandatory=$true)][string]$RootCertificateCommonName,
+    [parameter(Mandatory=$true)][string]$RootCertPublicPEMFile
+) {
+    if (!(Get-Command certutil -ErrorAction SilentlyContinue)) {
+        Write-Warning "certutil not found, skipping certificate import"
+        return
+    }
+    # Install certificates
+    if (Test-Path $RootCertPublicPEMFile) {
+        Write-Host "Importing root certificate ${RootCertPublicPEMFile}..."
+        certutil -f -user -addstore "My" $RootCertPublicPEMFile
+    } else {
+        Write-Host "Certificate $RootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
+        return
+    }
+    if (Test-Path $ClientCertMergedPEMFile) {
+        $clientCertMergedPFXFile = ($ClientCertMergedPEMFile -replace ".pem", ".pfx")
+        # certutil -mergepfx -p "tmpew,tmpew" .\tmproot.pem .\tmproot.pfx
+        Write-Verbose "Creating ${clientCertMergedPFXFile} from ${ClientCertMergedPEMFile}..."
+        certutil -f -user -mergepfx -p "${CertPassword},${CertPassword}" $ClientCertMergedPEMFile $clientCertMergedPFXFile
+        Write-Host "Importing ${clientCertMergedPFXFile}..."
+        certutil -f -user -importpfx -p $CertPassword "My" $clientCertMergedPFXFile
     } else {
         Write-Host "Certificate $ClientCertMergedPEMFile does not exist, have you run 'terraform apply' yet?"
         return
