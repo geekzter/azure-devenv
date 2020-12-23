@@ -202,6 +202,7 @@ resource azurerm_linux_virtual_machine vm {
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
   custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
+  encryption_at_host_enabled   = false
 
   boot_diagnostics {
     storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint

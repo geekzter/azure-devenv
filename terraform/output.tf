@@ -21,6 +21,10 @@ output client_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_common_name : null
 }
 
+output client_cert_merged_pem_file {
+  value                        = var.deploy_vpn ? module.vpn.0.client_cert_merged_pem_file : null
+}
+
 output client_cert_pem_file {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_pem_file : null
 }
@@ -75,8 +79,12 @@ output root_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_common_name : null
 }
 
-output root_cert_public_pem_file {
-  value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem_file : null
+output root_cert_merged_pem_file {
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_merged_pem_file : null
+}
+
+output root_cert_pem_file {
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_pem_file : null
 }
 
 output virtual_network_id {

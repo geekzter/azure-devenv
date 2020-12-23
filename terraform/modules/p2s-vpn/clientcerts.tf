@@ -5,7 +5,7 @@ resource tls_private_key client_cert {
 
 resource local_file client_cert_private_pem_file {
   content                      = tls_private_key.client_cert.private_key_pem
-  filename                     = "${local.certificates_directory}/client_cert_private.pem"
+  filename                     = "${local.certificates_directory}/client_cert.key"
 }
 
 resource tls_cert_request client_cert {
@@ -34,19 +34,13 @@ resource tls_locally_signed_cert client_cert {
 
 resource local_file client_cert_public_pem_file {
   content                      = tls_locally_signed_cert.client_cert.cert_pem
-  filename                     = "${local.certificates_directory}/client_cert_public.pem"
+  filename                     = "${local.certificates_directory}/client_cert.pem"
 }
 
-resource null_resource client_cert_files {
-  provisioner local-exec {
-    command                    = "openssl pkcs12 -in '${local_file.client_cert_public_pem_file.filename}' -inkey '${local_file.client_cert_private_pem_file.filename}' -certfile '${local_file.root_cert_public_pem_file.filename}' -out '${local.certificates_directory}/client_cert.p12' -export -password 'pass:${local.cert_password}'"
-  }  
-}
-
-resource local_file client_cert_files {
+resource local_file client_cert_merged {
   content                      = <<-EOT
     ${tls_private_key.client_cert.private_key_pem}
     ${tls_locally_signed_cert.client_cert.cert_pem}
   EOT
-  filename                     = "${local.certificates_directory}/client_cert.pem"
+  filename                     = "${local.certificates_directory}/client_cert_merged.pem"
 }

@@ -13,6 +13,7 @@ tmp*.*
 data/*.*
 *.cer
 *.der
+*.key
 *.p12
 *.pem
 *.pfx

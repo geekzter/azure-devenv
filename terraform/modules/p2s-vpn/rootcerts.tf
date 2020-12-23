@@ -5,7 +5,7 @@ resource tls_private_key root_cert {
 
 resource local_file root_cert_private_pem_file {
   content                      = tls_private_key.root_cert.private_key_pem
-  filename                     = "${local.certificates_directory}/root_cert_private.pem"
+  filename                     = "${local.certificates_directory}/root_cert.key"
 }
 
 resource tls_self_signed_cert root_cert {
@@ -29,29 +29,13 @@ resource tls_self_signed_cert root_cert {
 
 resource local_file root_cert_public_pem_file {
   content                      = tls_self_signed_cert.root_cert.cert_pem
-  filename                     = "${local.certificates_directory}/root_cert_public.pem"
+  filename                     = "${local.certificates_directory}/root_cert.pem"
 }
 
-# resource null_resource root_cert_files {
-#   provisioner local-exec {
-#     command                    = "openssl x509 -in '${local_file.root_cert_public_pem_file.filename}' -outform der > '${local.certificates_directory}/root_cert.der'"
-#   }  
-# }
-resource local_file root_cert_files {
+resource local_file root_cert_merged {
   content                      = <<-EOT
     ${tls_private_key.root_cert.private_key_pem}
     ${tls_self_signed_cert.root_cert.cert_pem}
   EOT
-  filename                     = "${local.certificates_directory}/root_cert.pem"
+  filename                     = "${local.certificates_directory}/root_cert_merged.pem"
 }
-
-# data local_file root_cert_der_file {
-#   filename                     = "${local.certificates_directory}/root_cert.der"
-
-#   depends_on                   = [null_resource.root_cert_files]
-# }
-
-# resource local_file root_cert_cer_file {
-#   content                      = data.local_file.root_cert_der_file.content_base64
-#   filename                     = "${local.certificates_directory}/root_cert.cer"
-# }
