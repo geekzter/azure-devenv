@@ -6,6 +6,14 @@ output client_cert {
   value       = tls_locally_signed_cert.client_cert.cert_pem
 }
 
+output client_cert_common_name {
+  value       = local.client_cert_common_name
+}
+
+output client_cert_pem_file {
+  value       = abspath(local_file.client_cert_files.filename)
+}
+
 output client_key {
   value       = tls_private_key.client_cert.private_key_pem
 }
@@ -24,4 +32,12 @@ output gateway_fqdn {
 
 output gateway_ip {
   value       = azurerm_public_ip.vpn_pip.ip_address
+}
+
+output root_cert_common_name {
+  value       = local.root_cert_common_name
+}
+
+output root_cert_public_pem_file {
+  value       = abspath(local_file.root_cert_public_pem_file.filename)
 }

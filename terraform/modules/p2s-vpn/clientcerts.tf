@@ -12,7 +12,7 @@ resource tls_cert_request client_cert {
   key_algorithm                = tls_private_key.client_cert.algorithm
   private_key_pem              = tls_private_key.client_cert.private_key_pem
   subject {
-    common_name                = "P2SChildCert"
+    common_name                = local.client_cert_common_name
     organization               = var.organization
   }
 }

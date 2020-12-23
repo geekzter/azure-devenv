@@ -1,7 +1,3 @@
-$rootCertificateCommonName = "P2SRootCert"
-$clientCertificateCommonName = "P2SChildCert"
-
-
 function AzLogin (
     [parameter(Mandatory=$false)][switch]$DisplayMessages=$false
 ) {
@@ -98,42 +94,52 @@ function Install-Certificates(
 function Install-CertificatesMacOS (
     [parameter(Mandatory=$true)][string]$CertPassword
 ) {
+    # TODO: Get full path to certificates as Terraform output
     $certificateDirectory = Get-CertificatesDirectory
+
+    Push-Location (Get-TerraformDirectory)
+    $clientCertificateCommonName = (Get-TerraformOutput "client_cert_common_name")
+    $clientCertificatePEMFile = (Get-TerraformOutput "client_cert_pem_file")
+    $rootCertificateCommonName = (Get-TerraformOutput "root_cert_common_name")
+    $rootCertPublicPEMFile = (Get-TerraformOutput "root_cert_public_pem_file")
+    Pop-Location
+
 
     # Install certificates
     #security unlock-keychain ~/Library/Keychains/login.keychain
-    if (Test-Path $certificateDirectory/root_cert_public.pem) {
+    if (Test-Path $rootCertPublicPEMFile) {
         if (security find-certificate -c $rootCertificateCommonName 2>$null) {
             Write-Warning "Certificate with common name $rootCertificateCommonName already exixts"
             # Prompt to overwrite
-            Write-Host "Continue importing $certificateDirectory/root_cert_public.pem? Please reply 'yes' - null or N skips import" -ForegroundColor Cyan
+            Write-Host "Continue importing ${rootCertPublicPEMFile}? Please reply 'yes' - null or N skips import" -ForegroundColor Cyan
             $proceedanswer = Read-Host 
             $skipRootCertImport = ($proceedanswer -ne "yes")
         } 
 
         if (!$skipRootCertImport) {
-            Write-Host "Importing root certificate $certificateDirectory/root_cert_public.pem..."
-            security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $certificateDirectory/root_cert_public.pem
+            Write-Host "Importing root certificate ${rootCertPublicPEMFile}..."
+            security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $rootCertPublicPEMFile
         }
     } else {
-        Write-Host "Certificate $certificateDirectory/root_cert_public.pem does not exist, have you run 'terraform apply' yet?"
+        Write-Host "Certificate $rootCertPublicPEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
-    if (Test-Path $certificateDirectory/client_cert.p12) {
+    if (Test-Path $clientCertificatePEMFile) {
         if (security find-certificate -c $clientCertificateCommonName 2>$null) {
             Write-Warning "Certificate with common name $clientCertificateCommonName already exixts"
             # Prompt to overwrite
-            Write-Host "Continue importing $certificateDirectory/client_cert.p12? Please reply 'yes' - null or N skips import" -ForegroundColor Cyan
+            Write-Host "Continue importing ${clientCertificatePEMFile}? Please reply 'yes' - null or N skips import" -ForegroundColor Cyan
             $proceedanswer = Read-Host 
             $skipClientCertImport = ($proceedanswer -ne "yes")
         } 
 
         if (!$skipClientCertImport) {
-            Write-Host "Importing client certificate $certificateDirectory/client_cert.p12..."
-            security import $certificateDirectory/client_cert.p12 -P $certPassword
+            Write-Host "Importing client certificate ${clientCertificatePEMFile}..."
+            # security import $certificateDirectory/client_cert.p12 -P $certPassword
+            security import $clientCertificatePEMFile -P $certPassword
         }
     } else {
-        Write-Host "Certificate $certificateDirectory/client_cert.p12 does not exist, have you run 'terraform apply' yet?"
+        Write-Host "Certificate $clientCertificatePEMFile does not exist, have you run 'terraform apply' yet?"
         return
     }
 }

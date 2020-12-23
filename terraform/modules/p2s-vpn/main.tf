@@ -2,6 +2,9 @@ data azurerm_client_config current {}
 
 locals {
   certificates_directory       = "${path.root}/../data/${terraform.workspace}/certificates"
+  client_cert_common_name      = terraform.workspace == "default" ? "P2SChildCert" : "P2SChildCert${terraform.workspace}"
+  root_cert_common_name        = terraform.workspace == "default" ? "P2SRootCert" : "P2SRootCert${terraform.workspace}"
+
   tenant_url                   = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}/"
   issuer_url                   = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/"
   resource_group_name          = element(split("/",var.resource_group_id),length(split("/",var.resource_group_id))-1)

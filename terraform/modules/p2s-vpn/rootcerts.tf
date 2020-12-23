@@ -21,7 +21,7 @@ resource tls_self_signed_cert root_cert {
   key_algorithm                = tls_private_key.root_cert.algorithm
   private_key_pem              = tls_private_key.root_cert.private_key_pem
   subject {
-    common_name                = "P2SRootCert"
+    common_name                = local.root_cert_common_name
     organization               = var.organization
   }
   validity_period_hours        = 8766 # 1 year
