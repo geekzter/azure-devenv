@@ -1,3 +1,4 @@
+
 function AzLogin (
     [parameter(Mandatory=$false)][switch]$DisplayMessages=$false
 ) {
@@ -39,38 +40,44 @@ function DownloadAndExtract-VPNProfile (
     return $tempPackagePath
 }
 
-function Export-Certificate(
+$certificateKeytoFileMapping  = @{
+    "client_cert_private_pem" = "client_cert.key"
+    "client_cert_public_pem"  = "client_cert.pem"
+    "client_cert_merged_pem"  = "client_cert_merged.pem"
+    "root_cert_private_pem"   = "root_cert.key"
+    "root_cert_public_pem"    = "root_cert.pem"
+    "root_cert_merged_pem"    = "root_cert_merged.pem"
+}
+
+function Export-CertificateFromTerraform(
     [parameter(Mandatory=$true)][string]$OutputVariable,
-    [parameter(Mandatory=$true)][string]$Filename
+    [parameter(Mandatory=$true)][string]$CertificateDirectory
 ) {
     $certificateData = (Get-TerraformOutput $OutputVariable)
     Write-Debug "${OutputVariable}:`n${certificateData}"
-    Set-Content -Path $Filename -Value $certificateData -Force
-    Write-Debug "Data written to ${Filename}"
+
+    $certificateFileName = (Join-Path $CertificateDirectory $certificateKeytoFileMapping[$OutputVariable])
+
+    Set-Content -Path $certificateFileName -Value $certificateData -Force
+    Write-Debug "Data written to ${certificateFileName}"
 }
 
-function Export-Certificates() {
+function Export-CertificatesFromTerraform() {
     $certificateDirectory = Get-CertificatesDirectory
 
     Push-Location (Get-TerraformDirectory)
     try {
-        $clientCertPrivatePEM = (Join-Path $certificateDirectory "client_cert.key")
-        Export-Certificate -OutputVariable "client_cert_private_pem" -Filename $clientCertPrivatePEM
-        $clientCertPublicPEM = (Join-Path $certificateDirectory "client_cert.pem")
-        Export-Certificate -OutputVariable "client_cert_public_pem" -Filename $clientCertPublicPEM
-        $clientCertMergedPEM = (Join-Path $certificateDirectory "client_cert_merged.pem")
-        Get-Content $clientCertPrivatePEM, $clientCertPublicPEM | Set-Content $clientCertMergedPEM
-
-        $rootCertPrivatePEM = (Join-Path $certificateDirectory "root_cert.key")
-        Export-Certificate -OutputVariable "root_cert_private_pem" -Filename $rootCertPrivatePEM
-        $rootCertPublicPEM = (Join-Path $certificateDirectory "root_cert.pem")
-        Export-Certificate -OutputVariable "root_cert_public_pem" -Filename $rootCertPublicPEM
-        $rootCertMergedPEM = (Join-Path $certificateDirectory "root_cert_merged.pem")
-        Get-Content $rootCertPrivatePEM, $rootCertPublicPEM | Set-Content $rootCertMergedPEM
+        Export-CertificateFromTerraform -OutputVariable "client_cert_private_pem" -CertificateDirectory $certificateDirectory
+        Export-CertificateFromTerraform -OutputVariable "client_cert_public_pem" -CertificateDirectory $certificateDirectory
+        Export-CertificateFromTerraform -OutputVariable "client_cert_merged_pem" -CertificateDirectory $certificateDirectory
+        Export-CertificateFromTerraform -OutputVariable "root_cert_private_pem" -CertificateDirectory $certificateDirectory
+        Export-CertificateFromTerraform -OutputVariable "root_cert_public_pem" -CertificateDirectory $certificateDirectory
+        Export-CertificateFromTerraform -OutputVariable "root_cert_merged_pem" -CertificateDirectory $certificateDirectory
     } finally {
         Pop-Location
     }
     
+    return $certificateDirectory
 }
 
 function Get-CertificatesDirectory() {
@@ -116,12 +123,21 @@ function Get-TerraformWorkspace () {
 function Install-Certificates(
     [parameter(Mandatory=$true)][string]$CertPassword
 ) {
+    $certificateDirectory = Export-CertificatesFromTerraform
+
+    # $clientCertificateCommonName = (Get-TerraformOutput "client_cert_common_name")
+    # $clientCertMergedPEMFile = (Get-TerraformOutput "client_cert_merged_pem_file")
+    # $clientCertPublicPEMFile = (Get-TerraformOutput "client_cert_pem_file")
+    # $rootCertificateCommonName = (Get-TerraformOutput "root_cert_common_name")
+    # $rootCertPublicPEMFile = (Get-TerraformOutput "root_cert_pem_file")
+
+    $clientCertMergedPEMFile      = (Join-Path $certificateDirectory $certificateKeytoFileMapping["client_cert_merged_pem"])
+    $clientCertPublicPEMFile      = (Join-Path $certificateDirectory $certificateKeytoFileMapping["client_cert_public_pem"])
+    $rootCertPublicPEMFile        = (Join-Path $certificateDirectory $certificateKeytoFileMapping["root_cert_public_pem"])
+
     Push-Location (Get-TerraformDirectory)
-    $clientCertificateCommonName = (Get-TerraformOutput "client_cert_common_name")
-    $clientCertMergedPEMFile = (Get-TerraformOutput "client_cert_merged_pem_file")
-    $clientCertPublicPEMFile = (Get-TerraformOutput "client_cert_pem_file")
-    $rootCertificateCommonName = (Get-TerraformOutput "root_cert_common_name")
-    $rootCertPublicPEMFile = (Get-TerraformOutput "root_cert_pem_file")
+    $clientCertificateCommonName  = (Get-TerraformOutput "client_cert_common_name")
+    $rootCertificateCommonName    = (Get-TerraformOutput "root_cert_common_name")
     Pop-Location
 
     if ($IsMacOS) {
@@ -162,7 +178,7 @@ function Install-CertificatesMacOS (
         } 
 
         if (!$skipRootCertImport) {
-            Write-Host "Importing root certificate ${RootCertPublicPEMFile}..."
+            Write-Host "Importing root certificate ${RootCertPublicPEMFile} with common name ${RootCertificateCommonName}..."
             security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $RootCertPublicPEMFile
         }
     } else {
@@ -179,7 +195,7 @@ function Install-CertificatesMacOS (
         } 
 
         if (!$skipClientCertImport) {
-            Write-Host "Importing client certificate ${ClientCertMergedPEMFile}..."
+            Write-Host "Importing client certificate ${ClientCertMergedPEMFile} with common name ${ClientCertificateCommonName}..."
             security import $ClientCertMergedPEMFile -P $certPassword
         }
     } else {

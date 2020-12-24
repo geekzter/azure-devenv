@@ -14,6 +14,13 @@ output client_cert_pem_file {
   value       = abspath(local_file.client_cert_public_pem_file.filename)
 }
 
+output client_cert_merged_pem {
+  value       = <<-EOT
+    ${tls_private_key.client_cert.private_key_pem}
+    ${tls_locally_signed_cert.client_cert.cert_pem}
+  EOT
+}
+
 output client_cert_private_pem {
   value       = tls_private_key.client_cert.private_key_pem
 }
@@ -46,6 +53,12 @@ output root_cert_pem_file {
   value       = abspath(local_file.root_cert_public_pem_file.filename)
 }
 
+output root_cert_merged_pem {
+  value       = <<-EOT
+    ${tls_private_key.root_cert.private_key_pem}
+    ${tls_self_signed_cert.root_cert.cert_pem}
+  EOT
+}
 output root_cert_private_pem {
   value       = tls_private_key.root_cert.private_key_pem
 }

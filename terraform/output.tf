@@ -24,6 +24,11 @@ output client_cert_pem_file {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_pem_file : null
 }
 
+output client_cert_merged_pem {
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.vpn.0.client_cert_merged_pem : null
+}
+
 output client_cert_private_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_private_pem : null
@@ -80,6 +85,11 @@ output root_cert_merged_pem_file {
 
 output root_cert_pem_file {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_pem_file : null
+}
+
+output root_cert_merged_pem {
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.vpn.0.root_cert_merged_pem : null
 }
 
 output root_cert_private_pem {
