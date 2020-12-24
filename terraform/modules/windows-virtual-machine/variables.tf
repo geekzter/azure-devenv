@@ -21,7 +21,9 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
-variable dns_zone_id {}
+variable dns_zone_id {
+    default                    = null
+}
 variable enable_accelerated_networking {
     type                       = bool
     default                    = false
@@ -33,14 +35,16 @@ variable git_email {}
 variable git_name {}
 variable key_vault_id {}
 variable location {}
-variable log_analytics_workspace_id {}
+variable log_analytics_workspace_id {
+    default                    = null
+}
 variable moniker {}
 variable network_watcher {
     type                       = bool
     default                    = false
 }
-variable os_sku_match {
-    default                    = "-ent-g2"
+variable os_sku {
+    default                    = "20h2-ent-g2"
 }
 variable os_version {
     default                    = "latest"

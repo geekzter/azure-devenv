@@ -129,7 +129,7 @@ resource azurerm_key_vault vault {
   enabled_for_disk_encryption  = true
   purge_protection_enabled     = false
   sku_name                     = "premium"
-  soft_delete_enabled          = false
+  soft_delete_enabled          = true
 
   # Grant access to self
   access_policy {
@@ -141,6 +141,7 @@ resource azurerm_key_vault vault {
                                 "get",
                                 "delete",
                                 "list",
+                                "purge",
                                 "recover",
                                 "wrapkey",
                                 "unwrapkey"
@@ -148,6 +149,7 @@ resource azurerm_key_vault vault {
     secret_permissions         = [
                                 "get",
                                 "delete",
+                                "purge",
                                 "set",
     ]
   }
@@ -163,9 +165,11 @@ resource azurerm_key_vault vault {
                                 "create",
                                 "get",
                                 "list",
+                                "purge",
       ]
 
       secret_permissions       = [
+                                "purge",
                                 "set",
       ]
     }
@@ -276,7 +280,7 @@ module windows_vm {
   log_analytics_workspace_id   = var.log_analytics_workspace_id
   moniker                      = "w"
   network_watcher              = true
-  os_sku_match                 = var.windows_sku_match
+  os_sku                       = var.windows_sku
   os_version                   = var.windows_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   scripts_container_id         = azurerm_storage_container.scripts.id
@@ -296,17 +300,6 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
-
-  root_cert_cer_file           = var.root_cert_cer_file
-  root_cert_der_file           = var.root_cert_der_file
-  root_cert_pem_file           = var.root_cert_pem_file
-  root_cert_private_pem_file   = var.root_cert_private_pem_file
-  root_cert_public_pem_file    = var.root_cert_public_pem_file
-  client_cert_pem_file         = var.client_cert_pem_file
-  client_cert_p12_file         = var.client_cert_p12_file
-  client_cert_public_pem_file  = var.client_cert_public_pem_file
-  client_cert_private_pem_file = var.client_cert_private_pem_file
-
   organization                 = var.organization
   virtual_network_id           = azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].id
   subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],8,0)

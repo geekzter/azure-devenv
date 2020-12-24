@@ -16,7 +16,9 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
-variable dns_zone_id {}
+variable dns_zone_id {
+    default                    = null
+}
 variable enable_aad_login {
     type                       = bool
     default                    = false
@@ -32,7 +34,9 @@ variable git_email {}
 variable git_name {}
 variable key_vault_id {}
 variable location {}
-variable log_analytics_workspace_id {}
+variable log_analytics_workspace_id {
+    default                    = null
+}
 variable moniker {}
 variable network_watcher {
     type                       = bool

@@ -1,14 +1,19 @@
+# Ignore files with sensitive information
+backend.tf
 
 # Ignore generated RDP files
 *.rdp
 
 # Ignore temporary files
 tmp*.*
+*.*_
+*.log
 
-# Ignore Certificates
-certificates/*.*
+# Ignore generated files
+data/*.*
 *.cer
 *.der
+*.key
 *.p12
 *.pem
 *.pfx

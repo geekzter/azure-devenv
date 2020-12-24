@@ -9,21 +9,25 @@ locals {
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
-  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
-  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
+  dns_zone_name                = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1) : null
+  dns_zone_rg                  = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5) : null
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
-  log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
-  log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
+  log_analytics_workspace_name = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1) : null
+  log_analytics_workspace_rg   = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5) : null
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
   environment_variables        = merge(
-    var.environment_variables,
     map(
       "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
-    )
+      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id,
+      # Defaults, will be overriden by variables passed into map merge
+      "tf_backend_resource_group", "",
+      "tf_backend_storage_account", "",
+      "tf_backend_storage_container", "",
+    ),
+    var.environment_variables
   )
 
   # Hide dependency on script blobs, so we prevent VM re-creation if script changes
@@ -55,6 +59,8 @@ data azurerm_key_vault vault {
 data azurerm_log_analytics_workspace monitor {
   name                         = local.log_analytics_workspace_name
   resource_group_name          = local.log_analytics_workspace_rg
+
+  count                        = local.log_analytics_workspace_name != null ? 1 : 0
 }
 
 resource time_static vm_update {
@@ -206,29 +212,21 @@ resource azurerm_key_vault_key disk_encryption_key {
 # depends_on                   = [azurerm_firewall_application_rule_collection.*]
 }
 
-data external image_info {
-  program                      = [
-                                 "az",
-                                 "vm",
-                                 "image",
-                                 "list",
-                                 "-f",
-                                 "Windows-10",
-                                 "-p",
-                                 "MicrosoftWindowsDesktop",
-                                 "--all",
-                                 "--query",
-                                 # Get latest version of matching SKU
-                                 "max_by([?contains(sku,'${var.os_sku_match}')],&version)",
-                                 "-o",
-                                 "json",
-                                 ]
+data azurerm_platform_image latest_image {
+  location                     = var.location
+  publisher                    = local.os_publisher
+  offer                        = local.os_offer
+  sku                          = var.os_sku
+  # version                      = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : "latest"
 }
 
 locals {
-  # data.external.image_info.result.sku should be same as 'latest' 
-  # This allows to override the version value with the literal version, and don't trigger a change if resolving to the same
-  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
+  # Workaround for:
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  os_offer                     = "Windows-10"
+  os_publisher                 = "MicrosoftWindowsDesktop"
+  os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
+  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
 }
 
 resource azurerm_windows_virtual_machine vm {
@@ -247,10 +245,12 @@ resource azurerm_windows_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  # source_image_id              = local.vm_image_id
   source_image_reference {
-    publisher                  = "MicrosoftWindowsDesktop"
-    offer                      = "Windows-10"
-    sku                        = data.external.image_info.result.sku
+    publisher                  = local.os_publisher
+    offer                      = local.os_offer
+    sku                        = var.os_sku
     version                    = local.os_version
   }
 
@@ -304,14 +304,14 @@ resource azurerm_virtual_machine_extension vm_monitor {
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}",
+      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.0.workspace_id}",
       "azureResourceId"        : "${azurerm_windows_virtual_machine.vm.id}",
       "stopOnMultipleConnections": "true"
     }
   EOF
   protected_settings = <<EOF
     { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
+      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.0.primary_shared_key}"
     } 
   EOF
 
@@ -391,22 +391,22 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
+      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.0.id}"
     }
   EOF
 
   protected_settings = <<EOF
     { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
+      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.0.primary_shared_key}"
     } 
   EOF
 
-  count                        = var.dependency_monitor ? 1 : 0
+  count                        = var.dependency_monitor && local.log_analytics_workspace_name != null? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
                                   azurerm_virtual_machine_extension.vm_monitor
-                                 ]
+                                 ] 
 }
 resource azurerm_virtual_machine_extension vm_watcher {
   name                         = "AzureNetworkWatcherExtension"
@@ -507,5 +507,5 @@ resource local_file rdp_file {
   {
     host                       = azurerm_public_ip.pip.ip_address
   })
-  filename                     = "${path.root}/../${azurerm_windows_virtual_machine.vm.name}.rdp"
+  filename                     = "${path.root}/../data/${terraform.workspace}/${azurerm_windows_virtual_machine.vm.name}.rdp"
 }

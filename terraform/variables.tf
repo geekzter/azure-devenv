@@ -2,10 +2,12 @@
 variable admin_object_id {
   default                      = null
 }
-variable admin_username {}
+variable admin_username {
+    default                    = "dev"
+}
 variable deploy_vpn {
     type                       = bool
-    default                    = true
+    default                    = false
 }
 variable development_resource_group {
   default                      = "Development"
@@ -21,15 +23,21 @@ variable devops_org {
 variable devops_pat {
   default                      = null
 }
-variable dns_zone_id {}
+variable dns_zone_id {
+  default                      = null
+}
 variable environment_variables {
   type                         = map
   default = {
     provisioner                = "terraform"
   }
 } 
-variable git_email {}
-variable git_name {}
+variable git_email {
+  default                      = ""
+}
+variable git_name {
+  default                      = ""
+}
 variable global_vnet_peering {
     type                       = bool
     default                    = true
@@ -58,7 +66,9 @@ variable locations {
   type                         = list
   default                      = ["westeurope"]
 }
-variable log_analytics_workspace_id {}
+variable log_analytics_workspace_id {
+  default                      = null
+}
 
 variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"
@@ -68,8 +78,8 @@ variable vpn_range {
   default                      = "192.168.0.0/24"
 }
 
-variable windows_sku_match {
-  default                      = "-ent-g2"
+variable windows_sku {
+  default                      = "20h2-ent-g2"
 }
 variable windows_os_version {
   default                      = "latest"
@@ -87,31 +97,4 @@ variable vm_subnet {
 # Certificate data
 variable organization {
   default                      = "DevelopersInc"
-}
-variable root_cert_pem_file {
-  default                      = "../certificates/root_cert.pem"
-}
-variable root_cert_cer_file {
-  default                      = "../certificates/root_cert.cer"
-}
-variable root_cert_der_file {
-  default                      = "../certificates/root_cert.der"
-}
-variable root_cert_private_pem_file {
-  default                      = "../certificates/root_cert_private.pem"
-}
-variable root_cert_public_pem_file {
-  default                      = "../certificates/root_cert_public.pem"
-}
-variable client_cert_pem_file {
-  default                      = "../certificates/client_cert.pem"
-}
-variable client_cert_p12_file {
-  default                      = "../certificates/client_cert.p12"
-}
-variable client_cert_public_pem_file {
-  default                      = "../certificates/client_cert_public.pem"
-}
-variable client_cert_private_pem_file {
-  default                      = "../certificates/client_cert_private.pem"
 }

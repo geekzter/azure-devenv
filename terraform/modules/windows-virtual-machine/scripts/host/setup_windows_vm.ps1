@@ -110,8 +110,12 @@ Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://raw
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 if (!(Test-Path $settingsFile)) {
     $settings = (Get-Content "$settingsFile.sample" | ConvertFrom-Json)
-    $settings.GitEmail = $config.gitemail
-    $settings.GitName = $config.gitname
+    if ($config.gitemail) {
+        $settings.GitEmail = $config.gitemail        
+    }
+    if ($config.gitname) {
+        $settings.GitName = $config.gitname
+    }
     $settings | ConvertTo-Json | Out-File $settingsFile
 }
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All

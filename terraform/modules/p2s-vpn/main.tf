@@ -1,6 +1,9 @@
 data azurerm_client_config current {}
 
 locals {
+  client_cert_common_name      = terraform.workspace == "default" ? "P2SChildCert" : "P2SChildCert${terraform.workspace}"
+  root_cert_common_name        = terraform.workspace == "default" ? "P2SRootCert" : "P2SRootCert${terraform.workspace}"
+
   tenant_url                   = "https://login.microsoftonline.com/${data.azurerm_client_config.current.tenant_id}/"
   issuer_url                   = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/"
   resource_group_name          = element(split("/",var.resource_group_id),length(split("/",var.resource_group_id))-1)
@@ -47,126 +50,6 @@ resource azurerm_public_ip vpn_pip {
   
 }
 
-resource tls_private_key root_cert {
-  algorithm                    = "RSA"
-  rsa_bits                     = "2048"
-}
-
-resource local_file root_cert_private_pem_file {
-  content                      = tls_private_key.root_cert.private_key_pem
-  filename                     = var.root_cert_private_pem_file
-}
-
-resource tls_self_signed_cert root_cert {
-  allowed_uses                 = [
-                                "cert_signing",
-                                "client_auth",
-                                "digital_signature",
-                                "key_encipherment",
-                                "server_auth",
-  ]
-  early_renewal_hours          = 200
-  is_ca_certificate            = true
-  key_algorithm                = tls_private_key.root_cert.algorithm
-  private_key_pem              = tls_private_key.root_cert.private_key_pem
-  subject {
-    common_name                = "P2SRootCert"
-    organization               = var.organization
-  }
-  validity_period_hours        = 8766 # 1 year
-}
-
-resource local_file root_cert_public_pem_file {
-  content                      = tls_self_signed_cert.root_cert.cert_pem
-  filename                     = var.root_cert_public_pem_file
-}
-
-resource null_resource root_cert_files {
-  provisioner local-exec {
-    command                    = "openssl x509 -in '${var.root_cert_public_pem_file}' -outform der > '${var.root_cert_der_file}'"
-  }  
-
-  depends_on                   = [
-    local_file.root_cert_public_pem_file
-  ]
-}
-resource local_file root_cert_files {
-  content                      = <<-EOT
-    ${tls_private_key.root_cert.private_key_pem}
-    ${tls_self_signed_cert.root_cert.cert_pem}
-  EOT
-  filename                     = var.root_cert_pem_file
-}
-
-resource tls_private_key client_cert {
-  algorithm                    = "RSA"
-  rsa_bits                     = "2048"
-}
-
-resource local_file client_cert_private_pem_file {
-  content                      = tls_private_key.client_cert.private_key_pem
-  filename                     = var.client_cert_private_pem_file
-}
-
-resource tls_cert_request client_cert {
-  key_algorithm                = tls_private_key.client_cert.algorithm
-  private_key_pem              = tls_private_key.client_cert.private_key_pem
-  subject {
-    common_name                = "P2SChildCert"
-    organization               = var.organization
-  }
-}
-
-resource tls_locally_signed_cert client_cert {
-  allowed_uses                 = [
-                                "key_encipherment",
-                                "digital_signature",
-                                "server_auth",
-                                "client_auth",
-  ]
-  ca_cert_pem                  = tls_self_signed_cert.root_cert.cert_pem
-  ca_key_algorithm             = tls_private_key.client_cert.algorithm
-  ca_private_key_pem           = tls_private_key.client_cert.private_key_pem
-  cert_request_pem             = tls_cert_request.client_cert.cert_request_pem
-  is_ca_certificate            = true
-  validity_period_hours        = 43800
-}
-
-resource local_file client_cert_public_pem_file {
-  content                      = tls_locally_signed_cert.client_cert.cert_pem
-  filename                     = var.client_cert_public_pem_file
-}
-
-resource null_resource client_cert_files {
-  provisioner local-exec {
-    command                    = "openssl pkcs12 -in '${var.client_cert_public_pem_file}' -inkey '${var.client_cert_private_pem_file}' -certfile '${var.root_cert_public_pem_file}' -out '${var.client_cert_p12_file}' -export -password 'pass:${local.cert_password}'"
-  }  
-
-  depends_on                   = [
-    local_file.client_cert_public_pem_file,
-    local_file.client_cert_private_pem_file
-  ]
-}
-
-resource local_file client_cert_files {
-  content                      = <<-EOT
-    ${tls_private_key.client_cert.private_key_pem}
-    ${tls_locally_signed_cert.client_cert.cert_pem}
-  EOT
-  filename                     = var.client_cert_pem_file
-}
-
-data local_file root_cert_der_file {
-  filename                     = var.root_cert_der_file
-
-  depends_on                   = [null_resource.root_cert_files]
-}
-
-resource local_file root_cert_cer_file {
-  content                      = data.local_file.root_cert_der_file.content_base64
-  filename                     = var.root_cert_cer_file
-}
-
 resource azurerm_virtual_network_gateway vpn_gw {
   name                         = "${local.resource_group_name}-vpn"
   resource_group_name          = local.resource_group_name
@@ -191,8 +74,7 @@ resource azurerm_virtual_network_gateway vpn_gw {
     address_space              = [var.vpn_range]
     root_certificate {
       name                     = "${var.organization}-terraform-tls"
-      public_cert_data         = data.local_file.root_cert_der_file.content_base64
-    # public_cert_data         = base64encode(tls_locally_signed_cert.client_cert.cert_pem)
+      public_cert_data         = base64encode(tls_self_signed_cert.root_cert.cert_pem)
     }
     vpn_client_protocols       = [
                                   "IkeV2",

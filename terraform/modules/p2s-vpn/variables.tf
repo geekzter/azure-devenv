@@ -17,16 +17,6 @@ variable dns_ip_address {
   type                         = list
 }
 
-variable root_cert_pem_file {}
-variable root_cert_cer_file {}
-variable root_cert_der_file {}
-variable root_cert_public_pem_file {}
-variable root_cert_private_pem_file {}
-variable client_cert_pem_file {}
-variable client_cert_p12_file {}
-variable client_cert_public_pem_file {}
-variable client_cert_private_pem_file {}
-
 variable subnet_range {
     description                = "The subnet range for the VPN GW subnet"
 }

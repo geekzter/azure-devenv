@@ -7,21 +7,25 @@ locals {
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
-  dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
-  dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
+  dns_zone_name                = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1) : null
+  dns_zone_rg                  = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5) : null
   key_vault_name               = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-1)
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
-  log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
-  log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
+  log_analytics_workspace_name = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1) : null
+  log_analytics_workspace_rg   = var.log_analytics_workspace_id != null ? element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5) : null
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
 
   environment_variables        = merge(
-    var.environment_variables,
     map(
       "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id
-    )
+      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id,
+      # Defaults, will be overriden by variables passed into map merge
+      "tf_backend_resource_group", "",
+      "tf_backend_storage_account", "",
+      "tf_backend_storage_container", "",
+    ),
+    var.environment_variables
   )
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
@@ -47,6 +51,8 @@ data azurerm_key_vault vault {
 data azurerm_log_analytics_workspace monitor {
   name                         = local.log_analytics_workspace_name
   resource_group_name          = local.log_analytics_workspace_rg
+
+  count                        = local.log_analytics_workspace_name != null ? 1 : 0
 }
 
 resource random_string pip_domain_name_label {
@@ -142,29 +148,9 @@ resource azurerm_network_interface_security_group_association nic_nsg {
   network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
-data external image_info {
-  program                      = [
-                                 "az",
-                                 "vm",
-                                 "image",
-                                 "list",
-                                 "-f",
-                                 var.os_offer,
-                                 "-p",
-                                 var.os_publisher,
-                                 "--all",
-                                 "--query",
-                                 # Get latest version of matching SKU
-                                 "max_by([?contains(sku,'${var.os_sku}')],&version)",
-                                 "-o",
-                                 "json",
-                                 ]
-}
-
 locals {
-  # data.external.image_info.result.sku should be same as 'latest' 
-  # This allows to override the version value with the literal version, and don't trigger a change if resolving to the same
-  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : data.external.image_info.result.version
+  # Quote query
+  jmes_path_query              = replace(format("%q","value"),"value","max_by([?contains(sku,'${var.os_sku}')],&version)")
 }
 
 # Cloud Init
@@ -191,6 +177,20 @@ data cloudinit_config user_data {
   #merge_type                   = "list(append)+dict(recurse_array)+str()"
 }
 
+data azurerm_platform_image latest_image {
+  location                     = var.location
+  publisher                    = var.os_publisher
+  offer                        = var.os_offer
+  sku                          = var.os_sku
+}
+
+locals {
+  # Workaround for:
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
+  os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
+}
+
 resource azurerm_linux_virtual_machine vm {
   name                         = local.vm_name
   location                     = var.location
@@ -202,6 +202,7 @@ resource azurerm_linux_virtual_machine vm {
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
   custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
+  encryption_at_host_enabled   = false
 
   boot_diagnostics {
     storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
@@ -217,6 +218,8 @@ resource azurerm_linux_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  # source_image_id              = local.vm_image_id
   source_image_reference {
     publisher                  = var.os_publisher
     offer                      = var.os_offer
@@ -241,6 +244,35 @@ resource null_resource start_vm {
     # Start VM, so we can execute script through SSH
     command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
   }
+}
+
+resource null_resource cloud_config_status {
+  triggers                     = {
+    # always                     = timestamp()
+    vm                         = azurerm_linux_virtual_machine.vm.id
+  }
+
+  # Get cloud-init status, waiting for completion if needed
+  provisioner remote-exec {
+    inline                     = [
+      "echo -n 'waiting for cloud-init to complete'",
+      "/usr/bin/cloud-init status --long --wait >/dev/null", # Let Terraform print progress
+      "systemctl status cloud-final.service --full --no-pager --wait"
+    ]
+
+    connection {
+      type                     = "ssh"
+      user                     = var.user_name
+      password                 = var.user_password
+      host                     = azurerm_public_ip.pip.ip_address
+    }
+  }
+
+  depends_on                   = [
+    null_resource.start_vm,
+    azurerm_network_interface_security_group_association.nic_nsg,
+    # azurerm_monitor_diagnostic_setting.vm
+  ]
 }
 
 /*
@@ -280,7 +312,8 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
 
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
 
   count                        = var.enable_aad_login ? 1 : 0
@@ -325,20 +358,21 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
+      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.0.id}"
     }
   EOF
 
   protected_settings = <<EOF
     { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
+      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.0.primary_shared_key}"
     } 
   EOF
 
-  count                        = var.dependency_monitor ? 1 : 0
+  count                        = var.dependency_monitor && local.log_analytics_workspace_name != null ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
 }
 resource azurerm_virtual_machine_extension vm_watcher {
@@ -352,24 +386,9 @@ resource azurerm_virtual_machine_extension vm_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
                                  ]
-}
-
-# Delay DiskEncryption to mitigate race condition
-resource null_resource vm_sleep {
-  # Always run this
-  triggers                     = {
-    vm                         = azurerm_linux_virtual_machine.vm.id
-  }
-
-  provisioner "local-exec" {
-    command                    = "Start-Sleep 300"
-    interpreter                = ["pwsh", "-nop", "-Command"]
-  }
-
-  count                        = var.disk_encryption ? 1 : 0
-  depends_on                   = [azurerm_linux_virtual_machine.vm]
 }
 
 resource azurerm_key_vault_key disk_encryption_key {
@@ -414,8 +433,8 @@ SETTINGS
 
   depends_on                   = [
                                   null_resource.start_vm,
-                                  null_resource.vm_sleep
-                                  ]
+                                  null_resource.cloud_config_status,
+                                 ]
 }
 
 # HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
@@ -445,33 +464,5 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.vm_disk_encryption,
                                   # azurerm_virtual_machine_extension.vm_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
-  ]
-}
-
-resource null_resource cloud_config_status {
-  triggers                     = {
-    # always                     = timestamp()
-    vm                         = azurerm_linux_virtual_machine.vm.id
-  }
-
-  # Get cloud-init status, waiting for completion if needed
-  provisioner remote-exec {
-    inline                     = [
-      "echo -n 'waiting for cloud-init to complete'",
-      "/usr/bin/cloud-init status -l --wait",
-      "systemctl status cloud-final.service --no-pager -l --wait"
-    ]
-
-    connection {
-      type                     = "ssh"
-      user                     = var.user_name
-      password                 = var.user_password
-      host                     = azurerm_public_ip.pip.ip_address
-    }
-  }
-
-  depends_on                   = [
-    azurerm_network_interface_security_group_association.nic_nsg,
-    azurerm_monitor_diagnostic_setting.vm
   ]
 }
