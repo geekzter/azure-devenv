@@ -1,7 +1,6 @@
 data azurerm_client_config current {}
 
 locals {
-  certificates_directory       = "${path.root}/../data/${terraform.workspace}/certificates"
   client_cert_common_name      = terraform.workspace == "default" ? "P2SChildCert" : "P2SChildCert${terraform.workspace}"
   root_cert_common_name        = terraform.workspace == "default" ? "P2SRootCert" : "P2SRootCert${terraform.workspace}"
 

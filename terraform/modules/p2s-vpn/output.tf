@@ -6,14 +6,6 @@ output client_cert_common_name {
   value       = local.client_cert_common_name
 }
 
-output client_cert_merged_pem_file {
-  value       = abspath(local_file.client_cert_merged.filename)
-}
-
-output client_cert_pem_file {
-  value       = abspath(local_file.client_cert_public_pem_file.filename)
-}
-
 output client_cert_merged_pem {
   value       = <<-EOT
     ${tls_private_key.client_cert.private_key_pem}
@@ -43,14 +35,6 @@ output gateway_ip {
 
 output root_cert_common_name {
   value       = local.root_cert_common_name
-}
-
-output root_cert_merged_pem_file {
-  value       = abspath(local_file.root_cert_merged.filename)
-}
-
-output root_cert_pem_file {
-  value       = abspath(local_file.root_cert_public_pem_file.filename)
 }
 
 output root_cert_merged_pem {

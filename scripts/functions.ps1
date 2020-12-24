@@ -283,10 +283,13 @@ function Update-AzureVPNProfile (
 
     if ($Install) {
         if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
-            $vpnProfileFile = (Join-Path $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState "${ProfileName}.xml")
+            $vpnProfileDirectory = $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState
+            $vpnProfileFile = (Join-Path $vpnProfileDirectory "${ProfileName}.xml")
             Copy-Item $profileFileName $vpnProfileFile
             Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
+            Push-Location $vpnProfileDirectory
             azurevpn -f -i (Split-Path $vpnProfileFile -Leaf)
+            Pop-Location
         } else {
             Write-Host "Use the Azure VPN app (https://go.microsoft.com/fwlink/?linkid=2117554) to import this profile:`n${profileFileName}"
         }
