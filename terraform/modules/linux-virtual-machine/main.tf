@@ -84,7 +84,7 @@ resource azurerm_dns_a_record fqdn {
 
   tags                         = var.tags
 
-  count                        = local.dns_zone_name != null ? 1 : 0
+  count                        = var.public_access_enabled && (local.dns_zone_name != null) ? 1 : 0
 }
 
 resource azurerm_network_interface nic {
@@ -128,19 +128,23 @@ resource azurerm_network_security_group nsg {
   location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
-  security_rule {
-    name                       = "InboundSSH"
-    priority                   = 202
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
   tags                         = var.tags
+}
+
+resource azurerm_network_security_rule ssh {
+  name                         = "InboundSSH${count.index+1}"
+  priority                     = count.index+201
+  direction                    = "Inbound"
+  access                       = "Allow"
+  protocol                     = "Tcp"
+  source_port_range            = "*"
+  destination_port_range       = "22"
+  source_address_prefix        = var.admin_cidr_ranges[count.index]
+  destination_address_prefix   = "*"
+  resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
+  network_security_group_name  = azurerm_network_security_group.nsg.name
+
+  count                        = var.public_access_enabled ? length(var.admin_cidr_ranges) : 0
 }
 
 resource azurerm_network_interface_security_group_association nic_nsg {
@@ -198,7 +202,7 @@ resource azurerm_linux_virtual_machine vm {
   size                         = var.vm_size
   admin_username               = var.user_name
   admin_password               = var.user_password
-  disable_password_authentication = false
+  disable_password_authentication = true
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
   custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
@@ -263,7 +267,8 @@ resource null_resource cloud_config_status {
     connection {
       type                     = "ssh"
       user                     = var.user_name
-      password                 = var.user_password
+      # password                 = var.user_password
+      private_key              = file(var.ssh_private_key)
       host                     = azurerm_public_ip.pip.ip_address
     }
   }
@@ -275,32 +280,46 @@ resource null_resource cloud_config_status {
   ]
 }
 
-/*
-resource azurerm_virtual_machine_extension vm_monitor {
-  name                         = "MMAExtension"
+# resource azurerm_virtual_machine_extension azure_monitor {
+#   name                         = "AzureMonitorLinuxAgent"
+#   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+#   publisher                    = "Microsoft.Azure.Monitor"
+#   type                         = "AzureMonitorLinuxAgent"
+#   type_handler_version         = "1.5"
+#   auto_upgrade_minor_version   = true
+
+#   tags                         = var.tags
+#   depends_on                   = [
+#                                   null_resource.start_vm,
+#                                   null_resource.cloud_config_status
+#                                  ]
+# }
+
+resource azurerm_virtual_machine_extension log_analytics {
+  name                         = "OmsAgentForLinux"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Monitor"
-  type                         = "AzureMonitorLinuxAgent"
-  type_handler_version         = "0.9"
+  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
+  type                         = "OmsAgentForLinux"
+  type_handler_version         = "1.7"
   auto_upgrade_minor_version   = true
   settings                     = <<EOF
     {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}",
-      "azureResourceId"        : "${azurerm_linux_virtual_machine.vm.id}",
-      "stopOnMultipleConnections": "true"
+      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.0.workspace_id}"
     }
   EOF
   protected_settings = <<EOF
     { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
+      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.0.primary_shared_key}"
     } 
   EOF
 
   count                        = var.log_analytics_workspace_id != null ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [null_resource.start_vm]
+  depends_on                   = [
+                                  null_resource.start_vm,
+                                  null_resource.cloud_config_status
+                                 ]
 }
-*/
 
 resource azurerm_virtual_machine_extension vm_aadlogin {
   name                         = "AADLoginForLinux"
@@ -319,36 +338,6 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   count                        = var.enable_aad_login ? 1 : 0
 } 
 
-/*
-resource azurerm_virtual_machine_extension vm_diagnostics {
-  name                         = "Microsoft.Insights.VMDiagnosticsSettings"
-  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Diagnostics"
-  type                         = "IaaSDiagnostics"
-  type_handler_version         = "1.17"
-  auto_upgrade_minor_version   = true
-
-  settings                     = templatefile("${path.module}/scripts/host/vmdiagnostics.json", { 
-    storage_account_name       = data.azurerm_storage_account.diagnostics.name, 
-    virtual_machine_id         = azurerm_linux_virtual_machine.vm.id, 
-  # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
-  })
-
-  protected_settings = <<EOF
-    { 
-      "storageAccountName"     : "${data.azurerm_storage_account.diagnostics.name}",
-      "storageAccountKey"      : "${data.azurerm_storage_account.diagnostics.primary_access_key}",
-      "storageAccountEndPoint" : "https://core.windows.net"
-    } 
-  EOF
-
-  count                        = var.diagnostics ? 1 : 0
-  tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm
-                                 ]
-}
-*/
 resource azurerm_virtual_machine_extension vm_dependency_monitor {
   name                         = "DAExtension"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
@@ -460,9 +449,9 @@ resource azurerm_monitor_diagnostic_setting vm {
   depends_on                   = [
                                   azurerm_virtual_machine_extension.vm_aadlogin,
                                   azurerm_virtual_machine_extension.vm_dependency_monitor,
-                                  #azurerm_virtual_machine_extension.vm_diagnostics,
                                   azurerm_virtual_machine_extension.vm_disk_encryption,
-                                  # azurerm_virtual_machine_extension.vm_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  # azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
 }

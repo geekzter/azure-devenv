@@ -1,4 +1,7 @@
 
+variable admin_ip_ranges {
+  default                      = []
+}
 variable admin_object_id {
   default                      = null
 }
@@ -68,6 +71,15 @@ variable locations {
 }
 variable log_analytics_workspace_id {
   default                      = null
+}
+
+variable public_access_enabled {
+  type                         = bool
+  default                      = true
+}
+
+variable ssh_private_key {
+  default                      = "~/.ssh/id_rsa"
 }
 
 variable ssh_public_key {

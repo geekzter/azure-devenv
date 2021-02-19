@@ -2,6 +2,10 @@ variable aad_login {
     type                       = bool
     default                    = false
 }
+variable admin_cidr_ranges {
+    type                       = list
+    default                    = []
+}
 variable admin_username {}
 variable admin_password {}
 variable bg_info {
@@ -48,6 +52,9 @@ variable os_sku {
 }
 variable os_version {
     default                    = "latest"
+}
+variable public_access_enabled {
+  type                         = bool
 }
 variable private_dns_zone {}
 variable resource_group_name {}

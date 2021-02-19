@@ -44,7 +44,10 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
-output linux_fqdn {
+output linux_private_fqdn {
+    value                      = [for vm in module.linux_vm : vm.private_fqdn]
+}
+output linux_public_fqdn {
     value                      = [for vm in module.linux_vm : vm.public_fqdn]
 }
 output linux_os_version {
@@ -90,7 +93,10 @@ output virtual_network_id {
     value                      = {for region in var.locations : region => azurerm_virtual_network.development_network[region].id}
 }
 
-output windows_fqdn {
+output windows_private_fqdn {
+    value                      = [for vm in module.windows_vm : vm.private_fqdn]
+}
+output windows_public_fqdn {
     value                      = [for vm in module.windows_vm : vm.public_fqdn]
 }
 output windows_os_sku {

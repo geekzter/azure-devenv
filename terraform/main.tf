@@ -1,11 +1,16 @@
 locals {
   address_space                = "10.16.0.0/12"
+  config_directory             = "${formatdate("YYYY",timestamp())}/${formatdate("MM",timestamp())}/${formatdate("DD",timestamp())}/${formatdate("hhmm",timestamp())}"
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
   peering_pairs                = [for pair in setproduct(var.locations,var.locations) : pair if pair[0] != pair[1]]
   short_resource_name          = "dev${local.suffix}"
   suffix                       = random_string.suffix.result
+
+  # Networking
+  ipprefix                     = jsondecode(chomp(data.http.localpublicprefix.body)).data.prefix
+  admin_cidr_ranges            = concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.ipprefix])) # Make sure ranges have correct base address
 }
 
 # Data sources
@@ -86,6 +91,39 @@ resource azurerm_subnet vm_subnet {
   for_each                     = toset(var.locations)
 }
 
+resource azurerm_subnet bastion_subnet {
+  name                         = "AzureBastionSubnet"
+  virtual_network_name         = azurerm_virtual_network.development_network[each.key].name
+  resource_group_name          = azurerm_virtual_network.development_network[each.key].resource_group_name
+  address_prefixes             = [cidrsubnet(azurerm_virtual_network.development_network[each.value].address_space[0],11,0)]
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_public_ip bastion_ip {
+  name                         = "${azurerm_virtual_network.development_network[each.key].name}-bastion-ip"
+  location                     = each.key
+  resource_group_name          = azurerm_virtual_network.development_network[each.key].resource_group_name
+  allocation_method            = "Static"
+  sku                          = "Standard"
+
+  for_each                     = toset(var.locations)
+}
+
+resource azurerm_bastion_host bastion {
+  name                         = "${azurerm_virtual_network.development_network[each.key].name}-bastion"
+  location                     = each.key
+  resource_group_name          = azurerm_virtual_network.development_network[each.key].resource_group_name
+
+  ip_configuration {
+    name                       = "configuration"
+    subnet_id                  = azurerm_subnet.bastion_subnet[each.key].id
+    public_ip_address_id       = azurerm_public_ip.bastion_ip[each.key].id
+  }
+
+  for_each                     = toset(var.locations)
+}
+
 resource azurerm_virtual_network_peering global_peering {
   name                         = "${azurerm_virtual_network.development_network[local.peering_pairs[count.index][0]].name}-${local.peering_pairs[count.index][1]}-peering"
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -129,7 +167,6 @@ resource azurerm_key_vault vault {
   enabled_for_disk_encryption  = true
   purge_protection_enabled     = false
   sku_name                     = "premium"
-  soft_delete_enabled          = true
 
   # Grant access to self
   access_policy {
@@ -138,17 +175,18 @@ resource azurerm_key_vault vault {
 
     key_permissions            = [
                                 "create",
-                                "get",
                                 "delete",
+                                "get",
                                 "list",
                                 "purge",
                                 "recover",
+                                "unwrapkey",
                                 "wrapkey",
-                                "unwrapkey"
     ]
     secret_permissions         = [
-                                "get",
                                 "delete",
+                                "get",
+                                "list",
                                 "purge",
                                 "set",
     ]
@@ -169,6 +207,7 @@ resource azurerm_key_vault vault {
       ]
 
       secret_permissions       = [
+                                "list",
                                 "purge",
                                 "set",
       ]
@@ -180,12 +219,26 @@ resource azurerm_key_vault vault {
     # When enabled_for_disk_encryption is true, network_acls.bypass must include "AzureServices"
     bypass                     = "AzureServices"
     ip_rules                   = [
-                                  jsondecode(chomp(data.http.localpublicprefix.body)).data.prefix
+                                  local.ipprefix
     ]
     virtual_network_subnet_ids = [for subnet in azurerm_subnet.vm_subnet : subnet.id]
   }
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
+}
+
+# Useful when using Bastion
+resource azurerm_key_vault_secret ssh_private_key {
+  name                         = "ssh-private-key"
+  value                        = file(var.ssh_private_key)
+  key_vault_id                 = azurerm_key_vault.vault.id
+}
+
+resource azurerm_ssh_public_key ssh_key {
+  name                         = azurerm_resource_group.vm_resource_group.name
+  location                     = azurerm_resource_group.vm_resource_group.location
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  public_key                   = file(var.ssh_public_key)
 }
 
 resource azurerm_storage_account automation_storage {
@@ -207,6 +260,51 @@ resource azurerm_storage_container scripts {
   container_access_type        = "container"
 }
 
+resource azurerm_storage_container configuration {
+  name                         = "configuration"
+  storage_account_name         = azurerm_storage_account.automation_storage.name
+  container_access_type        = "private"
+}
+
+resource azurerm_role_assignment terraform_storage_owner {
+  scope                        = azurerm_storage_account.automation_storage.id
+  role_definition_name         = "Storage Blob Data Contributor"
+  principal_id                 = data.azurerm_client_config.current.object_id
+}
+
+resource azurerm_storage_blob terraform_backend_configuration {
+  name                         = "${local.config_directory}/backend.tf"
+  storage_account_name         = azurerm_storage_account.automation_storage.name
+  storage_container_name       = azurerm_storage_container.configuration.name
+  type                         = "Block"
+  source                       = "${path.root}/backend.tf"
+
+  count                        = fileexists("${path.root}/backend.tf") ? 1 : 0
+  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
+}
+
+resource azurerm_storage_blob terraform_auto_vars_configuration {
+  name                         = "${local.config_directory}/config.auto.tfvars"
+  storage_account_name         = azurerm_storage_account.automation_storage.name
+  storage_container_name       = azurerm_storage_container.configuration.name
+  type                         = "Block"
+  source                       = "${path.root}/config.auto.tfvars"
+
+  count                        = fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
+  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
+}
+
+resource azurerm_storage_blob terraform_workspace_vars_configuration {
+  name                         = "${local.config_directory}/${terraform.workspace}.tfvars"
+  storage_account_name         = azurerm_storage_account.automation_storage.name
+  storage_container_name       = azurerm_storage_container.configuration.name
+  type                         = "Block"
+  source                       = "${path.root}/${terraform.workspace}.tfvars"
+
+  count                        = fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
+  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
+}
+
 resource azurerm_storage_account diagnostics_storage {
   name                         = "${local.short_resource_name}${each.value}diag"
   location                     = each.value
@@ -224,6 +322,7 @@ resource azurerm_storage_account diagnostics_storage {
 module linux_vm {
   source                       = "./modules/linux-virtual-machine"
 
+  admin_cidr_ranges            = local.admin_cidr_ranges
   user_name                    = var.admin_username
   user_password                = local.password
   bootstrap                    = var.linux_bootstrap
@@ -248,7 +347,9 @@ module linux_vm {
   os_sku                       = var.linux_os_sku
   os_version                   = var.linux_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
+  public_access_enabled        = var.public_access_enabled
   scripts_container_id         = azurerm_storage_container.scripts.id
+  ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
   tags                         = azurerm_resource_group.vm_resource_group.tags
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -263,6 +364,7 @@ module windows_vm {
   source                       = "./modules/windows-virtual-machine"
 
   aad_login                    = true
+  admin_cidr_ranges            = local.admin_cidr_ranges
   admin_username               = var.admin_username
   admin_password               = local.password
   bg_info                      = true
@@ -283,6 +385,7 @@ module windows_vm {
   os_sku                       = var.windows_sku
   os_version                   = var.windows_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
+  public_access_enabled        = var.public_access_enabled
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
@@ -302,7 +405,7 @@ module vpn {
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
   organization                 = var.organization
   virtual_network_id           = azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].id
-  subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],8,0)
+  subnet_range                 = cidrsubnet(azurerm_virtual_network.development_network[azurerm_resource_group.vm_resource_group.location].address_space[0],11,4)
   vpn_range                    = var.vpn_range
 
   count                        = var.deploy_vpn ? 1 : 0
