@@ -260,6 +260,11 @@ function Update-AzureVPNProfile (
     [parameter(Mandatory=$true)][string]$ProfileName,
     [parameter(Mandatory=$false)][switch]$Install
 ) {
+    if (!$IsWindows) {
+        Write-Warning "$($PSVersionTable.Platform) does not support Azure VPN profiles"
+        return
+    }
+
     $profileFileName = Join-Path $PackagePath AzureVPN azurevpnconfig.xml
     if (!(Test-Path $profileFileName)) {
         Write-Error "$ProfileFileName not found"
@@ -283,7 +288,7 @@ function Update-AzureVPNProfile (
 
     if ($Install) {
         if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
-            $vpnProfileDirectory = $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState
+            $vpnProfileDirectory = "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState"
             $vpnProfileFile = (Join-Path $vpnProfileDirectory "${ProfileName}.xml")
             Copy-Item $profileFileName $vpnProfileFile
             Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
