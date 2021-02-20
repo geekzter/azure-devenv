@@ -23,7 +23,7 @@ function AzLogin (
 function DownloadAndExtract-VPNProfile (
     [parameter(Mandatory=$true)][string]$GatewayID
 ) {
-    Write-Host "Generating VPN profiles..."
+    Write-Host "`nGenerating VPN profiles..."
     $vpnPackageUrl = $(az network vnet-gateway vpn-client generate --ids $gatewayId --authentication-method EAPTLS -o tsv)
 
     # Download VPN Profile
