@@ -36,6 +36,9 @@ locals {
   script_filename              = "setup_windows_vm"
   script_url                   = "${var.scripts_container_id}/${local.script_filename}_${var.location}.ps1"
 
+  private_fqdn                 = replace(azurerm_private_dns_a_record.computer_name.fqdn,"/\\W*$/","")
+  public_fqdn                  = local.dns_zone_rg != null ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
+
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
   computer_name                = substr(lower(replace("windows${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
@@ -522,10 +525,19 @@ resource azurerm_monitor_diagnostic_setting vm {
   ]
 }
 
-resource local_file rdp_file {
+resource local_file pprivate_rdp_file {
+  content                      = templatefile("${path.module}/rdp.tpl",
+  {
+    host                       = azurerm_network_interface.nic.private_ip_address
+    username                   = var.admin_username
+  })
+  filename                     = "${path.root}/../data/${terraform.workspace}/${local.private_fqdn}.rdp"
+}
+resource local_file public_rdp_file {
   content                      = templatefile("${path.module}/rdp.tpl",
   {
     host                       = azurerm_public_ip.pip.ip_address
+    username                   = var.admin_username
   })
-  filename                     = "${path.root}/../data/${terraform.workspace}/${azurerm_windows_virtual_machine.vm.name}.rdp"
+  filename                     = "${path.root}/../data/${terraform.workspace}/${local.public_fqdn}.rdp"
 }

@@ -101,8 +101,8 @@ output vm_private_fqdn {
 }
 output vm_private_ip_address {
     value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.private_fqdn},
-      {for vm in module.windows_vm : vm.name => vm.private_fqdn}
+      {for vm in module.linux_vm : vm.name => vm.private_ip_address},
+      {for vm in module.windows_vm : vm.name => vm.private_ip_address}
     )
 }
 output vm_public_fqdn {
