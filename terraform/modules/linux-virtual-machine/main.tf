@@ -84,7 +84,7 @@ resource azurerm_dns_a_record fqdn {
 
   tags                         = var.tags
 
-  count                        = var.public_access_enabled && (local.dns_zone_name != null) ? 1 : 0
+  count                        = local.dns_zone_name != null ? 1 : 0
 }
 
 resource azurerm_network_interface nic {

@@ -26,7 +26,7 @@ output public_ip_address {
     value                      = azurerm_public_ip.pip.ip_address
 }
 output public_fqdn {
-    value                      = var.public_access_enabled && (local.dns_zone_rg != null) ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
+    value                      = local.dns_zone_rg != null ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
 }
 output vm_id {
     value                      = azurerm_linux_virtual_machine.vm.id
