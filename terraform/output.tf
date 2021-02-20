@@ -44,23 +44,11 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
-output linux_private_fqdn {
-    value                      = [for vm in module.linux_vm : vm.private_fqdn]
-}
-output linux_public_fqdn {
-    value                      = [for vm in module.linux_vm : vm.public_fqdn]
-}
-output linux_os_version {
-    value                      = [for vm in module.linux_vm : vm.os_version]
-}
 output linux_os_version_latest {
-    value                      = [for vm in module.linux_vm : vm.os_version_latest]
+    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output linux_new_os_version_available {
     value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
-}
-output linux_vm_id {
-    value                      = [for vm in module.linux_vm : vm.vm_id]
 }
 
 output resource_group_id {
@@ -93,24 +81,43 @@ output virtual_network_id {
     value                      = {for region in var.locations : region => azurerm_virtual_network.development_network[region].id}
 }
 
-output windows_private_fqdn {
-    value                      = [for vm in module.windows_vm : vm.private_fqdn]
+output vm_id {
+    value                      = merge(
+      {for vm in module.linux_vm : vm.name => vm.vm_id},
+      {for vm in module.windows_vm : vm.name => vm.vm_id}
+    )
 }
-output windows_public_fqdn {
-    value                      = [for vm in module.windows_vm : vm.public_fqdn]
+output vm_os_version {
+    value                      = merge(
+      {for vm in module.linux_vm : vm.name => vm.os_version},
+      {for vm in module.windows_vm : vm.name => vm.os_version}
+    )
 }
+output vm_private_fqdn {
+    value                      = merge(
+      {for vm in module.linux_vm : vm.name => vm.private_fqdn},
+      {for vm in module.windows_vm : vm.name => vm.private_fqdn}
+    )
+}
+output vm_private_ip_address {
+    value                      = merge(
+      {for vm in module.linux_vm : vm.name => vm.private_fqdn},
+      {for vm in module.windows_vm : vm.name => vm.private_fqdn}
+    )
+}
+output vm_public_fqdn {
+    value                      = merge(
+      {for vm in module.linux_vm : vm.name => vm.public_fqdn},
+      {for vm in module.windows_vm : vm.name => vm.public_fqdn}
+    )
+}
+
 output windows_os_sku {
     value                      = var.windows_sku
 }
-output windows_os_version {
-    value                      = [for vm in module.windows_vm : vm.os_version]
-}
 output windows_os_version_latest {
-    value                      = [for vm in module.windows_vm : vm.os_version_latest]
+    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output windows_new_os_version_available {
     value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
-}
-output windows_vm_id {
-    value                      = [for vm in module.windows_vm : vm.vm_id]
 }
