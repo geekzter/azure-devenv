@@ -131,8 +131,8 @@ resource azurerm_network_security_group nsg {
   tags                         = var.tags
 }
 
-resource azurerm_network_security_rule ssh {
-  name                         = "InboundSSH${count.index+1}"
+resource azurerm_network_security_rule admin_ssh {
+  name                         = "AdminSSH${count.index+1}"
   priority                     = count.index+201
   direction                    = "Inbound"
   access                       = var.public_access_enabled ? "Allow" : "Deny"
@@ -145,6 +145,24 @@ resource azurerm_network_security_rule ssh {
   network_security_group_name  = azurerm_network_security_group.nsg.name
 
   count                        = length(var.admin_cidr_ranges)
+
+  depends_on                   = [
+    null_resource.cloud_config_status # Close this port once we have obtained cloud init status via remote-provisioner
+  ]
+}
+
+resource azurerm_network_security_rule terraform_ssh {
+  name                         = "TerraformSSH"
+  priority                     = 299
+  direction                    = "Inbound"
+  access                       = "Allow"
+  protocol                     = "Tcp"
+  source_port_range            = "*"
+  destination_port_range       = "22"
+  source_address_prefix        = var.terraform_cidr
+  destination_address_prefix   = "*"
+  resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
+  network_security_group_name  = azurerm_network_security_group.nsg.name
 }
 
 resource azurerm_network_interface_security_group_association nic_nsg {
@@ -252,7 +270,6 @@ resource null_resource start_vm {
 
 resource null_resource cloud_config_status {
   triggers                     = {
-    # always                     = timestamp()
     vm                         = azurerm_linux_virtual_machine.vm.id
   }
 
@@ -274,9 +291,8 @@ resource null_resource cloud_config_status {
   }
 
   depends_on                   = [
-    null_resource.start_vm,
     azurerm_network_interface_security_group_association.nic_nsg,
-    # azurerm_monitor_diagnostic_setting.vm
+    azurerm_network_security_rule.terraform_ssh,
   ]
 }
 

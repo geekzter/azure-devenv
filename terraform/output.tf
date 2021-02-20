@@ -78,7 +78,7 @@ output root_cert_public_pem {
 }
 
 output virtual_network_id {
-    value                      = {for region in var.locations : region => azurerm_virtual_network.development_network[region].id}
+    value                      = {for region in var.locations : region => module.region_network[region].virtual_network_id}
 }
 
 output vm_id {

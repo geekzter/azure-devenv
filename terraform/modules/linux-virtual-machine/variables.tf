@@ -67,6 +67,7 @@ variable scripts_container_id {}
 variable ssh_private_key {}
 variable ssh_public_key {}
 variable tags {}
+variable terraform_cidr {}
 variable user_name {}
 variable user_password {}
 variable vm_size {}
