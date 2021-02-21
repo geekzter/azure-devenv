@@ -63,10 +63,10 @@ variable linux_os_version {
 }
 variable linux_shutdown_time {
   default                      = "2300"
-  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown. Note shutting down the Linux VM will also disable DNS forwarding."
+  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown. Note shutting down the Linux VM will also disable DNS forwarding for VPN connections."
 }
 variable linux_vm_size {
-  default                      = "Standard_D2s_v3"
+  default                      = "Standard_B2s"
 }
 
 variable locations {
@@ -98,6 +98,10 @@ variable vpn_range {
   default                      = "192.168.0.0/24"
 }
 
+variable windows_accelerated_networking {
+  type                         = bool
+  default                      = false
+}
 variable windows_sku {
   default                      = "20h2-ent-g2"
 }
@@ -109,7 +113,7 @@ variable windows_shutdown_time {
   description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown."
 }
 variable windows_vm_size {
-  default                      = "Standard_D4s_v3"
+  default                      = "Standard_B2ms"
 }
 variable vm_domain {
   default                      = "dev.internal"

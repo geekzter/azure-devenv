@@ -327,7 +327,7 @@ module windows_vm {
   disk_encryption              = false
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
-  enable_accelerated_networking = true
+  enable_accelerated_networking = var.windows_accelerated_networking
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
