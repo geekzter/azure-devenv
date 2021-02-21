@@ -59,6 +59,8 @@ variable public_access_enabled {
 variable private_dns_zone {}
 variable resource_group_name {}
 variable scripts_container_id {}
+variable shutdown_time {}
 variable tags {}
+variable timezone {}
 variable vm_size {}
 variable vm_subnet_id {}

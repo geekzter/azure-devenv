@@ -64,10 +64,12 @@ variable public_access_enabled {
 }
 variable resource_group_name {}
 variable scripts_container_id {}
+variable shutdown_time {}
 variable ssh_private_key {}
 variable ssh_public_key {}
 variable tags {}
 variable terraform_cidr {}
+variable timezone {}
 variable user_name {}
 variable user_password {}
 variable vm_size {}
