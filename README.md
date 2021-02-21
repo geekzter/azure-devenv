@@ -6,12 +6,12 @@ To tailor to the individual developer, it uses low(er) cost components and takes
 - Optional components (e.g. VPN Gateway)
 - NAT Gateway instead of Azure Firewall (for egress)
 
-Most importantly, this repo provides the automation to create the infrastructure on demand. This reduces consumption to zero when you don't need it. To compensate for the incovenience of having to prepare VM's, the bootstrap process is fully automated using e.g. my [bootstrap](https://github.com/geekzter/bootstrap-os) repo (see [setup](#automation) section below).
+Most importantly, this repo provides the automation to create the infrastructure on demand. This reduces consumption to zero when you don't need it. To compensate for the incovenience of having to prepare VM's, the bootstrap process is fully automated using e.g. my [bootstrap](https://github.com/geekzter/bootstrap-os) repo (see [setup](#setup) section below).
 
 _Disclaimer_: this project makes different trade offs betrween cost, convenience & security than is typical in Enterprise developer enablement. It is intended for personal use e.g. to be used in an Azure Visual Studio subscription.
 
 ## Networking 
-The network setup uses a private network that can be accessed in a number of ways (see [remote access](#remote-access) below), outbound access is provided through [NAT Gateway](https://docs.microsoft.com/en-us/azure/virtual-network/nat-overview). The Virtual Network Gateway is optional, and not deployed by default (to minimiza consumption).
+The network setup uses a private network that can be accessed in a number of ways (see [remote access](#remote-access) section below), outbound access is provided through [NAT Gateway](https://docs.microsoft.com/en-us/azure/virtual-network/nat-overview). The Virtual Network Gateway is optional, and not deployed by default (to minimiza consumption).
 ![alt text](visuals/region.png "Region network")
 
 ### Global mesh
@@ -60,7 +60,7 @@ Once you have the pre-requisites set up, you can go ahead and provision:
 - Provision cloud infrastructure: `terraform apply`
 
 ### Terraform customization
-You can customize the deployment by overriding defaults for Terraform [input variables](https://www.terraform.io/docs/configuration/variables.html). The easiest way to do this is to copy [config.auto.tfvars.example](./terraform/config.auto.tfvars.example) and save it as config.auto.tfvars.
+You can customize the deployment by overriding defaults for Terraform [input variables](https://www.terraform.io/docs/configuration/variables.html). The easiest way to do this is to copy [config.auto.tfvars.sample](./terraform/config.auto.tfvars.sample) and save it as config.auto.tfvars.
 - Set `linux_os_version` & `windows_os_version` to pin the OS versions and prevent rectreation of VM's whenever there is a minor update
 - Deploy point to site VPN by setting `deploy_vpn` to `true`
 - Do you need environment variables set up for your VM's? Define those via the `environment_variables` map.
