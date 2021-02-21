@@ -61,6 +61,10 @@ variable linux_os_sku {
 variable linux_os_version {
   default                      = "latest"
 }
+variable linux_shutdown_time {
+  default                      = "2300"
+  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown. Note shutting down the Linux VM will also disable DNS forwarding."
+}
 variable linux_vm_size {
   default                      = "Standard_D2s_v3"
 }
@@ -86,6 +90,10 @@ variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"
 }
 
+variable timezone {
+  default                      = "W. Europe Standard Time"
+}
+
 variable vpn_range {
   default                      = "192.168.0.0/24"
 }
@@ -95,6 +103,10 @@ variable windows_sku {
 }
 variable windows_os_version {
   default                      = "latest"
+}
+variable windows_shutdown_time {
+  default                      = "2300"
+  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown."
 }
 variable windows_vm_size {
   default                      = "Standard_D4s_v3"

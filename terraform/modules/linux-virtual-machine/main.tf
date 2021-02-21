@@ -442,6 +442,22 @@ SETTINGS
                                  ]
 }
 
+resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  location                     = azurerm_linux_virtual_machine.vm.location
+  enabled                      = true
+
+  daily_recurrence_time        = var.shutdown_time
+  timezone                     = var.timezone
+
+  notification_settings {
+    enabled                    = false
+  }
+
+  tags                         = var.tags
+  count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
+}
+
 # HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_linux_virtual_machine.vm.name}-diagnostics"

@@ -300,10 +300,12 @@ module linux_vm {
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   scripts_container_id         = azurerm_storage_container.scripts.id
+  shutdown_time                = var.linux_shutdown_time
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
   tags                         = azurerm_resource_group.vm_resource_group.tags
   terraform_cidr               = local.ipprefix
+  timezone                     = var.timezone
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   vm_size                      = var.linux_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
@@ -341,6 +343,8 @@ module windows_vm {
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
+  shutdown_time                = var.windows_shutdown_time
+  timezone                     = var.timezone
   vm_size                      = var.windows_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
