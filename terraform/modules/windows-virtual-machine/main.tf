@@ -36,6 +36,9 @@ locals {
   script_filename              = "setup_windows_vm"
   script_url                   = "${var.scripts_container_id}/${local.script_filename}_${var.location}.ps1"
 
+  private_fqdn                 = replace(azurerm_private_dns_a_record.computer_name.fqdn,"/\\W*$/","")
+  public_fqdn                  = local.dns_zone_rg != null ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
+
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
   computer_name                = substr(lower(replace("windows${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
@@ -139,29 +142,33 @@ resource azurerm_private_dns_a_record vm_name {
   tags                         = var.tags
 }
 
-resource azurerm_network_security_group vm_nsg {
+resource azurerm_network_security_group nsg {
   name                         = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-windows-nsg"
   location                     = var.location
   resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
 
-  security_rule {
-    name                       = "InboundRDP"
-    priority                   = 201
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "3389"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-
   tags                         = var.tags
 }
 
-resource azurerm_network_interface_security_group_association vm_nic_nsg {
+resource azurerm_network_security_rule rdp {
+  name                         = "InboundRDP${count.index+1}"
+  priority                     = count.index+201
+  direction                    = "Inbound"
+  access                       = var.public_access_enabled ? "Allow" : "Deny"
+  protocol                     = "Tcp"
+  source_port_range            = "*"
+  destination_port_range       = "3389"
+  source_address_prefix        = var.admin_cidr_ranges[count.index]
+  destination_address_prefix   = "*"
+  resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
+  network_security_group_name  = azurerm_network_security_group.nsg.name
+
+  count                        = length(var.admin_cidr_ranges)
+}
+
+resource azurerm_network_interface_security_group_association nic_nsg {
   network_interface_id         = azurerm_network_interface.nic.id
-  network_security_group_id    = azurerm_network_security_group.vm_nsg.id
+  network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
 resource azurerm_storage_blob setup_windows_vm_cmd {
@@ -295,7 +302,19 @@ resource null_resource start_vm {
   }
 }
 
-resource azurerm_virtual_machine_extension vm_monitor {
+resource azurerm_virtual_machine_extension azure_monitor {
+  name                         = "AzureMonitorWindowsAgent"
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Monitor"
+  type                         = "AzureMonitorWindowsAgent"
+  type_handler_version         = "1.0"
+  auto_upgrade_minor_version   = true
+
+  tags                         = var.tags
+  depends_on                   = [null_resource.start_vm]
+}
+
+resource azurerm_virtual_machine_extension log_analytics {
   name                         = "MMAExtension"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
@@ -317,7 +336,10 @@ resource azurerm_virtual_machine_extension vm_monitor {
 
   count                        = var.log_analytics_workspace_id != null ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [null_resource.start_vm]
+  depends_on                   = [
+                                  null_resource.start_vm,
+                                  azurerm_virtual_machine_extension.azure_monitor
+                                 ]
 }
 
 resource azurerm_virtual_machine_extension vm_aadlogin {
@@ -332,7 +354,7 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor
                                  ]
 } 
 
@@ -348,7 +370,7 @@ resource azurerm_virtual_machine_extension vm_bginfo {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor
                                  ]
 }
 
@@ -360,7 +382,7 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
   type_handler_version         = "1.17"
   auto_upgrade_minor_version   = true
 
-  settings                     = templatefile("${path.module}/scripts/host/vmdiagnostics.json", { 
+  settings                     = templatefile("${path.module}/scripts/vmdiagnostics.json", { 
     storage_account_name       = data.azurerm_storage_account.diagnostics.name, 
     virtual_machine_id         = azurerm_windows_virtual_machine.vm.id, 
   # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
@@ -378,7 +400,7 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                 # azurerm_firewall_network_rule_collection.*
                                  ]
 }
@@ -405,7 +427,7 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor
                                  ] 
 }
 resource azurerm_virtual_machine_extension vm_watcher {
@@ -420,7 +442,7 @@ resource azurerm_virtual_machine_extension vm_watcher {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.vm_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor
                                  ]
 }
 
@@ -471,6 +493,22 @@ SETTINGS
                                   ]
 }
 
+resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  location                     = azurerm_windows_virtual_machine.vm.location
+  enabled                      = true
+
+  daily_recurrence_time        = var.shutdown_time
+  timezone                     = var.timezone
+
+  notification_settings {
+    enabled                    = false
+  }
+
+  tags                         = var.tags
+  count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
+}
+
 # HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
@@ -497,15 +535,25 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.vm_dependency_monitor,
                                   azurerm_virtual_machine_extension.vm_diagnostics,
                                   azurerm_virtual_machine_extension.vm_disk_encryption,
-                                  azurerm_virtual_machine_extension.vm_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.vm_watcher
   ]
 }
 
-resource local_file rdp_file {
+resource local_file pprivate_rdp_file {
+  content                      = templatefile("${path.module}/rdp.tpl",
+  {
+    host                       = azurerm_network_interface.nic.private_ip_address
+    username                   = var.admin_username
+  })
+  filename                     = "${path.root}/../data/${terraform.workspace}/${local.private_fqdn}.rdp"
+}
+resource local_file public_rdp_file {
   content                      = templatefile("${path.module}/rdp.tpl",
   {
     host                       = azurerm_public_ip.pip.ip_address
+    username                   = var.admin_username
   })
-  filename                     = "${path.root}/../data/${terraform.workspace}/${azurerm_windows_virtual_machine.vm.name}.rdp"
+  filename                     = "${path.root}/../data/${terraform.workspace}/${local.public_fqdn}.rdp"
 }

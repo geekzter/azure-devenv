@@ -23,7 +23,7 @@ function AzLogin (
 function DownloadAndExtract-VPNProfile (
     [parameter(Mandatory=$true)][string]$GatewayID
 ) {
-    Write-Host "Generating VPN profiles..."
+    Write-Host "`nGenerating VPN profiles..."
     $vpnPackageUrl = $(az network vnet-gateway vpn-client generate --ids $gatewayId --authentication-method EAPTLS -o tsv)
 
     # Download VPN Profile
@@ -260,6 +260,8 @@ function Update-AzureVPNProfile (
     [parameter(Mandatory=$true)][string]$ProfileName,
     [parameter(Mandatory=$false)][switch]$Install
 ) {
+    Write-Host "`nConfiguring Azure VPN profile..."
+
     $profileFileName = Join-Path $PackagePath AzureVPN azurevpnconfig.xml
     if (!(Test-Path $profileFileName)) {
         Write-Error "$ProfileFileName not found"
@@ -282,8 +284,13 @@ function Update-AzureVPNProfile (
     $vpnProfileXml.Save($profileFileName)
 
     if ($Install) {
+        if (!$IsWindows) {
+            Write-Warning "$($PSVersionTable.Platform) does not support Azure VPN profiles"
+            return
+        }
+
         if (Get-Command azurevpn -ErrorAction SilentlyContinue) {
-            $vpnProfileDirectory = $env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState
+            $vpnProfileDirectory = "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState"
             $vpnProfileFile = (Join-Path $vpnProfileDirectory "${ProfileName}.xml")
             Copy-Item $profileFileName $vpnProfileFile
             Write-Host "Azure VPN app importing profile '$vpnProfileFile'..."
@@ -302,7 +309,10 @@ function Update-GenericVPNProfile (
     [parameter(Mandatory=$false)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer
 ) {
-    $profileFileName = Join-Path $PackagePath Generic VpnSettings.xml
+    Write-Host "`nConfiguring generic VPN profile..."
+
+    $genericProfileDirectory = Join-Path $PackagePath Generic
+    $profileFileName = Join-Path $genericProfileDirectory VpnSettings.xml
     if (!(Test-Path $profileFileName)) {
         Write-Error "$profileFileName not found"
         return
@@ -321,6 +331,10 @@ function Update-GenericVPNProfile (
 
     Copy-Item $profileFileName "${profileFileName}.backup"
     $genericProfileXml.Save($profileFileName)
+
+    if ($IsMacOS) {
+        security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $genericProfileDirectory/VpnServerRoot.cer
+    }
 }
 
 function Update-OpenVPNProfile (
@@ -329,6 +343,8 @@ function Update-OpenVPNProfile (
     [parameter(Mandatory=$true)][string]$ClientKey,
     [parameter(Mandatory=$true)][string]$DnsServer
 ) {
+    Write-Host "`nConfiguring OpenVPN profile..."
+
     $profileFileName = Join-Path $tempPackagePath OpenVPN vpnconfig.ovpn
     if (!(Test-Path $profileFileName)) {
         Write-Error "$profileFileName not found"

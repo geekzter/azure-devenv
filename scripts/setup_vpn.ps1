@@ -22,9 +22,6 @@ AzLogin
 if ($gatewayId) {
     $tempPackagePath = (DownloadAndExtract-VPNProfile -GatewayID $gatewayId)
     Write-Host "Profiles are stored in $tempPackagePath"
-    # if ($IsMacOS) {
-    #     security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain $tempPackagePath/VpnServerRoot.cer
-    # }
 
     Update-AzureVPNProfile   -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer -ProfileName $resourceGroup -Install
     Update-GenericVPNProfile -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer

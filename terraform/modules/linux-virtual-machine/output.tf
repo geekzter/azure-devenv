@@ -16,6 +16,9 @@ output os_version_latest {
 output private_ip_address {
     value                      = azurerm_network_interface.nic.private_ip_address
 }
+output private_fqdn {
+    value                      = replace(azurerm_private_dns_a_record.computer_name.fqdn,"/\\W*$/","")
+}
 output public_ip_id {
     value                      = azurerm_public_ip.pip.id
 }

@@ -37,7 +37,7 @@ disable full window drag:i:1
 gatewayusername:s:
 shell working directory:s:
 audiomode:i:0
-username:s:Administrator
+username:s:${username}
 allow font smoothing:i:1
 connect to console:i:0
 camerastoredirect:s:

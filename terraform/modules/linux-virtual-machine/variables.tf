@@ -1,3 +1,7 @@
+variable admin_cidr_ranges {
+    type                       = list
+    default                    = []
+}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -55,10 +59,17 @@ variable os_version {
     default                    = "latest"
 }
 variable private_dns_zone {}
+variable public_access_enabled {
+  type                         = bool
+}
 variable resource_group_name {}
 variable scripts_container_id {}
+variable shutdown_time {}
+variable ssh_private_key {}
 variable ssh_public_key {}
 variable tags {}
+variable terraform_cidr {}
+variable timezone {}
 variable user_name {}
 variable user_password {}
 variable vm_size {}
