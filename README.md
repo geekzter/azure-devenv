@@ -28,9 +28,10 @@ While the easiest access to a VM is over a its public IP address, this is not th
 [Azure Bastion](https://azure.microsoft.com/en-us/services/azure-bastion/) is the Azure native service to provide remote access. It is provisioned as part of this repo, and provides web based RDP & SSH access.
 #### Just-in-time access
 If you have [Azure Security Center](https://azure.microsoft.com/en-us/services/security-center/) enabled on your subscription, you can configure a Security Center enabled Log Analytics workspace using the `log_analytics_workspace_id` Terraform input variable (see [customization](#terraform-customization) section below). This will trigger provisioning of the Log Analytics extension required for Security Center. [Just-in-Time access](https://docs.microsoft.com/en-us/azure/security-center/security-center-just-in-time) (as it name implies), opens up SSH or RDP ports only when you need them. Once Security Center is enabled and Log Analytics extension is installed, follow the instructions on the Connect dialog on the VM:
+
 ![alt text](visuals/asc-jit.png "Just-in-Time access prompt")
 #### VPN Profiles
-[Azure Point to Site VPN](https://docs.microsoft.com/en-us/azure/vpn-gateway/point-to-site-about) provides access from your laptop or desktop to an Azure Virtual Network. When accessing services that are resolved using [Private DNS](https://docs.microsoft.com/en-us/azure/dns/private-dns-overview), DNS forwarding infrastructure is required in order to be able to resolve locally on the VPN client. Azure Firewall provides this capability, but is not a cost effective solution for a single developer. Hence, this uses the [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) DNS Proxy which is installed on the Ubuntu VM and configured to forward the created Private DNS domain to Azure (Private) DNS server 168.63.129.16.
+[Azure Point to Site VPN](https://docs.microsoft.com/en-us/azure/vpn-gateway/point-to-site-about) provides access from your laptop or desktop to an Azure Virtual Network. When accessing services that are resolved using [Private DNS](https://docs.microsoft.com/en-us/azure/dns/private-dns-overview), DNS forwarding infrastructure is required in order to be able to resolve locally on the VPN client. Azure Firewall provides this capability, but is not a cost effective solution for a single developer. Hence, this uses the [dnsmasq](http://www.thekelleys.org.uk/dnsmasq/doc.html) DNS Proxy which is installed on the Ubuntu VM and configured to forward to Azure (Private) DNS server 168.63.129.16.
 To get the VPN client with this DNS forwarder configured, run [setup_vpn.ps1](scripts/setup_vpn.ps1). On Windows, this script can configure the [Azure VPN client](https://www.microsoft.com/en-us/p/azure-vpn-client/9np355qt2sqb?activetab=pivot:overviewtab). On MacOS, the required certificates are generated, but [manual configuration](https://docs.microsoft.com/en-us/azure/vpn-gateway/point-to-site-vpn-client-configuration-azure-cert#installmac) is required.
 
 #### Let me in!
@@ -66,6 +67,7 @@ You can customize the deployment by overriding defaults for Terraform [input var
 - Deploy point to site VPN by setting `deploy_vpn` to `true`
 - Do you need environment variables set up for your VM's? Define those via the `environment_variables` map.
 - Larger VM's can be defined by overriding `linux_size` and `windows_vm_size`
+- If you're primarily use VPN and not the VM's itself, be aware the Linux VM runs dnsmasq which is required to resolve Private DNS. To disable shutdown, set `linux_shutdown_time` to null or an empty string.
 
 See [variables.tf](./terraform/variables.tf) for all input variables.
 
