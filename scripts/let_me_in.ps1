@@ -22,6 +22,11 @@ param (
 $terraformDirectory = (Join-Path (Split-Path -parent -Path $PSScriptRoot) "terraform")
 Push-Location $terraformDirectory
 $resourceGroup = (Get-TerraformOutput resource_group_name)
+
+if (-not $resourceGroup) {
+    Write-Warning "No resources deployed in workspace $(terraform workspace show), exiting"
+    exit
+}
 Pop-Location
 
 # Retrieve all NSG's
