@@ -59,16 +59,18 @@ foreach ($nsg in $nsgs) {
         az network nsg rule update --nsg-name $nsg -g $resourceGroup --name $rule --access $setAccessTo --query "name" -o tsv
     }
 
-    # Check whether rule exists for current prefix
-    $clientRuleQuery = "[?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH')) && sourceAddressPrefix=='${ipPrefix}' && access=='${setAccessTo}'].name"
-    if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $clientRuleQuery -o tsv)) {
-        # Add rule for current prefix
-        $ruleName = "Admin${applicationProtocol}"
-        # Determine unique priority
-        $maxPriority = $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query "max_by([?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH'))],&priority).priority" -o tsv)
-        Write-Debug "Highest priority # for admin rule is $maxPriority"
-        $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
-        Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
-        az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol Tcp --source-address-prefixes $ipPrefix --destination-address-prefixes '*' --destination-port-ranges $applicationPort --query "name" -o tsv
+    # Current prefix needs access, check whether rule exists
+    if (!$Close) {
+        $clientRuleQuery = "[?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH')) && sourceAddressPrefix=='${ipPrefix}' && access=='${setAccessTo}'].name"
+        if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $clientRuleQuery -o tsv)) {
+            # Add rule for current prefix
+            $ruleName = "Admin${applicationProtocol}"
+            # Determine unique priority
+            $maxPriority = $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query "max_by([?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH'))],&priority).priority" -o tsv)
+            Write-Debug "Highest priority # for admin rule is $maxPriority"
+            $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
+            Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
+            az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol TCP --source-address-prefixes $ipPrefix --destination-address-prefixes '*' --destination-port-ranges $applicationPort --query "name" -o tsv
+        }
     }
 }
