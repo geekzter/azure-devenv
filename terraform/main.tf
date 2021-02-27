@@ -11,7 +11,7 @@ locals {
 
   # Networking
   ipprefix                     = jsondecode(chomp(data.http.localpublicprefix.body)).data.prefix
-  admin_cidr_ranges            = concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.ipprefix])) # Make sure ranges have correct base address
+  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.ipprefix])))) # Make sure ranges have correct base address
 }
 
 # Data sources

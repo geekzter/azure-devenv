@@ -170,11 +170,6 @@ resource azurerm_network_interface_security_group_association nic_nsg {
   network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
-locals {
-  # Quote query
-  jmes_path_query              = replace(format("%q","value"),"value","max_by([?contains(sku,'${var.os_sku}')],&version)")
-}
-
 # Cloud Init
 data cloudinit_config user_data {
   gzip                         = false

@@ -151,7 +151,7 @@ resource azurerm_network_security_group nsg {
 }
 
 resource azurerm_network_security_rule rdp {
-  name                         = "InboundRDP${count.index+1}"
+  name                         = "AdminRDP${count.index+1}"
   priority                     = count.index+201
   direction                    = "Inbound"
   access                       = var.public_access_enabled ? "Allow" : "Deny"
