@@ -29,13 +29,25 @@ if (-not $resourceGroup) {
 }
 Pop-Location
 
+# Get public IP address
+Write-Information "`nRetrieving public IP address..."
+$ipAddress = (Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9) -replace "\n","" # Ipv4
+Write-Host "Public IP address is $ipAddress"
+
+# Get block(s) the public IP address belongs to
+$ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
+Write-Host "Public IP prefix is $ipPrefix"
+
 # Retrieve all NSG's
 Write-Host "Retrieving network security groups in resource group ${resourceGroup}..."
 $nsgs = $(az network nsg list -g $resourceGroup --query "[*].name" -o tsv)
 foreach ($nsg in $nsgs) {
+    $applicationProtocol = $nsg -match "windows" ? "RDP" : "SSH"
+    $applicationPort     = $nsg -match "windows" ? 3389 : 22
+
     # Get remote access rules
     $filterAccessBy = $Close ? "Allow" : "Deny"
-    $rasRuleQuery = "[?(starts_with(name,'InboundRDP') || starts_with(name,'InboundSSH')) && access=='${filterAccessBy}'].name"
+    $rasRuleQuery = "[?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH')) && access=='${filterAccessBy}'].name"
     Write-Information "Retrieving remote access rules in network security group ${nsg} ($rasRuleQuery)..."
     $rules = $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $rasRuleQuery -o tsv)
 
@@ -45,5 +57,18 @@ foreach ($nsg in $nsgs) {
     foreach ($rule in $rules) {
         Write-Information "Updating rule ${rule} in ${nsg} to set access to '${setAccessTo}'..."
         az network nsg rule update --nsg-name $nsg -g $resourceGroup --name $rule --access $setAccessTo --query "name" -o tsv
+    }
+
+    # Check whether rule exists for current prefix
+    $clientRuleQuery = "[?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH')) && sourceAddressPrefix=='${ipPrefix}' && access=='${setAccessTo}'].name"
+    if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $clientRuleQuery -o tsv)) {
+        # Add rule for current prefix
+        $ruleName = "Admin${applicationProtocol}"
+        # Determine unique priority
+        $maxPriority = $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query "max_by([?(starts_with(name,'AdminRDP') || starts_with(name,'AdminSSH'))],&priority).priority" -o tsv)
+        Write-Debug "Highest priority # for admin rule is $maxPriority"
+        $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
+        Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
+        az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol Tcp --source-address-prefixes $ipPrefix --destination-address-prefixes '*' --destination-port-ranges $applicationPort --query "name" -o tsv
     }
 }
