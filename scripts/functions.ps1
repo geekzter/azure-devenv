@@ -186,6 +186,7 @@ function Install-CertificatesMacOS (
         return
     }
     if (Test-Path $ClientCertMergedPEMFile) {
+        Write-Information "Looking for existing certificate(s) with common name ${ClientCertificateCommonName}..."
         if (security find-certificate -c $ClientCertificateCommonName 2>$null) {
             Write-Warning "Certificate with common name $ClientCertificateCommonName already exixts"
             # Prompt to overwrite
