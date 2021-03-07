@@ -92,8 +92,7 @@ resource azurerm_network_interface nic {
     name                       = "ipconfig"
     subnet_id                  = var.vm_subnet_id
     primary                    = true
-    # private_ip_address         = ""
-    private_ip_address_allocation = "static"
+    private_ip_address_allocation = "dynamic"
     public_ip_address_id       = azurerm_public_ip.pip.id
   }
   enable_accelerated_networking = var.enable_accelerated_networking
