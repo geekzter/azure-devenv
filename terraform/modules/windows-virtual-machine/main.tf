@@ -297,7 +297,7 @@ resource null_resource start_vm {
   }
 
   provisioner local-exec {
-    # Start VM, so we can execute script through SSH
+    # Start VM, so we can make changes
     command                    = "az vm start --ids ${azurerm_windows_virtual_machine.vm.id}"
   }
 }
