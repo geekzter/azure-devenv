@@ -28,15 +28,11 @@ locals {
     var.environment_variables
   )
 
-  vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
+  vm_name                      = "${var.resource_group_name}-${var.location}-${var.moniker}"
   computer_name                = substr(lower(replace("linux${var.location}","/a|e|i|o|u|y/","")),0,15)
 }
 
 data azurerm_client_config current {}
-
-data azurerm_resource_group vm_resource_group {
-  name                         = var.resource_group_name
-}
 
 data azurerm_storage_account diagnostics {
   name                         = local.diagnostics_storage_name
@@ -66,7 +62,7 @@ resource random_string pip_domain_name_label {
 resource azurerm_public_ip pip {
   name                         = "${local.vm_name}-pip-nic"
   location                     = var.location
-  resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
+  resource_group_name          = var.resource_group_name
   allocation_method            = "Static"
   sku                          = "Standard"
   domain_name_label            = random_string.pip_domain_name_label.result
@@ -90,11 +86,13 @@ resource azurerm_dns_a_record fqdn {
 resource azurerm_network_interface nic {
   name                         = "${local.vm_name}-nic"
   location                     = var.location
-  resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
+  resource_group_name          = var.resource_group_name
 
   ip_configuration {
     name                       = "ipconfig"
     subnet_id                  = var.vm_subnet_id
+    primary                    = true
+    # private_ip_address         = ""
     private_ip_address_allocation = "static"
     public_ip_address_id       = azurerm_public_ip.pip.id
   }
@@ -124,9 +122,9 @@ resource azurerm_private_dns_a_record vm_name {
 }
 
 resource azurerm_network_security_group nsg {
-  name                         = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-linux-nsg"
+  name                         = "${var.resource_group_name}-${var.location}-linux-nsg"
   location                     = var.location
-  resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
+  resource_group_name          = var.resource_group_name
 
   tags                         = var.tags
 }
@@ -211,15 +209,15 @@ locals {
 resource azurerm_linux_virtual_machine vm {
   name                         = local.vm_name
   location                     = var.location
-  resource_group_name          = data.azurerm_resource_group.vm_resource_group.name
+  resource_group_name          = var.resource_group_name
   size                         = var.vm_size
   admin_username               = var.user_name
   admin_password               = var.user_password
   disable_password_authentication = true
+  encryption_at_host_enabled   = false
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
   custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
-  encryption_at_host_enabled   = false
 
   boot_diagnostics {
     storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
@@ -235,8 +233,6 @@ resource azurerm_linux_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
-  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
-  # source_image_id              = local.vm_image_id
   source_image_reference {
     publisher                  = var.os_publisher
     offer                      = var.os_offer

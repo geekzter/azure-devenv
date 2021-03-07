@@ -48,6 +48,30 @@ resource random_string password {
   override_special             = "." 
 }
 
+resource null_resource script_wrapper_check {
+  # Always run this
+  triggers                     = {
+    always_run                 = timestamp()
+  }
+
+  provisioner local-exec {
+    command                    = "echo Terraform should be called from deploy.ps1, hit Ctrl-C to exit"
+  }
+
+  count                        = var.script_wrapper_check ? 1 : 0
+}
+
+resource time_sleep script_wrapper_check {
+  triggers                     = {
+    always_run                 = timestamp()
+  }
+
+  create_duration              = "999999h"
+
+  count                        = var.script_wrapper_check ? 1 : 0
+  depends_on                   = [null_resource.script_wrapper_check]
+}
+
 resource azurerm_resource_group vm_resource_group {
   name                         = "dev-${terraform.workspace}-${local.suffix}"
   location                     = var.locations[0]
@@ -55,11 +79,13 @@ resource azurerm_resource_group vm_resource_group {
       "application",             "Development Environment",
       "environment",             "dev",
       "provisioner",             "terraform",
-      "repository",              basename(abspath("${path.root}/..")),
+      "repository",              "azure-devenv",
       "shutdown",                "true",
       "suffix",                  local.suffix,
       "workspace",               terraform.workspace
   )
+
+  depends_on                   = [time_sleep.script_wrapper_check]
 }
 
 resource azurerm_role_assignment vm_admin {
@@ -202,6 +228,11 @@ resource azurerm_storage_account automation_storage {
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
   allow_blob_public_access     = true
+  blob_properties {
+    delete_retention_policy {
+      days                     = 365
+    }
+  }
   enable_https_traffic_only    = true
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
@@ -268,6 +299,7 @@ module region_network {
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
 
   for_each                     = toset(var.locations)
+  depends_on                   = [time_sleep.script_wrapper_check]
 }
 
 module linux_vm {
@@ -311,7 +343,10 @@ module linux_vm {
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
   for_each                     = toset(var.locations)
-  depends_on                   = [module.region_network]
+  depends_on                   = [
+    module.region_network,
+    time_sleep.script_wrapper_check
+  ]
 }
 
 module windows_vm {
@@ -349,7 +384,10 @@ module windows_vm {
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
   for_each                     = toset(var.locations)
-  depends_on                   = [module.region_network]
+  depends_on                   = [
+    module.region_network,
+    time_sleep.script_wrapper_check
+  ]
 }
 
 module vpn {
@@ -365,4 +403,8 @@ module vpn {
   vpn_range                    = var.vpn_range
 
   count                        = var.deploy_vpn ? 1 : 0
+
+  depends_on                   = [
+    time_sleep.script_wrapper_check
+  ]
 }
