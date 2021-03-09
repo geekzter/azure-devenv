@@ -245,6 +245,7 @@ resource azurerm_windows_virtual_machine vm {
   admin_username               = var.admin_username
   admin_password               = var.admin_password
   computer_name                = local.computer_name
+  enable_automatic_updates     = true
 
   os_disk {
     name                       = "${local.vm_name}-osdisk"

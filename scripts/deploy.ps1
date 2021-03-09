@@ -145,14 +145,20 @@ try {
             $vmsReplaced        = (($linuxVMsReplaced + $windowsVMsReplaced) -replace " +","`n")
         } else {
             Write-Warning "jq not found, plan validation skipped. Look at the plan carefully before approving"
-            $Force = $false
+            if ($Force) {
+                $Force = $false # Ignore force if automated vcalidation is not possible
+                Write-Warning "Ignoring -force"
+            }
         }
 
         if (!$inAutomation) {
             if ($vmsReplaced) {
                 Write-Warning "You're about to replace these Virtual Machines in workspace '${workspace}':"
                 $vmsReplaced
-                $Force = $false # Ignore force if you don't know what you're doing
+                if ($Force) {
+                    $Force = $false # Ignore force if resources with state get replaces
+                    Write-Warning "Ignoring -force"
+                }
             }
 
             if (!$Force) {
