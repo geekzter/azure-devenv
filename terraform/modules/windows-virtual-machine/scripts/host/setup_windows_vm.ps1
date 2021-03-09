@@ -129,19 +129,6 @@ if (Get-Command PinToQuickAccess) {
     PinToQuickAccess "$env:userprofile\Azure VPN Profiles"
 }
 
-# Import GPO
-if (Get-Command lgpo -ErrorAction SilentlyContinue) {
-    $userPolicyText = (Join-Path $PSScriptRoot "user-policy.txt")
-    if (Test-Path $userPolicyText) {
-        Write-Host "Importing policy text file ${userPolicyText}..."
-        lgpo /t $userPolicyText
-        gpupdate /Target:User /Force
-    } else {
-        Write-Warning "Policy text file ${userPolicyText} not found, exiting"
-    }
-} else {
-    Write-Warning "LGPO not found. Please install by running 'choco install winsecuritybaseline' from an elevated shell, or downloading and installing it from https://www.microsoft.com/en-us/download/details.aspx?id=55319"
-}
 
 # Remove password expiration
 Set-LocalUser -Name $env:USERNAME -PasswordNeverExpires 1
