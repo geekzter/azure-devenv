@@ -129,6 +129,7 @@ if (Get-Command PinToQuickAccess) {
     PinToQuickAccess "$env:userprofile\Azure VPN Profiles"
 }
 
+
 # Remove password expiration
 Set-LocalUser -Name $env:USERNAME -PasswordNeverExpires 1
 

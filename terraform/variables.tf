@@ -82,6 +82,12 @@ variable public_access_enabled {
   default                      = true
 }
 
+variable script_wrapper_check {
+  description                  = "Set to true in a .auto.tfvars file to force Terraform to check whether it's run from deploy.ps1"
+  type                         = bool
+  default                      = false
+}
+
 variable ssh_private_key {
   default                      = "~/.ssh/id_rsa"
 }

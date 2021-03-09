@@ -10,13 +10,10 @@ tmp*.*
 *.log
 
 # Ignore generated files
-data/*.*
+data/**
 *.cer
 *.der
 *.key
 *.p12
 *.pem
 *.pfx
-
-# Ignore VPN Profiles
-profiles/*.*

@@ -186,6 +186,7 @@ function Install-CertificatesMacOS (
         return
     }
     if (Test-Path $ClientCertMergedPEMFile) {
+        Write-Information "Looking for existing certificate(s) with common name ${ClientCertificateCommonName}..."
         if (security find-certificate -c $ClientCertificateCommonName 2>$null) {
             Write-Warning "Certificate with common name $ClientCertificateCommonName already exixts"
             # Prompt to overwrite
@@ -250,6 +251,18 @@ function Install-ClassicWindowsClient (
     }
 
     $vpnPackage
+}
+
+function Invoke (
+    [string]$cmd
+) {
+    Write-Host "`n$cmd" -ForegroundColor Green 
+    Invoke-Expression $cmd
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        Write-Warning "'$cmd' exited with status $exitCode"
+        exit $exitCode
+    }
 }
 
 function Update-AzureVPNProfile (
