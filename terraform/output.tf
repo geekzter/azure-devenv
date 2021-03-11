@@ -48,7 +48,7 @@ output linux_os_version_latest {
     value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output linux_new_os_version_available {
-    value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
+    value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }
 
 output resource_group_id {
@@ -119,5 +119,5 @@ output windows_os_version_latest {
     value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output windows_new_os_version_available {
-    value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
+    value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }
