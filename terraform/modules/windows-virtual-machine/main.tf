@@ -248,7 +248,6 @@ resource azurerm_windows_virtual_machine vm {
   enable_automatic_updates     = true
 
   os_disk {
-    name                       = "${local.vm_name}-osdisk"
     caching                    = "ReadWrite"
     storage_account_type       = "Premium_LRS"
   }
