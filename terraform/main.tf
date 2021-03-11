@@ -289,6 +289,12 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
+resource azurerm_user_assigned_identity service_principal {
+  name                         = azurerm_resource_group.vm_resource_group.name
+  resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  location                     = azurerm_resource_group.vm_resource_group.location
+}
+
 module region_network {
   source                       = "./modules/region-network"
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -339,6 +345,7 @@ module linux_vm {
   terraform_cidr               = local.ipprefix
   timezone                     = var.timezone
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
+  user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
   vm_size                      = var.linux_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
@@ -380,6 +387,7 @@ module windows_vm {
   tags                         = azurerm_resource_group.vm_resource_group.tags
   shutdown_time                = var.windows_shutdown_time
   timezone                     = var.timezone
+  user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
   vm_size                      = var.windows_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
