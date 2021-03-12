@@ -58,6 +58,7 @@ variable public_access_enabled {
 }
 variable private_dns_zone {}
 variable resource_group_name {}
+variable user_assigned_identity_id {}
 variable scripts_container_id {}
 variable shutdown_time {}
 variable tags {}

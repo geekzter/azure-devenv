@@ -247,21 +247,6 @@ resource azurerm_windows_virtual_machine vm {
   computer_name                = local.computer_name
   enable_automatic_updates     = true
 
-  os_disk {
-    name                       = "${local.vm_name}-osdisk"
-    caching                    = "ReadWrite"
-    storage_account_type       = "Premium_LRS"
-  }
-
-  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
-  # source_image_id              = local.vm_image_id
-  source_image_reference {
-    publisher                  = local.os_publisher
-    offer                      = local.os_offer
-    sku                        = var.os_sku
-    version                    = local.os_version
-  }
-
   # TODO: Does not work with AzureDiskEncryption VM extension
   additional_unattend_content {
     setting                    = "AutoLogon"
@@ -282,12 +267,25 @@ resource azurerm_windows_virtual_machine vm {
 
   custom_data                  = base64encode(jsonencode(local.client_config))
 
-  # Required for AAD Login
   identity {
-    type                       = "SystemAssigned"
+    type                       = "SystemAssigned, UserAssigned"
+    identity_ids               = [var.user_assigned_identity_id]
   }
 
-# depends_on                   = [azurerm_firewall_application_rule_collection.*]
+  os_disk {
+    caching                    = "ReadWrite"
+    storage_account_type       = "Premium_LRS"
+  }
+
+  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
+  # source_image_id              = local.vm_image_id
+  source_image_reference {
+    publisher                  = local.os_publisher
+    offer                      = local.os_offer
+    sku                        = var.os_sku
+    version                    = local.os_version
+  }
+
   tags                         = var.tags
 }
 

@@ -227,6 +227,11 @@ resource azurerm_linux_virtual_machine vm {
     public_key                 = file(var.ssh_public_key)
   }
 
+  identity {
+    type                       = "SystemAssigned, UserAssigned"
+    identity_ids               = [var.user_assigned_identity_id]
+  }
+
   os_disk {
     caching                    = "ReadWrite"
     storage_account_type       = "Premium_LRS"

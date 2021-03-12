@@ -15,17 +15,14 @@ output cert_password {
 output client_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_common_name : null
 }
-
 output client_cert_merged_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_merged_pem : null
 }
-
 output client_cert_private_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_private_pem : null
 }
-
 output client_cert_public_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
@@ -48,7 +45,19 @@ output linux_os_version_latest {
     value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output linux_new_os_version_available {
-    value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
+    value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
+}
+
+output managed_identity_name {
+  value                        = azurerm_user_assigned_identity.service_principal.name
+}
+output managed_identity_object_id {
+  description                  = "The Object ID / Principal ID of the Service Principal created as User Assigned Identity"
+  value                        = azurerm_user_assigned_identity.service_principal.principal_id
+}
+output managed_identity_client_id {
+  description                  = "The App ID / Client ID of the Service Principal created as User Assigned Identity"
+  value                        = azurerm_user_assigned_identity.service_principal.client_id
 }
 
 output resource_group_id {
@@ -61,17 +70,14 @@ output resource_group_name {
 output root_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_common_name : null
 }
-
 output root_cert_merged_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_merged_pem : null
 }
-
 output root_cert_private_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_private_pem : null
 }
-
 output root_cert_public_pem {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem : null
@@ -119,5 +125,5 @@ output windows_os_version_latest {
     value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
 output windows_new_os_version_available {
-    value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_latest_version}" if vm.os_version != vm.os_version_latest]
+    value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }

@@ -70,6 +70,7 @@ variable ssh_public_key {}
 variable tags {}
 variable terraform_cidr {}
 variable timezone {}
+variable user_assigned_identity_id {}
 variable user_name {}
 variable user_password {}
 variable vm_size {}
