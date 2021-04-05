@@ -73,9 +73,6 @@ variable locations {
   type                         = list
   default                      = ["westeurope"]
 }
-variable log_analytics_workspace_id {
-  default                      = null
-}
 
 variable public_access_enabled {
   type                         = bool
