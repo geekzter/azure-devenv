@@ -15,6 +15,7 @@ locals {
   log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
+  virtual_network_id           = join("/",slice(split("/",var.vm_subnet_id),0,length(split("/",var.vm_subnet_id))-2))
 
   environment_variables        = merge(
     map(
@@ -179,7 +180,9 @@ data cloudinit_config user_data {
       nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
       private_ip_address       = azurerm_network_interface.nic.private_ip_address
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
+      subnet_id                = var.vm_subnet_id
       user_name                = var.user_name
+      virtual_network_id       = local.virtual_network_id
     },
     local.environment_variables
     ))

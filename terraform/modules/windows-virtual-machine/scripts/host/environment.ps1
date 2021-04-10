@@ -2,6 +2,10 @@
 
 $env:ASPNETCORE_ENVIRONMENT="Development"
 
+# Azure context
+$env:GEEKZTER_AGENT_SUBNET_ID="${subnet_id}"
+$env:GEEKZTER_AGENT_VIRTUAL_NETWORK_ID="${virtual_network_id}"
+
 # Terraform environment variables
 $env:TF_STATE_backend_resource_group="${tf_backend_resource_group}"
 $env:TF_STATE_backend_storage_account="${tf_backend_storage_account}"

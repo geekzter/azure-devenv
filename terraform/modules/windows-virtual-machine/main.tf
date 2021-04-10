@@ -17,6 +17,7 @@ locals {
   log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
   scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
   scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
+  virtual_network_id           = join("/",slice(split("/",var.vm_subnet_id),0,length(split("/",var.vm_subnet_id))-2))
 
   environment_variables        = merge(
     map(
@@ -26,6 +27,8 @@ locals {
       "tf_backend_resource_group", "",
       "tf_backend_storage_account", "",
       "tf_backend_storage_container", "",
+      "subnet_id",               var.vm_subnet_id,
+      "virtual_network_id",      local.virtual_network_id
     ),
     var.environment_variables
   )
