@@ -5,7 +5,7 @@ module region_network {
   location                     = each.value
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
-  address_space                = cidrsubnet(local.address_space,4,index(var.locations,each.value))
+  address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
 
   for_each                     = toset(var.locations)
