@@ -8,6 +8,11 @@ variable admin_object_id {
 variable admin_username {
     default                    = "dev"
 }
+
+variable address_space {
+    default                    = "10.16.0.0/12"
+}
+
 variable deploy_vpn {
     type                       = bool
     default                    = false
@@ -72,9 +77,6 @@ variable linux_vm_size {
 variable locations {
   type                         = list
   default                      = ["westeurope"]
-}
-variable log_analytics_workspace_id {
-  default                      = null
 }
 
 variable public_access_enabled {

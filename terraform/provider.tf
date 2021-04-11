@@ -1,12 +1,12 @@
 terraform {
   required_providers {
-    azurerm                    = "~> 2.54"
+    azurerm                    = "~> 2.55"
     cloudinit                  = "~> 2.2"
     external                   = "~> 2.1"
     http                       = "~> 2.1"
     local                      = "~> 2.1"
     null                       = "~> 3.1"
-    random                     = "~> 3.0"
+    random                     = "~> 3.1"
     time                       = "~> 0.7"
     tls                        = "~> 3.1"
   }

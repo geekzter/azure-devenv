@@ -48,6 +48,10 @@ output linux_new_os_version_available {
     value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }
 
+output log_analytics_workspace_id {
+  value                        = azurerm_log_analytics_workspace.monitor.id
+}
+
 output managed_identity_name {
   value                        = azurerm_user_assigned_identity.service_principal.name
 }
