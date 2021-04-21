@@ -342,6 +342,7 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
 
   tags                         = var.tags
   depends_on                   = [
+                                  azurerm_virtual_machine_extension.log_analytics,
                                   null_resource.start_vm,
                                   null_resource.cloud_config_status
                                  ]
@@ -371,6 +372,7 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
+                                  azurerm_virtual_machine_extension.log_analytics,
                                   null_resource.start_vm,
                                   null_resource.cloud_config_status
                                  ]
@@ -386,6 +388,7 @@ resource azurerm_virtual_machine_extension vm_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
+                                  azurerm_virtual_machine_extension.log_analytics,
                                   null_resource.start_vm,
                                   null_resource.cloud_config_status
                                  ]
@@ -432,6 +435,7 @@ SETTINGS
   tags                         = var.tags
 
   depends_on                   = [
+                                  azurerm_virtual_machine_extension.log_analytics,
                                   null_resource.start_vm,
                                   null_resource.cloud_config_status,
                                  ]
