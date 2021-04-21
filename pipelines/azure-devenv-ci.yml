@@ -99,6 +99,7 @@ jobs:
 
   steps:
     - bash: |
+        mkdir -p $(Build.SourcesDirectory)/.ssh
         ssh-keygen -q -m PEM -N '' -f $(TF_VAR_ssh_private_key)
       displayName: 'Generate SSH key pair'
       workingDirectory: '$(terraformDirectory)'
