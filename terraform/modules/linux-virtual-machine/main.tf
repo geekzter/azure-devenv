@@ -172,7 +172,7 @@ data cloudinit_config user_data {
   base64_encode                = false
 
   part {
-    content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",merge(
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-userdata.yaml",merge(
     {
       domain_suffix            = var.domain
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
