@@ -80,13 +80,13 @@ variables:
 jobs:
 - job: 'Provision'
   ${{ if eq(parameters.destroy, 'Always') }}:
-    displayName: 'Provision & Destroy'
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy'
   ${{ if eq(parameters.destroy, 'Never') }}:
-    displayName: 'Provision'
+    displayName: 'Provision (${{ parameters.workspace }})'
   ${{ if eq(parameters.destroy, 'On failure') }}:
-    displayName: 'Provision & Destroy (${{ lower(parameters.destroy) }})'
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy (${{ lower(parameters.destroy) }})'
   ${{ if eq(parameters.destroy, 'On success') }}:
-    displayName: 'Provision & Destroy (${{ lower(parameters.destroy) }})'
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy (${{ lower(parameters.destroy) }})'
   condition: succeeded()
   timeoutInMinutes: $[ variables['jobTimeOutMinutes'] ]
 
