@@ -328,7 +328,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  null_resource.cloud_config_status
+                                  # null_resource.cloud_config_status
                                  ]
 }
 
