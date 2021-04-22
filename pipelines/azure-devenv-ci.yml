@@ -179,7 +179,7 @@ jobs:
           $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
           $terraformVariableValue = $tfVar.Value
 
-          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\])\W*$") {
+          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
             # Boolean or List, write as-is
             Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
           } else {
