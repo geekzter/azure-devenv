@@ -209,15 +209,6 @@ jobs:
         commandOptions: 'ci.tfplan'
         allowTelemetryCollection: true
 
-    - task: TerraformCLI@0
-      displayName: 'Terraform output'
-      inputs:
-        command: 'output'
-        workingDirectory: '$(terraformDirectory)'
-        environmentServiceName: '$(subscriptionConnection)'
-        runAzLogin: true
-        allowTelemetryCollection: true
-
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
       - pwsh: |
           Write-Host "##vso[task.setvariable variable=result;isOutput=true]success"
