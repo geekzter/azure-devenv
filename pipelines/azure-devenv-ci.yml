@@ -179,16 +179,15 @@ jobs:
           $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
           $terraformVariableValue = $tfVar.Value
 
-          # $varArgs += " -var ${terraformVariableName}=${terraformVariableValue}"
-          Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
+          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\])\W*$") {
+            # Boolean or List, write as-is
+            Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
+          } else {
+            Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
+          }
         } 
-        (Get-Content ci.auto.tfvars) -replace "`"false`"","false" | Out-File ci.auto.tfvars -Force
-        (Get-Content ci.auto.tfvars) -replace "`"true`"","true" | Out-File ci.auto.tfvars -Force
         Write-Host "Contents of ci.auto.tfvars:"
         Get-Content ci.auto.tfvars
-
-        # Write-Host "Terraform plan/apply options: ${varArgs}"
-        # Write-Host "##vso[task.setvariable variable=variableOption;isOutput=true]$varArgs"
       name: terraformVariables
       displayName: 'Prepare Terraform variables'
       workingDirectory: '$(terraformDirectory)'
@@ -200,7 +199,6 @@ jobs:
         workingDirectory: '$(terraformDirectory)'
         environmentServiceName: '$(subscriptionConnection)'
         runAzLogin: true
-        # commandOptions: '$(terraformVariables.variableOption) -out=ci.tfplan'
         commandOptions: '-out=ci.tfplan'
         allowTelemetryCollection: true
         publishPlanResults: 'ci'
@@ -236,7 +234,6 @@ jobs:
           workingDirectory: '$(terraformDirectory)'
           environmentServiceName: '$(subscriptionConnection)'
           runAzLogin: true
-          # commandOptions: '$(terraformVariables.variableOption)'
           allowTelemetryCollection: true
 
 
