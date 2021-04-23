@@ -70,7 +70,9 @@ output resource_group_id {
 output resource_group_name {
     value                      = azurerm_resource_group.vm_resource_group.name
 }
-
+output resource_suffix {
+  value                        = local.suffix
+}
 output root_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_common_name : null
 }

@@ -30,7 +30,7 @@ if ($gatewayId) {
     Update-OpenVPNProfile    -PackagePath $tempPackagePath -ClientCert $clientCert -ClientKey $clientKey -DnsServer $dnsServer
 
     $profileDirectory = (Join-Path (Split-Path $PSScriptRoot -Parent) "data" $workspace "vpn")
-    Copy-Item -Path $tempPackagePath -Destination $profileDirectory -Force -Recurse
+    Copy-Item -Path (Join-Path $tempPackagePath *) -Destination $profileDirectory -Force -Recurse
     Write-Host "`nVPN Profile have been saved in ${profileDirectory}"
 
     if ($InformationPreference -ieq "Continue") {

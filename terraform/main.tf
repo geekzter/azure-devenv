@@ -79,6 +79,7 @@ resource azurerm_resource_group vm_resource_group {
       "environment",             "dev",
       "provisioner",             "terraform",
       "repository",              "azure-devenv",
+      "runid",                   var.run_id,
       "shutdown",                "true",
       "suffix",                  local.suffix,
       "workspace",               terraform.workspace

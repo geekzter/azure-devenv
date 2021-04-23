@@ -1,4 +1,7 @@
 # Development Environment on Azure
+
+[![Build Status](https://dev.azure.com/ericvan/VDC/_apis/build/status/azure-devenv-ci?branchName=master)](https://dev.azure.com/ericvan/VDC/_build/latest?definitionId=89&branchName=master)
+
 This repo provides a personal Azure foundation with tooled Linux & Windows virtual machines that can be used for development, while providing private and global networking to be able to test scenario's that require it e.g. my [private AKS](https://github.com/geekzter/azure-aks) repo.   
 
 To tailor to the individual developer, it uses low(er) cost components and takes other measures to minimize Azure consumption:

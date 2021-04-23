@@ -172,7 +172,7 @@ data cloudinit_config user_data {
   base64_encode                = false
 
   part {
-    content                    = templatefile("${path.module}/scripts/host/cloud-config-userdata.yaml",merge(
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-userdata.yaml",merge(
     {
       domain_suffix            = var.domain
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
@@ -264,6 +264,20 @@ resource null_resource start_vm {
   }
 }
 
+resource azurerm_virtual_machine_extension cloud_config_status {
+  name                         = "CloudConfigStatusScript"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Extensions"
+  type                         = "CustomScript"
+  type_handler_version         = "2.0"
+  settings                     = jsonencode({
+    "commandToExecute"         = "/usr/bin/cloud-init status --long --wait ; systemctl status cloud-final.service --full --no-pager --wait"
+  })
+  tags                         = var.tags
+
+  depends_on                   = [null_resource.start_vm]
+}
+
 resource null_resource cloud_config_status {
   triggers                     = {
     vm                         = azurerm_linux_virtual_machine.vm.id
@@ -287,10 +301,12 @@ resource null_resource cloud_config_status {
   }
 
   depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status,
     azurerm_network_interface_security_group_association.nic_nsg,
     azurerm_network_security_rule.terraform_ssh,
   ]
 }
+
 
 # resource azurerm_virtual_machine_extension azure_monitor {
 #   name                         = "AzureMonitorLinuxAgent"
@@ -326,10 +342,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   EOF
 
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  null_resource.cloud_config_status
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.cloud_config_status]
 }
 
 resource azurerm_virtual_machine_extension vm_aadlogin {
@@ -342,8 +355,7 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
 
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
-                                  null_resource.cloud_config_status
+                                  azurerm_virtual_machine_extension.log_analytics,
                                  ]
 
   count                        = var.enable_aad_login ? 1 : 0
@@ -370,10 +382,7 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
 
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  null_resource.cloud_config_status
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 resource azurerm_virtual_machine_extension vm_watcher {
   name                         = "AzureNetworkWatcherExtension"
@@ -385,10 +394,7 @@ resource azurerm_virtual_machine_extension vm_watcher {
 
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  null_resource.cloud_config_status
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
 resource azurerm_key_vault_key disk_encryption_key {
@@ -431,10 +437,7 @@ SETTINGS
   count                        = var.disk_encryption ? 1 : 0
   tags                         = var.tags
 
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  null_resource.cloud_config_status,
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {

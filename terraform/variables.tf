@@ -84,6 +84,15 @@ variable public_access_enabled {
   default                      = true
 }
 
+variable resource_suffix {
+  description                  = "The suffix to put at the of resource names created"
+  default                      = "" # Empty string triggers a random suffix
+}
+variable run_id {
+  description                  = "The ID that identifies the pipeline / workflow that invoked Terraform"
+  default                      = ""
+}
+
 variable script_wrapper_check {
   description                  = "Set to true in a .auto.tfvars file to force Terraform to check whether it's run from deploy.ps1"
   type                         = bool
