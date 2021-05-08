@@ -70,7 +70,7 @@ data azurerm_log_analytics_workspace monitor {
 resource time_static vm_update {
   triggers = {
     # Save the time each switch of an VM NIC
-    nic_id                   = azurerm_network_interface.nic.id
+    nic_id                     = azurerm_network_interface.nic.id
     vm_id                      = azurerm_windows_virtual_machine.vm.id
   }
 }
@@ -248,7 +248,6 @@ resource azurerm_windows_virtual_machine vm {
   computer_name                = local.computer_name
   enable_automatic_updates     = true
 
-  # TODO: Does not work with AzureDiskEncryption VM extension
   additional_unattend_content {
     setting                    = "AutoLogon"
     content                    = templatefile("${path.module}/scripts/host/AutoLogon.xml", { 
@@ -321,18 +320,14 @@ resource azurerm_virtual_machine_extension log_analytics {
   type                         = "MicrosoftMonitoringAgent"
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}",
-      "azureResourceId"        : "${azurerm_windows_virtual_machine.vm.id}",
-      "stopOnMultipleConnections": "true"
-    }
-  EOF
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
+  settings                     = jsonencode({
+    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
+    "azureResourceId"          = azurerm_windows_virtual_machine.vm.id
+    "stopOnMultipleConnections"= "true"
+  })
+  protected_settings           = jsonencode({
+    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  })
 
   tags                         = var.tags
   depends_on                   = [
@@ -386,14 +381,11 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
     virtual_machine_id         = azurerm_windows_virtual_machine.vm.id, 
   # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
   })
-
-  protected_settings = <<EOF
-    { 
-      "storageAccountName"     : "${data.azurerm_storage_account.diagnostics.name}",
-      "storageAccountKey"      : "${data.azurerm_storage_account.diagnostics.primary_access_key}",
-      "storageAccountEndPoint" : "https://core.windows.net"
-    } 
-  EOF
+  protected_settings           = jsonencode({
+    "storageAccountName"       = data.azurerm_storage_account.diagnostics.name
+    "storageAccountKey"        = data.azurerm_storage_account.diagnostics.primary_access_key
+    "storageAccountEndPoint"   = "https://core.windows.net"
+  })
 
   count                        = var.diagnostics ? 1 : 0
   tags                         = var.tags
@@ -410,17 +402,6 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   type                         = "DependencyAgentWindows"
   type_handler_version         = "9.5"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
-    }
-  EOF
-
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
 
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
@@ -470,17 +451,15 @@ resource azurerm_virtual_machine_extension vm_disk_encryption {
   type_handler_version         = "2.2"
   auto_upgrade_minor_version   = true
 
-  settings = <<SETTINGS
-    {
-      "EncryptionOperation"    : "EnableEncryption",
-      "KeyVaultURL"            : "${data.azurerm_key_vault.vault.vault_uri}",
-      "KeyVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionKeyURL"    : "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}",       
-      "KekVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionAlgorithm" : "RSA-OAEP",
-      "VolumeType"             : "All"
-    }
-SETTINGS
+  settings                     = jsonencode({
+    "EncryptionOperation"      = "EnableEncryption"
+    "KeyVaultURL"              = data.azurerm_key_vault.vault.vault_uri
+    "KeyVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionKeyURL"      = "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}"
+    "KekVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionAlgorithm"   = "RSA-OAEP"
+    "VolumeType"               = "All"
+  })
 
   count                        = var.disk_encryption ? 1 : 0
   tags                         = var.tags

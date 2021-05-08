@@ -307,22 +307,6 @@ resource null_resource cloud_config_status {
   ]
 }
 
-
-# resource azurerm_virtual_machine_extension azure_monitor {
-#   name                         = "AzureMonitorLinuxAgent"
-#   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-#   publisher                    = "Microsoft.Azure.Monitor"
-#   type                         = "AzureMonitorLinuxAgent"
-#   type_handler_version         = "1.5"
-#   auto_upgrade_minor_version   = true
-
-#   tags                         = var.tags
-#   depends_on                   = [
-#                                   null_resource.start_vm,
-#                                   null_resource.cloud_config_status
-#                                  ]
-# }
-
 resource azurerm_virtual_machine_extension log_analytics {
   name                         = "OmsAgentForLinux"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
@@ -330,19 +314,27 @@ resource azurerm_virtual_machine_extension log_analytics {
   type                         = "OmsAgentForLinux"
   type_handler_version         = "1.7"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}"
-    }
-  EOF
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
+  settings                     = jsonencode({
+    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
+  })
+  protected_settings           = jsonencode({
+    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  })
 
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.cloud_config_status]
+}
+
+resource azurerm_virtual_machine_extension azure_monitor {
+  name                         = "AzureMonitorLinuxAgent"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Monitor"
+  type                         = "AzureMonitorLinuxAgent"
+  type_handler_version         = "1.5"
+  auto_upgrade_minor_version   = true
+
+  tags                         = var.tags
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
 resource azurerm_virtual_machine_extension vm_aadlogin {
@@ -354,10 +346,7 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
-  depends_on                   = [
-                                  azurerm_virtual_machine_extension.log_analytics,
-                                 ]
-
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
   count                        = var.enable_aad_login ? 1 : 0
 } 
 
@@ -368,17 +357,6 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   type                         = "DependencyAgentLinux"
   type_handler_version         = "9.5"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
-    }
-  EOF
-
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
 
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
@@ -418,21 +396,19 @@ resource azurerm_virtual_machine_extension vm_disk_encryption {
   name                         = "DiskEncryption"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Security"
-  type                         = "AzureDiskEncryption"
-  type_handler_version         = "2.2"
+  type                         = "AzureDiskEncryptionForLinux"
+  type_handler_version         = "1.1"
   auto_upgrade_minor_version   = true
 
-  settings = <<SETTINGS
-    {
-      "EncryptionOperation"    : "EnableEncryption",
-      "KeyVaultURL"            : "${data.azurerm_key_vault.vault.vault_uri}",
-      "KeyVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionKeyURL"    : "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}",       
-      "KekVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionAlgorithm" : "RSA-OAEP",
-      "VolumeType"             : "All"
-    }
-SETTINGS
+  settings                     = jsonencode({
+    "EncryptionOperation"      = "EnableEncryption"
+    "KeyVaultURL"              = data.azurerm_key_vault.vault.vault_uri
+    "KeyVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionKeyURL"      = "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}"
+    "KekVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionAlgorithm"   = "RSA-OAEP"
+    "VolumeType"               = "All"
+  })
 
   count                        = var.disk_encryption ? 1 : 0
   tags                         = var.tags
