@@ -205,6 +205,28 @@ resource azurerm_key_vault vault {
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
+resource azurerm_monitor_diagnostic_setting key_vault {
+  name                         = "${azurerm_key_vault.vault.name}-logs"
+  target_resource_id           = azurerm_key_vault.vault.id
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+
+  log {
+    category                   = "AuditEvent"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+}
 
 # Useful when using Bastion
 resource azurerm_key_vault_secret ssh_private_key {
@@ -288,34 +310,6 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
   count                        = fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
-
-resource azurerm_log_analytics_workspace monitor {
-  name                         = "${azurerm_resource_group.vm_resource_group.name}-loganalytics"
-  location                     = azurerm_resource_group.vm_resource_group.location
-  resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  sku                          = "PerGB2018"
-  retention_in_days            = 30
-
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-}
-resource azurerm_log_analytics_solution solution {
-  solution_name                 = each.value
-  location                      = azurerm_resource_group.vm_resource_group.location
-  resource_group_name           = azurerm_resource_group.vm_resource_group.name
-  workspace_resource_id         = azurerm_log_analytics_workspace.monitor.id
-  workspace_name                = azurerm_log_analytics_workspace.monitor.name
-
-  plan {
-    publisher                   = "Microsoft"
-    product                     = "OMSGallery/${each.value}"
-  }
-
-  for_each                      = toset([
-    "ServiceMap",
-    "Updates",
-    "VMInsights",
-  ])
-} 
 
 resource azurerm_user_assigned_identity service_principal {
   name                         = azurerm_resource_group.vm_resource_group.name

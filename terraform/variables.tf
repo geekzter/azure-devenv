@@ -13,6 +13,10 @@ variable address_space {
     default                    = "10.16.0.0/12"
 }
 
+variable deploy_bastion {
+    type                       = bool
+    default                    = true
+}
 variable deploy_vpn {
     type                       = bool
     default                    = false
