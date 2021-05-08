@@ -1,11 +1,11 @@
 locals {
-  client_config                = map(
-    "gitemail",                  var.git_email,
-    "gitname",                   var.git_name,
-    "scripturl",                 local.script_url,
-    "environmentscripturl",      local.environment_script_url,
-    "workspace",                 terraform.workspace
-  )
+  client_config                = {
+    gitemail                   = var.git_email
+    gitname                    = var.git_name
+    scripturl                  = local.script_url
+    environmentscripturl       = local.environment_script_url
+    workspace                  = terraform.workspace
+  }
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
@@ -20,16 +20,16 @@ locals {
   virtual_network_id           = join("/",slice(split("/",var.vm_subnet_id),0,length(split("/",var.vm_subnet_id))-2))
 
   environment_variables        = merge(
-    map(
-      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id,
+    {
+      arm_subscription_id      = data.azurerm_client_config.current.subscription_id
+      arm_tenant_id            = data.azurerm_client_config.current.tenant_id
       # Defaults, will be overriden by variables passed into map merge
-      "tf_backend_resource_group", "",
-      "tf_backend_storage_account", "",
-      "tf_backend_storage_container", "",
-      "subnet_id",               var.vm_subnet_id,
-      "virtual_network_id",      local.virtual_network_id
-    ),
+      tf_backend_resource_group = ""
+      tf_backend_storage_account= ""
+      tf_backend_storage_container= ""
+      subnet_id                = var.vm_subnet_id
+      virtual_network_id       = local.virtual_network_id
+    },
     var.environment_variables
   )
 
