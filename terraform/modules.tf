@@ -20,7 +20,6 @@ module linux_vm {
   admin_cidr_ranges            = local.admin_cidr_ranges
   user_name                    = var.admin_username
   user_password                = local.password
-  bootstrap                    = var.linux_bootstrap
   dependency_monitor           = true
   domain                       = var.vm_domain
   diagnostics                  = true

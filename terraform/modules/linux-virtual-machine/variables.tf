@@ -6,10 +6,6 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
-variable bootstrap {
-    type                       = bool
-    default                    = false
-}
 variable domain {}
 variable diagnostics {
     type                       = bool

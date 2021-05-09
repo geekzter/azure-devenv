@@ -58,10 +58,6 @@ variable global_vnet_peering {
   type                         = bool
   default                      = true
 }
-variable linux_bootstrap {
-  type                         = bool
-  default                      = false
-}
 variable linux_os_offer {
   default                      = "UbuntuServer"
 }
