@@ -16,15 +16,15 @@ output client_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_common_name : null
 }
 output client_cert_merged_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_merged_pem : null
 }
 output client_cert_private_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_private_pem : null
 }
 output client_cert_public_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
