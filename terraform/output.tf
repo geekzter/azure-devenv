@@ -41,6 +41,9 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
+output linux_main_fqdn {
+    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+}
 output linux_os_version {
     value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version
 }
@@ -127,6 +130,9 @@ output vm_public_fqdn {
     )
 }
 
+output windows_main_fqdn {
+    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+}
 output windows_os_sku {
     value                      = var.windows_sku
 }

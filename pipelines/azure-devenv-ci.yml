@@ -261,11 +261,17 @@ jobs:
       displayName: 'Wait for disk encryption to finish'
       workingDirectory: '$(scriptDirectory)'
 
+    - bash: |
+        ssh -o "IdentitiesOnly=yes" -i $(TF_VAR_ssh_private_key) $(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
+      displayName: 'Test SSH connection'
+      workingDirectory: '$(scriptDirectory)'
+
     - ${{ if parameters.testReentrance }}:
       - pwsh: |
           # Pin used OS versions to prevent resources from being recreated
-          Write-Output "linux_os_version   = $(TF_OUT_LINUX_OS_VERSION)"   | Out-File ci.auto.tfvars -Append -Force
-          Write-Output "windows_os_version = $(TF_OUT_WINDOWS_OS_VERSION)" | Out-File ci.auto.tfvars -Append -Force
+          Write-Output "linux_os_version   = `"$(TF_OUT_LINUX_OS_VERSION)`""   | Out-File ci.auto.tfvars -Append -Force
+          Write-Output "windows_os_version = `"$(TF_OUT_WINDOWS_OS_VERSION)`"" | Out-File ci.auto.tfvars -Append -Force
 
           Write-Host "Contents of ci.auto.tfvars:"
           Get-Content ci.auto.tfvars
