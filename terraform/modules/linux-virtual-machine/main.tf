@@ -435,8 +435,6 @@ resource azurerm_virtual_machine_extension disk_encryption {
                                   time_sleep.vm_sleep
   ]
 }
-# az vm encryption show --ids ${self.id} -o table
-# az vm encryption show --ids $(az vm list -g dev-default-cris --subscription $env:ARM_SUBSCRIPTION_ID --query "[].id" -o tsv) --query "[].{name:disks[0].name, status:disks[0].statuses[0].displayStatus}" -o table
 
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id

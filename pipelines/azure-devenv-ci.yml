@@ -255,6 +255,23 @@ jobs:
         runAzLogin: true
         allowTelemetryCollection: true
 
+    - pwsh: |
+        ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
+      enabled: $[ eq(variables['TF_VAR_enable_disk_encryption'],'true') ]
+      displayName: 'Wait for disk encryption to finish'
+      workingDirectory: '$(scriptDirectory)'
+
+    - ${{ if parameters.testReentrance }}:
+      - pwsh: |
+          # Pin used OS versions to prevent resources from being recreated
+          Write-Output "TF_VAR_linux_os_version   = $(TF_OUT_LINUX_OS_VERSION_LATEST)"   | Out-File ci.auto.tfvars -Append -Force
+          Write-Output "TF_VAR_windows_os_version = $(TF_OUT_WINDOWS_OS_VERSION_LATEST)" | Out-File ci.auto.tfvars -Append -Force
+
+          Write-Host "Contents of ci.auto.tfvars:"
+          Get-Content ci.auto.tfvars
+        displayName: 'Prepare Terraform OS variables'
+        workingDirectory: '$(terraformDirectory)'
+
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0
         displayName: 'Terraform plan (re-entrance test)'
