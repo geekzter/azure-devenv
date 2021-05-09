@@ -262,6 +262,7 @@ jobs:
       workingDirectory: '$(scriptDirectory)'
 
     - bash: |
+        ssh-keygen -R $(TF_OUT_LINUX_MAIN_FQDN)
         ssh -o "IdentitiesOnly=yes" -i $(TF_VAR_ssh_private_key) $(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
