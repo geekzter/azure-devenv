@@ -76,6 +76,8 @@ variables:
   value: '$(Build.SourcesDirectory)/scripts'
 - name: 'terraformDirectory'
   value: '$(Build.SourcesDirectory)/terraform'
+- name: 'TF_VAR_admin_username'
+  value: 'ciuser'
 - ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
   - name: 'TF_VAR_resource_suffix'
     value: '$(Build.BuildId)'
@@ -262,7 +264,7 @@ jobs:
       workingDirectory: '$(scriptDirectory)'
 
     - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
+        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
       workingDirectory: '$(scriptDirectory)'
