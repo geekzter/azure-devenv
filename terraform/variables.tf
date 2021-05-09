@@ -6,20 +6,20 @@ variable admin_object_id {
   default                      = null
 }
 variable admin_username {
-    default                    = "dev"
+  default                      = "dev"
 }
 
 variable address_space {
-    default                    = "10.16.0.0/12"
+  default                      = "10.16.0.0/12"
 }
 
 variable deploy_bastion {
-    type                       = bool
-    default                    = true
+  type                         = bool
+  default                      = true
 }
 variable deploy_vpn {
-    type                       = bool
-    default                    = false
+  type                         = bool
+  default                      = false
 }
 variable development_resource_group {
   default                      = "Development"
@@ -38,6 +38,10 @@ variable devops_pat {
 variable dns_zone_id {
   default                      = null
 }
+variable enable_disk_encryption {
+  type                         = bool
+  default                      = false
+}
 variable environment_variables {
   type                         = map
   default = {
@@ -51,12 +55,12 @@ variable git_name {
   default                      = ""
 }
 variable global_vnet_peering {
-    type                       = bool
-    default                    = true
+  type                         = bool
+  default                      = true
 }
 variable linux_bootstrap {
-    type                       = bool
-    default                    = false
+  type                         = bool
+  default                      = false
 }
 variable linux_os_offer {
   default                      = "UbuntuServer"

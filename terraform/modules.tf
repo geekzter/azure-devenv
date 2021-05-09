@@ -24,7 +24,7 @@ module linux_vm {
   dependency_monitor           = true
   domain                       = var.vm_domain
   diagnostics                  = true
-  disk_encryption              = true
+  disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
@@ -72,7 +72,7 @@ module windows_vm {
   bg_info                      = true
   dependency_monitor           = true
   diagnostics                  = true
-  disk_encryption              = true
+  disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking

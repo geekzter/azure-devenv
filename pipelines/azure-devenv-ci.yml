@@ -246,6 +246,15 @@ jobs:
         commandOptions: 'ci.tfplan'
         allowTelemetryCollection: true
 
+    - task: TerraformCLI@0
+      displayName: 'Terraform output'
+      inputs:
+        command: 'output'
+        workingDirectory: '$(terraformDirectory)'
+        environmentServiceName: '$(subscriptionConnection)'
+        runAzLogin: true
+        allowTelemetryCollection: true
+
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0
         displayName: 'Terraform plan (re-entrance test)'

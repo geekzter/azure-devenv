@@ -316,3 +316,20 @@ resource azurerm_user_assigned_identity service_principal {
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   location                     = azurerm_resource_group.vm_resource_group.location
 }
+
+resource null_resource disk_encryption_status {
+  # Always run this
+  triggers                     = {
+    always_run                 = timestamp()
+  }
+
+  provisioner local-exec {
+    command                    = "az vm encryption show --ids $(az vm list -g ${azurerm_resource_group.vm_resource_group.name} --subscription ${data.azurerm_client_config.current.subscription_id} --query '[].id' -o tsv) --query '[].{name:disks[0].name, status:disks[0].statuses[0].displayStatus}' -o table"
+  }
+
+  count                        = var.enable_disk_encryption ? 1 : 0
+  depends_on                   = [
+    module.linux_vm,
+    module.windows_vm,
+  ]
+}

@@ -214,7 +214,7 @@ resource azurerm_linux_virtual_machine vm {
   admin_username               = var.user_name
   admin_password               = var.user_password
   disable_password_authentication = true
-  encryption_at_host_enabled   = false
+  encryption_at_host_enabled   = false # Requires confidential compute VM SKU
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
   custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
@@ -250,6 +250,12 @@ resource azurerm_linux_virtual_machine vm {
     azurerm_private_dns_a_record.computer_name,
     azurerm_network_interface_security_group_association.nic_nsg
   ]
+  lifecycle {
+    ignore_changes             = [
+      # Let bootstrap-os update the host configuration
+      custom_data
+    ]
+  }  
 }
 
 resource null_resource start_vm {
@@ -325,19 +331,19 @@ resource azurerm_virtual_machine_extension log_analytics {
   depends_on                   = [azurerm_virtual_machine_extension.cloud_config_status]
 }
 
-resource azurerm_virtual_machine_extension azure_monitor {
-  name                         = "AzureMonitorLinuxAgent"
-  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Monitor"
-  type                         = "AzureMonitorLinuxAgent"
-  type_handler_version         = "1.5"
-  auto_upgrade_minor_version   = true
+# resource azurerm_virtual_machine_extension azure_monitor {
+#   name                         = "AzureMonitorLinuxAgent"
+#   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+#   publisher                    = "Microsoft.Azure.Monitor"
+#   type                         = "AzureMonitorLinuxAgent"
+#   type_handler_version         = "1.5"
+#   auto_upgrade_minor_version   = true
 
-  tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
-}
+#   tags                         = var.tags
+#   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+# }
 
-resource azurerm_virtual_machine_extension vm_aadlogin {
+resource azurerm_virtual_machine_extension aad_login {
   name                         = "AADLoginForLinux"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.ActiveDirectory.LinuxSSH"
@@ -350,7 +356,7 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   count                        = var.enable_aad_login ? 1 : 0
 } 
 
-resource azurerm_virtual_machine_extension vm_dependency_monitor {
+resource azurerm_virtual_machine_extension dependency_monitor {
   name                         = "DAExtension"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Monitoring.DependencyAgent"
@@ -362,7 +368,7 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
-resource azurerm_virtual_machine_extension vm_watcher {
+resource azurerm_virtual_machine_extension network_watcher {
   name                         = "AzureNetworkWatcherExtension"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.NetworkWatcher"
@@ -390,9 +396,21 @@ resource azurerm_key_vault_key disk_encryption_key {
   ]
 }
 
-# Does not work with AutoLogon
-# use server side encryption with azurerm_disk_encryption_set instead
-resource azurerm_virtual_machine_extension vm_disk_encryption {
+# Delay DiskEncryption to mitigate race condition
+resource time_sleep vm_sleep {
+  create_duration              = "1000s"
+
+  count                        = var.disk_encryption ? 1 : 0
+  depends_on                   = [
+                                  azurerm_virtual_machine_extension.aad_login,
+                                  # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.network_watcher
+  ]
+}
+
+resource azurerm_virtual_machine_extension disk_encryption {
   name                         = "DiskEncryption"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Security"
@@ -413,8 +431,12 @@ resource azurerm_virtual_machine_extension vm_disk_encryption {
   count                        = var.disk_encryption ? 1 : 0
   tags                         = var.tags
 
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+  depends_on                   = [
+                                  time_sleep.vm_sleep
+  ]
 }
+# az vm encryption show --ids ${self.id} -o table
+# az vm encryption show --ids $(az vm list -g dev-default-cris --subscription $env:ARM_SUBSCRIPTION_ID --query "[].id" -o tsv) --query "[].{name:disks[0].name, status:disks[0].statuses[0].displayStatus}" -o table
 
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
@@ -436,7 +458,7 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_linux_virtual_machine.vm.name}-diagnostics"
   target_resource_id           = azurerm_linux_virtual_machine.vm.id
-  storage_account_id           = data.azurerm_storage_account.diagnostics.id
+  storage_account_id           = var.diagnostics_storage_id
 
   metric {
     category                   = "AllMetrics"
@@ -453,11 +475,11 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.vm_aadlogin,
-                                  azurerm_virtual_machine_extension.vm_dependency_monitor,
-                                  azurerm_virtual_machine_extension.vm_disk_encryption,
-                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.aad_login,
                                   # azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.vm_watcher
+                                  azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.network_watcher
   ]
 }

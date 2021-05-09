@@ -28,10 +28,10 @@ output client_cert_public_pem {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
-output cloud_config {
-    sensitive                  = true
-    value                      = [for vm in module.linux_vm : vm.cloud_config]
-}
+# output cloud_config {
+#     sensitive                  = true
+#     value                      = [for vm in module.linux_vm : vm.cloud_config]
+# }
 
 output dns_server_address {
     value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address
