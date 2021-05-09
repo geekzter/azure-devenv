@@ -257,8 +257,8 @@ jobs:
 
     - pwsh: |
         ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
-      enabled: eq(variables['TF_VAR_enable_disk_encryption'],'true')
-      # condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
+      # enabled: eq(variables['TF_VAR_enable_disk_encryption'],'true')
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
       displayName: 'Wait for disk encryption to finish'
       workingDirectory: '$(scriptDirectory)'
 
