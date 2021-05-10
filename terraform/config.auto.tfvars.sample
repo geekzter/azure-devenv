@@ -1,5 +1,8 @@
 # admin_username                 = "user"
+# deploy_bastion                 = false
+# deploy_vpn                     = true
 # dns_zone_id                    = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/shared/providers/Microsoft.Network/dnszones/vanify.tld"
+# enable_disk_encryption         = true
 # git_email                      = "john@doe.com"
 # git_name                       = "John Doe"
 # log_analytics_workspace_id     = "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/shared/providers/microsoft.operationalinsights/workspaces/loganalytics"
@@ -8,5 +11,6 @@
 # linux_os_sku                   = "18.04-LTS"
 # linux_os_version               = "18.04.202101290" # PIN Linux version
 # locations                      = ["westeurope","northeurope"]
+# az vm image list-skus -l westeurope -f "Windows-10" -p "MicrosoftWindowsDesktop" -o table
 # windows_sku                    = "20h2-ent-g2"
 # windows_os_version             = "19042.804.2102050012" # PIN Windows version

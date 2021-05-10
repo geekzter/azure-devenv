@@ -16,15 +16,15 @@ output client_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_common_name : null
 }
 output client_cert_merged_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_merged_pem : null
 }
 output client_cert_private_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_private_pem : null
 }
 output client_cert_public_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
@@ -41,6 +41,12 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
+output linux_main_fqdn {
+    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+}
+output linux_os_version {
+    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version
+}
 output linux_os_version_latest {
     value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
 }
@@ -77,15 +83,15 @@ output root_cert_common_name {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_common_name : null
 }
 output root_cert_merged_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_merged_pem : null
 }
 output root_cert_private_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_private_pem : null
 }
 output root_cert_public_pem {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem : null
 }
 
@@ -124,8 +130,14 @@ output vm_public_fqdn {
     )
 }
 
+output windows_main_fqdn {
+    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+}
 output windows_os_sku {
     value                      = var.windows_sku
+}
+output windows_os_version {
+    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version
 }
 output windows_os_version_latest {
     value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest

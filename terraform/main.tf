@@ -74,16 +74,16 @@ resource time_sleep script_wrapper_check {
 resource azurerm_resource_group vm_resource_group {
   name                         = "dev-${terraform.workspace}-${local.suffix}"
   location                     = var.locations[0]
-  tags                         = map(
-      "application",             "Development Environment",
-      "environment",             "dev",
-      "provisioner",             "terraform",
-      "repository",              "azure-devenv",
-      "runid",                   var.run_id,
-      "shutdown",                "true",
-      "suffix",                  local.suffix,
-      "workspace",               terraform.workspace
-  )
+  tags                         = {
+    application                = "Development Environment"
+    environment                = "dev"
+    provisioner                = "terraform"
+    repository                 = "azure-devenv"
+    runid                      = var.run_id
+    shutdown                   = "true"
+    suffix                     = local.suffix
+    workspace                  = terraform.workspace
+  }
 
   depends_on                   = [time_sleep.script_wrapper_check]
 }
@@ -205,6 +205,28 @@ resource azurerm_key_vault vault {
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
+resource azurerm_monitor_diagnostic_setting key_vault {
+  name                         = "${azurerm_key_vault.vault.name}-logs"
+  target_resource_id           = azurerm_key_vault.vault.id
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+
+  log {
+    category                   = "AuditEvent"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+}
 
 # Useful when using Bastion
 resource azurerm_key_vault_secret ssh_private_key {
@@ -289,36 +311,25 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
-resource azurerm_log_analytics_workspace monitor {
-  name                         = "${azurerm_resource_group.vm_resource_group.name}-loganalytics"
-  location                     = azurerm_resource_group.vm_resource_group.location
-  resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  sku                          = "PerGB2018"
-  retention_in_days            = 30
-
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-}
-resource azurerm_log_analytics_solution solution {
-  solution_name                 = each.value
-  location                      = azurerm_resource_group.vm_resource_group.location
-  resource_group_name           = azurerm_resource_group.vm_resource_group.name
-  workspace_resource_id         = azurerm_log_analytics_workspace.monitor.id
-  workspace_name                = azurerm_log_analytics_workspace.monitor.name
-
-  plan {
-    publisher                   = "Microsoft"
-    product                     = "OMSGallery/${each.value}"
-  }
-
-  for_each                      = toset([
-    "ServiceMap",
-    "Updates",
-    "VMInsights",
-  ])
-} 
-
 resource azurerm_user_assigned_identity service_principal {
   name                         = azurerm_resource_group.vm_resource_group.name
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   location                     = azurerm_resource_group.vm_resource_group.location
+}
+
+resource null_resource disk_encryption_status {
+  # Always run this
+  triggers                     = {
+    always_run                 = timestamp()
+  }
+
+  provisioner local-exec {
+    command                    = "az vm encryption show --ids $(az vm list -g ${azurerm_resource_group.vm_resource_group.name} --subscription ${data.azurerm_client_config.current.subscription_id} --query '[].id' -o tsv) --query '[].{name:disks[0].name, status:disks[0].statuses[0].displayStatus}' -o table"
+  }
+
+  count                        = var.enable_disk_encryption ? 1 : 0
+  depends_on                   = [
+    module.linux_vm,
+    module.windows_vm,
+  ]
 }

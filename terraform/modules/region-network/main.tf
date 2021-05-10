@@ -7,6 +7,28 @@ resource azurerm_virtual_network region_network {
 
   tags                         = var.tags
 }
+resource azurerm_monitor_diagnostic_setting region_network {
+  name                         = "${azurerm_virtual_network.region_network.name}-logs"
+  target_resource_id           = azurerm_virtual_network.region_network.id
+  log_analytics_workspace_id   = var.log_analytics_workspace_id
+
+  log {
+    category                   = "VMProtectionAlerts"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+}
 
 resource azurerm_subnet vm_subnet {
   name                         = "VirtualMachines"
@@ -23,6 +45,8 @@ resource azurerm_subnet bastion_subnet {
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],11,0)]
+
+  count                        = var.deploy_bastion ? 1 : 0
 }
 resource azurerm_public_ip bastion_ip {
   name                         = "${azurerm_virtual_network.region_network.name}-bastion-ip"
@@ -32,6 +56,8 @@ resource azurerm_public_ip bastion_ip {
   sku                          = "Standard"
 
   tags                         = var.tags
+
+  count                        = var.deploy_bastion ? 1 : 0
 }
 resource azurerm_bastion_host bastion {
   name                         = "${azurerm_virtual_network.region_network.name}-bastion"
@@ -40,12 +66,30 @@ resource azurerm_bastion_host bastion {
 
   ip_configuration {
     name                       = "configuration"
-    subnet_id                  = azurerm_subnet.bastion_subnet.id
-    public_ip_address_id       = azurerm_public_ip.bastion_ip.id
+    subnet_id                  = azurerm_subnet.bastion_subnet.0.id
+    public_ip_address_id       = azurerm_public_ip.bastion_ip.0.id
   }
 
   tags                         = var.tags
+
+  count                        = var.deploy_bastion ? 1 : 0
 }
+resource azurerm_monitor_diagnostic_setting bastion {
+  name                         = "${azurerm_bastion_host.bastion.0.name}-logs"
+  target_resource_id           = azurerm_bastion_host.bastion.0.id
+  log_analytics_workspace_id   = var.log_analytics_workspace_id
+
+  log {
+    category                   = "BastionAuditLogs"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+
+  count                        = var.deploy_bastion ? 1 : 0
+} 
 
 resource azurerm_nat_gateway egress {
   name                         = "${azurerm_virtual_network.region_network.name}-natgw"

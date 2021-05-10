@@ -6,6 +6,8 @@ module region_network {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
+  deploy_bastion               = var.deploy_bastion
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
 
   for_each                     = toset(var.locations)
@@ -18,11 +20,10 @@ module linux_vm {
   admin_cidr_ranges            = local.admin_cidr_ranges
   user_name                    = var.admin_username
   user_password                = local.password
-  bootstrap                    = var.linux_bootstrap
   dependency_monitor           = true
   domain                       = var.vm_domain
   diagnostics                  = true
-  disk_encryption              = false
+  disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
@@ -70,7 +71,7 @@ module windows_vm {
   bg_info                      = true
   dependency_monitor           = true
   diagnostics                  = true
-  disk_encryption              = false
+  disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking
@@ -109,6 +110,7 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
   organization                 = var.organization
   virtual_network_id           = module.region_network[azurerm_resource_group.vm_resource_group.location].virtual_network_id
   subnet_range                 = cidrsubnet(module.region_network[azurerm_resource_group.vm_resource_group.location].address_space,11,4)

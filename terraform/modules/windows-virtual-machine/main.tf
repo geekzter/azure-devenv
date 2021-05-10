@@ -1,11 +1,11 @@
 locals {
-  client_config                = map(
-    "gitemail",                  var.git_email,
-    "gitname",                   var.git_name,
-    "scripturl",                 local.script_url,
-    "environmentscripturl",      local.environment_script_url,
-    "workspace",                 terraform.workspace
-  )
+  client_config                = {
+    gitemail                   = var.git_email
+    gitname                    = var.git_name
+    scripturl                  = local.script_url
+    environmentscripturl       = local.environment_script_url
+    workspace                  = terraform.workspace
+  }
 
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
@@ -20,16 +20,16 @@ locals {
   virtual_network_id           = join("/",slice(split("/",var.vm_subnet_id),0,length(split("/",var.vm_subnet_id))-2))
 
   environment_variables        = merge(
-    map(
-      "arm_subscription_id",     data.azurerm_client_config.current.subscription_id,
-      "arm_tenant_id",           data.azurerm_client_config.current.tenant_id,
+    {
+      arm_subscription_id      = data.azurerm_client_config.current.subscription_id
+      arm_tenant_id            = data.azurerm_client_config.current.tenant_id
       # Defaults, will be overriden by variables passed into map merge
-      "tf_backend_resource_group", "",
-      "tf_backend_storage_account", "",
-      "tf_backend_storage_container", "",
-      "subnet_id",               var.vm_subnet_id,
-      "virtual_network_id",      local.virtual_network_id
-    ),
+      tf_backend_resource_group = ""
+      tf_backend_storage_account= ""
+      tf_backend_storage_container= ""
+      subnet_id                = var.vm_subnet_id
+      virtual_network_id       = local.virtual_network_id
+    },
     var.environment_variables
   )
 
@@ -70,7 +70,7 @@ data azurerm_log_analytics_workspace monitor {
 resource time_static vm_update {
   triggers = {
     # Save the time each switch of an VM NIC
-    nic_id                   = azurerm_network_interface.nic.id
+    nic_id                     = azurerm_network_interface.nic.id
     vm_id                      = azurerm_windows_virtual_machine.vm.id
   }
 }
@@ -248,7 +248,6 @@ resource azurerm_windows_virtual_machine vm {
   computer_name                = local.computer_name
   enable_automatic_updates     = true
 
-  # TODO: Does not work with AzureDiskEncryption VM extension
   additional_unattend_content {
     setting                    = "AutoLogon"
     content                    = templatefile("${path.module}/scripts/host/AutoLogon.xml", { 
@@ -314,6 +313,42 @@ resource azurerm_virtual_machine_extension azure_monitor {
   depends_on                   = [null_resource.start_vm]
 }
 
+# Delay DiskEncryption to mitigate race condition
+resource time_sleep vm_sleep {
+  create_duration              = "300s"
+
+  count                        = var.disk_encryption ? 1 : 0
+  depends_on                   = [azurerm_windows_virtual_machine.vm]
+}
+
+resource azurerm_virtual_machine_extension disk_encryption {
+  name                         = "DiskEncryption"
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Security"
+  type                         = "AzureDiskEncryption"
+  type_handler_version         = "2.2"
+  auto_upgrade_minor_version   = true
+
+  settings                     = jsonencode({
+    "EncryptionOperation"      = "EnableEncryption"
+    "KeyVaultURL"              = data.azurerm_key_vault.vault.vault_uri
+    "KeyVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionKeyURL"      = "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}"
+    "KekVaultResourceId"       = data.azurerm_key_vault.vault.id
+    "KeyEncryptionAlgorithm"   = "RSA-OAEP"
+    "VolumeType"               = "All"
+  })
+
+  count                        = var.disk_encryption ? 1 : 0
+  tags                         = var.tags
+
+  depends_on                   = [
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  time_sleep.vm_sleep
+                                  ]
+}
+
+
 resource azurerm_virtual_machine_extension log_analytics {
   name                         = "MMAExtension"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
@@ -321,27 +356,24 @@ resource azurerm_virtual_machine_extension log_analytics {
   type                         = "MicrosoftMonitoringAgent"
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.workspace_id}",
-      "azureResourceId"        : "${azurerm_windows_virtual_machine.vm.id}",
-      "stopOnMultipleConnections": "true"
-    }
-  EOF
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
+  settings                     = jsonencode({
+    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
+    "azureResourceId"          = azurerm_windows_virtual_machine.vm.id
+    "stopOnMultipleConnections"= "true"
+  })
+  protected_settings           = jsonencode({
+    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  })
 
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
 
-resource azurerm_virtual_machine_extension vm_aadlogin {
+resource azurerm_virtual_machine_extension aad_login {
   name                         = "AADLoginForWindows"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.ActiveDirectory"
@@ -353,11 +385,12 @@ resource azurerm_virtual_machine_extension vm_aadlogin {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption
                                  ]
 } 
 
-resource azurerm_virtual_machine_extension vm_bginfo {
+resource azurerm_virtual_machine_extension bginfo {
   name                         = "BGInfo"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Compute"
@@ -369,11 +402,12 @@ resource azurerm_virtual_machine_extension vm_bginfo {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
 
-resource azurerm_virtual_machine_extension vm_diagnostics {
+resource azurerm_virtual_machine_extension diagnostics {
   name                         = "Microsoft.Insights.VMDiagnosticsSettings"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Diagnostics"
@@ -386,41 +420,27 @@ resource azurerm_virtual_machine_extension vm_diagnostics {
     virtual_machine_id         = azurerm_windows_virtual_machine.vm.id, 
   # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
   })
-
-  protected_settings = <<EOF
-    { 
-      "storageAccountName"     : "${data.azurerm_storage_account.diagnostics.name}",
-      "storageAccountKey"      : "${data.azurerm_storage_account.diagnostics.primary_access_key}",
-      "storageAccountEndPoint" : "https://core.windows.net"
-    } 
-  EOF
+  protected_settings           = jsonencode({
+    "storageAccountName"       = data.azurerm_storage_account.diagnostics.name
+    "storageAccountKey"        = data.azurerm_storage_account.diagnostics.primary_access_key
+    "storageAccountEndPoint"   = "https://core.windows.net"
+  })
 
   count                        = var.diagnostics ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
                                   azurerm_virtual_machine_extension.azure_monitor,
-                                # azurerm_firewall_network_rule_collection.*
+                                  azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
-resource azurerm_virtual_machine_extension vm_dependency_monitor {
+resource azurerm_virtual_machine_extension dependency_monitor {
   name                         = "DAExtension"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Monitoring.DependencyAgent"
   type                         = "DependencyAgentWindows"
   type_handler_version         = "9.5"
   auto_upgrade_minor_version   = true
-  settings                     = <<EOF
-    {
-      "workspaceId"            : "${data.azurerm_log_analytics_workspace.monitor.id}"
-    }
-  EOF
-
-  protected_settings = <<EOF
-    { 
-      "workspaceKey"           : "${data.azurerm_log_analytics_workspace.monitor.primary_shared_key}"
-    } 
-  EOF
 
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
@@ -429,7 +449,7 @@ resource azurerm_virtual_machine_extension vm_dependency_monitor {
                                   azurerm_virtual_machine_extension.azure_monitor
                                  ] 
 }
-resource azurerm_virtual_machine_extension vm_watcher {
+resource azurerm_virtual_machine_extension network_watcher {
   name                         = "AzureNetworkWatcherExtension"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.NetworkWatcher"
@@ -441,55 +461,9 @@ resource azurerm_virtual_machine_extension vm_watcher {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption
                                  ]
-}
-
-# Delay DiskEncryption to mitigate race condition
-resource null_resource vm_sleep {
-  # Always run this
-  triggers                     = {
-    vm                         = azurerm_windows_virtual_machine.vm.id
-  }
-
-  provisioner "local-exec" {
-    command                    = "Start-Sleep 300"
-    interpreter                = ["pwsh", "-nop", "-Command"]
-  }
-
-  count                        = var.disk_encryption ? 1 : 0
-  depends_on                   = [azurerm_windows_virtual_machine.vm]
-}
-# Does not work with AutoLogon
-# use server side encryption with azurerm_disk_encryption_set instead
-resource azurerm_virtual_machine_extension vm_disk_encryption {
-  name                         = "DiskEncryption"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Security"
-  type                         = "AzureDiskEncryption"
-  type_handler_version         = "2.2"
-  auto_upgrade_minor_version   = true
-
-  settings = <<SETTINGS
-    {
-      "EncryptionOperation"    : "EnableEncryption",
-      "KeyVaultURL"            : "${data.azurerm_key_vault.vault.vault_uri}",
-      "KeyVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionKeyURL"    : "${data.azurerm_key_vault.vault.vault_uri}keys/${azurerm_key_vault_key.disk_encryption_key.name}/${azurerm_key_vault_key.disk_encryption_key.version}",       
-      "KekVaultResourceId"     : "${data.azurerm_key_vault.vault.id}",
-      "KeyEncryptionAlgorithm" : "RSA-OAEP",
-      "VolumeType"             : "All"
-    }
-SETTINGS
-
-  count                        = var.disk_encryption ? 1 : 0
-  tags                         = var.tags
-
-  depends_on                   = [
-                                # azurerm_firewall_application_rule_collection.*,
-                                  null_resource.start_vm,
-                                  null_resource.vm_sleep
-                                  ]
 }
 
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
@@ -512,7 +486,7 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
   target_resource_id           = azurerm_windows_virtual_machine.vm.id
-  storage_account_id           = data.azurerm_storage_account.diagnostics.id
+  storage_account_id           = var.diagnostics_storage_id
 
   metric {
     category                   = "AllMetrics"
@@ -529,14 +503,14 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.vm_aadlogin,
-                                  azurerm_virtual_machine_extension.vm_bginfo,
-                                  azurerm_virtual_machine_extension.vm_dependency_monitor,
-                                  azurerm_virtual_machine_extension.vm_diagnostics,
-                                  azurerm_virtual_machine_extension.vm_disk_encryption,
-                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.aad_login,
                                   azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.vm_watcher
+                                  azurerm_virtual_machine_extension.bginfo,
+                                  azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.disk_encryption,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.network_watcher
   ]
 }
 
