@@ -380,6 +380,17 @@ resource azurerm_virtual_machine_extension network_watcher {
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
+resource azurerm_virtual_machine_extension policy {
+  name                         = "AzurePolicyforLinux"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.GuestConfiguration"
+  type                         = "ConfigurationforLinux"
+  type_handler_version         = "1.0"
+  auto_upgrade_minor_version   = true
+
+  tags                         = var.tags
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+}
 
 resource azurerm_key_vault_key disk_encryption_key {
   name                         = "${local.vm_name}-disk-key"
@@ -406,7 +417,8 @@ resource time_sleep vm_sleep {
                                   # azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.log_analytics,
-                                  azurerm_virtual_machine_extension.network_watcher
+                                  azurerm_virtual_machine_extension.network_watcher,
+                                  azurerm_virtual_machine_extension.policy
   ]
 }
 
@@ -478,6 +490,7 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption,
                                   azurerm_virtual_machine_extension.log_analytics,
-                                  azurerm_virtual_machine_extension.network_watcher
+                                  azurerm_virtual_machine_extension.network_watcher,
+                                  azurerm_virtual_machine_extension.policy
   ]
 }

@@ -465,7 +465,21 @@ resource azurerm_virtual_machine_extension network_watcher {
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
+resource azurerm_virtual_machine_extension policy {
+  name                         = "AzurePolicyforWindows"
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  publisher                    = "Microsoft.GuestConfiguration"
+  type                         = "ConfigurationforWindows"
+  type_handler_version         = "1.0"
+  auto_upgrade_minor_version   = true
 
+  tags                         = var.tags
+  depends_on                   = [
+                                  null_resource.start_vm,
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.disk_encryption
+                                 ]
+}
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   location                     = azurerm_windows_virtual_machine.vm.location
@@ -510,7 +524,8 @@ resource azurerm_monitor_diagnostic_setting vm {
                                   azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.disk_encryption,
                                   azurerm_virtual_machine_extension.log_analytics,
-                                  azurerm_virtual_machine_extension.network_watcher
+                                  azurerm_virtual_machine_extension.network_watcher,
+                                  azurerm_virtual_machine_extension.policy
   ]
 }
 
