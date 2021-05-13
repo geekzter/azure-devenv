@@ -331,17 +331,17 @@ resource azurerm_virtual_machine_extension log_analytics {
   depends_on                   = [azurerm_virtual_machine_extension.cloud_config_status]
 }
 
-# resource azurerm_virtual_machine_extension azure_monitor {
-#   name                         = "AzureMonitorLinuxAgent"
-#   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-#   publisher                    = "Microsoft.Azure.Monitor"
-#   type                         = "AzureMonitorLinuxAgent"
-#   type_handler_version         = "1.5"
-#   auto_upgrade_minor_version   = true
+resource azurerm_virtual_machine_extension azure_monitor {
+  name                         = "AzureMonitorLinuxAgent"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.Monitor"
+  type                         = "AzureMonitorLinuxAgent"
+  type_handler_version         = "1.5"
+  auto_upgrade_minor_version   = true
 
-#   tags                         = var.tags
-#   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
-# }
+  tags                         = var.tags
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+}
 
 resource azurerm_virtual_machine_extension aad_login {
   name                         = "AADLoginForLinux"
@@ -414,7 +414,7 @@ resource time_sleep vm_sleep {
   count                        = var.disk_encryption ? 1 : 0
   depends_on                   = [
                                   azurerm_virtual_machine_extension.aad_login,
-                                  # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
@@ -486,7 +486,7 @@ resource azurerm_monitor_diagnostic_setting vm {
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.aad_login,
-                                  # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption,
                                   azurerm_virtual_machine_extension.log_analytics,
