@@ -1,10 +1,10 @@
 output admin_password {
-    sensitive                  = true
-    value                      = local.password
+  sensitive                    = true
+  value                        = local.password
 }
 output admin_username {
-    sensitive                  = false
-    value                      = var.admin_username
+  sensitive                    = false
+  value                        = var.admin_username
 }
 
 output cert_password {
@@ -29,12 +29,12 @@ output client_cert_public_pem {
 }
 
 output cloud_config {
-    sensitive                  = true
-    value                      = [for vm in module.linux_vm : vm.cloud_config]
+  sensitive                    = true
+  value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
 }
 
 output dns_server_address {
-    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address
+  value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address : null
 }
 
 output gateway_id {
@@ -42,16 +42,16 @@ output gateway_id {
 }
 
 output linux_main_fqdn {
-    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
 output linux_os_version {
-    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version : null
 }
 output linux_os_version_latest {
-    value                      = module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest : null
 }
 output linux_new_os_version_available {
-    value                      = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
+  value                        = [for vm in module.linux_vm : "NEW ${var.linux_os_offer} VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }
 
 output log_analytics_workspace_id {
@@ -96,52 +96,52 @@ output root_cert_public_pem {
 }
 
 output virtual_network_id {
-    value                      = {for region in var.locations : region => module.region_network[region].virtual_network_id}
+  value                        = {for region in var.locations : region => module.region_network[region].virtual_network_id}
 }
 
 output vm_id {
-    value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.vm_id},
-      {for vm in module.windows_vm : vm.name => vm.vm_id}
-    )
+  value                        = merge(
+    {for vm in module.linux_vm : vm.name => vm.vm_id},
+    {for vm in module.windows_vm : vm.name => vm.vm_id}
+  )
 }
 output vm_os_version {
-    value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.os_version},
-      {for vm in module.windows_vm : vm.name => vm.os_version}
-    )
+  value                        = merge(
+    {for vm in module.linux_vm : vm.name => vm.os_version},
+    {for vm in module.windows_vm : vm.name => vm.os_version}
+  )
 }
 output vm_private_fqdn {
-    value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.private_fqdn},
-      {for vm in module.windows_vm : vm.name => vm.private_fqdn}
-    )
+  value                        = merge(
+    {for vm in module.linux_vm : vm.name => vm.private_fqdn},
+    {for vm in module.windows_vm : vm.name => vm.private_fqdn}
+  )
 }
 output vm_private_ip_address {
-    value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.private_ip_address},
-      {for vm in module.windows_vm : vm.name => vm.private_ip_address}
-    )
+  value                        = merge(
+    {for vm in module.linux_vm : vm.name => vm.private_ip_address},
+    {for vm in module.windows_vm : vm.name => vm.private_ip_address}
+  )
 }
 output vm_public_fqdn {
-    value                      = merge(
-      {for vm in module.linux_vm : vm.name => vm.public_fqdn},
-      {for vm in module.windows_vm : vm.name => vm.public_fqdn}
-    )
+  value                        = merge(
+    {for vm in module.linux_vm : vm.name => vm.public_fqdn},
+    {for vm in module.windows_vm : vm.name => vm.public_fqdn}
+  )
 }
 
 output windows_main_fqdn {
-    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
 output windows_os_sku {
-    value                      = var.windows_sku
+  value                        = var.deploy_windows ? var.windows_sku : null
 }
 output windows_os_version {
-    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version : null
 }
 output windows_os_version_latest {
-    value                      = module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version_latest : null
 }
 output windows_new_os_version_available {
-    value                      = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
+  value                        = [for vm in module.windows_vm : "NEW WINDOWS VERSION AVAILABLE: ${vm.os_version_latest}" if vm.os_version != vm.os_version_latest]
 }

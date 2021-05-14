@@ -32,6 +32,10 @@ variable enable_accelerated_networking {
     type                       = bool
     default                    = false
 }
+variable enable_security_center {
+    type                       = bool
+    default                    = false
+}
 variable environment_variables {
   type                         = map
 } 

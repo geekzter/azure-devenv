@@ -264,6 +264,10 @@ resource azurerm_windows_virtual_machine vm {
       scripturl                = local.script_url
     })
   }
+  
+  boot_diagnostics {
+    storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
+  }
 
   custom_data                  = base64encode(jsonencode(local.client_config))
 
@@ -348,9 +352,8 @@ resource azurerm_virtual_machine_extension disk_encryption {
                                   ]
 }
 
-
 resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "MMAExtension"
+  name                         = "MicrosoftMonitoringAgent"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
   type                         = "MicrosoftMonitoringAgent"
@@ -480,6 +483,26 @@ resource azurerm_virtual_machine_extension policy {
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
+
+resource azurerm_security_center_server_vulnerability_assessment qualys {
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+
+  depends_on                   = [
+                                  null_resource.start_vm,
+                                  azurerm_virtual_machine_extension.aad_login,
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  # azurerm_virtual_machine_extension.bginfo,
+                                  azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.disk_encryption,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.network_watcher,
+                                  azurerm_virtual_machine_extension.policy
+                                 ]
+
+  count                        = var.enable_security_center ? 1 : 0
+}
+
 resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   location                     = azurerm_windows_virtual_machine.vm.location
@@ -517,6 +540,7 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 
   depends_on                   = [
+                                  azurerm_security_center_server_vulnerability_assessment.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
                                   azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.bginfo,

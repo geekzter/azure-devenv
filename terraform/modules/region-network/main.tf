@@ -8,7 +8,7 @@ resource azurerm_virtual_network region_network {
   tags                         = var.tags
 }
 resource azurerm_monitor_diagnostic_setting region_network {
-  name                         = "${azurerm_virtual_network.region_network.name}-logs"
+  name                         = "${azurerm_virtual_network.region_network.name}-diagnostics"
   target_resource_id           = azurerm_virtual_network.region_network.id
   log_analytics_workspace_id   = var.log_analytics_workspace_id
 
@@ -116,7 +116,7 @@ resource azurerm_bastion_host bastion {
   count                        = var.deploy_bastion ? 1 : 0
 }
 resource azurerm_monitor_diagnostic_setting bastion {
-  name                         = "${azurerm_bastion_host.bastion.0.name}-logs"
+  name                         = "${azurerm_bastion_host.bastion.0.name}-diagnostics"
   target_resource_id           = azurerm_bastion_host.bastion.0.id
   log_analytics_workspace_id   = var.log_analytics_workspace_id
 
