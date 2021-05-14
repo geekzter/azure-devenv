@@ -258,81 +258,81 @@ jobs:
       displayName: 'Prepare Terraform variables'
       workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformCLI@0
-      displayName: 'Terraform plan'
-      inputs:
-        command: 'plan'
-        workingDirectory: '$(terraformDirectory)'
-        environmentServiceName: '$(subscriptionConnection)'
-        runAzLogin: true
-        commandOptions: '-out=ci.tfplan'
-        allowTelemetryCollection: true
-        publishPlanResults: 'ci'
+    # - task: TerraformCLI@0
+    #   displayName: 'Terraform plan'
+    #   inputs:
+    #     command: 'plan'
+    #     workingDirectory: '$(terraformDirectory)'
+    #     environmentServiceName: '$(subscriptionConnection)'
+    #     runAzLogin: true
+    #     commandOptions: '-out=ci.tfplan'
+    #     allowTelemetryCollection: true
+    #     publishPlanResults: 'ci'
 
-    - task: TerraformCLI@0
-      displayName: 'Terraform apply'
-      inputs:
-        command: 'apply'
-        workingDirectory: '$(terraformDirectory)'
-        environmentServiceName: '$(subscriptionConnection)'
-        runAzLogin: true
-        commandOptions: 'ci.tfplan'
-        allowTelemetryCollection: true
+    # - task: TerraformCLI@0
+    #   displayName: 'Terraform apply'
+    #   inputs:
+    #     command: 'apply'
+    #     workingDirectory: '$(terraformDirectory)'
+    #     environmentServiceName: '$(subscriptionConnection)'
+    #     runAzLogin: true
+    #     commandOptions: 'ci.tfplan'
+    #     allowTelemetryCollection: true
 
-    - task: TerraformCLI@0
-      displayName: 'Terraform output'
-      inputs:
-        command: 'output'
-        workingDirectory: '$(terraformDirectory)'
-        environmentServiceName: '$(subscriptionConnection)'
-        runAzLogin: true
-        allowTelemetryCollection: true
+    # - task: TerraformCLI@0
+    #   displayName: 'Terraform output'
+    #   inputs:
+    #     command: 'output'
+    #     workingDirectory: '$(terraformDirectory)'
+    #     environmentServiceName: '$(subscriptionConnection)'
+    #     runAzLogin: true
+    #     allowTelemetryCollection: true
 
-    - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
-      displayName: 'Wait for disk encryption to finish'
-      workingDirectory: '$(scriptDirectory)'
+    # - pwsh: |
+    #     ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
+    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
+    #   displayName: 'Wait for disk encryption to finish'
+    #   workingDirectory: '$(scriptDirectory)'
 
-    - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
-      displayName: 'Test SSH connection'
-      workingDirectory: '$(scriptDirectory)'
+    # - bash: |
+    #     ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
+    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
+    #   displayName: 'Test SSH connection'
+    #   workingDirectory: '$(scriptDirectory)'
 
-    - ${{ if parameters.testReentrance }}:
-      - pwsh: |
-          # Pin used OS versions to prevent resources from being recreated
-          Write-Output "linux_os_version   = `"$(TF_OUT_LINUX_OS_VERSION)`""   | Out-File ci.auto.tfvars -Append -Force
-          Write-Output "windows_os_version = `"$(TF_OUT_WINDOWS_OS_VERSION)`"" | Out-File ci.auto.tfvars -Append -Force
+    # - ${{ if parameters.testReentrance }}:
+    #   - pwsh: |
+    #       # Pin used OS versions to prevent resources from being recreated
+    #       Write-Output "linux_os_version   = `"$(TF_OUT_LINUX_OS_VERSION)`""   | Out-File ci.auto.tfvars -Append -Force
+    #       Write-Output "windows_os_version = `"$(TF_OUT_WINDOWS_OS_VERSION)`"" | Out-File ci.auto.tfvars -Append -Force
 
-          Write-Host "Contents of ci.auto.tfvars:"
-          Get-Content ci.auto.tfvars
-        displayName: 'Prepare Terraform OS variables'
-        workingDirectory: '$(terraformDirectory)'
+    #       Write-Host "Contents of ci.auto.tfvars:"
+    #       Get-Content ci.auto.tfvars
+    #     displayName: 'Prepare Terraform OS variables'
+    #     workingDirectory: '$(terraformDirectory)'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform plan (re-entrance test)'
-        inputs:
-          command: 'plan'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: '-out=ci-update.tfplan'
-          allowTelemetryCollection: true
-          publishPlanResults: 'ci-update'
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@0
+    #     displayName: 'Terraform plan (re-entrance test)'
+    #     inputs:
+    #       command: 'plan'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: '-out=ci-update.tfplan'
+    #       allowTelemetryCollection: true
+    #       publishPlanResults: 'ci-update'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform apply (re-entrance test)'
-        inputs:
-          command: 'apply'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: 'ci-update.tfplan'
-          allowTelemetryCollection: true
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@0
+    #     displayName: 'Terraform apply (re-entrance test)'
+    #     inputs:
+    #       command: 'apply'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: 'ci-update.tfplan'
+    #       allowTelemetryCollection: true
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
       - pwsh: |
