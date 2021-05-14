@@ -29,7 +29,7 @@ output client_cert_public_pem {
 }
 
 output cloud_config {
-  sensitive                    = true
+  sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
 }
 
