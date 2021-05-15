@@ -26,7 +26,7 @@ resource azurerm_log_analytics_workspace monitor {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 resource azurerm_monitor_diagnostic_setting monitor {
-  name                         = "${azurerm_log_analytics_workspace.monitor.name}-diagnostics"
+  name                         = "${azurerm_log_analytics_workspace.monitor.name}-diag"
   target_resource_id           = azurerm_log_analytics_workspace.monitor.id
   storage_account_id           = azurerm_storage_account.diagnostics.id
 
@@ -63,4 +63,23 @@ resource azurerm_log_analytics_solution solution {
     "Updates",
     "VMInsights",
   ])
+} 
+resource azurerm_log_analytics_solution security_center {
+  solution_name                 = each.value
+  location                      = azurerm_resource_group.vm_resource_group.location
+  resource_group_name           = azurerm_resource_group.vm_resource_group.name
+  workspace_resource_id         = azurerm_log_analytics_workspace.monitor.id
+  workspace_name                = azurerm_log_analytics_workspace.monitor.name
+
+  plan {
+    publisher                   = "Microsoft"
+    product                     = "OMSGallery/${each.value}"
+  }
+
+  for_each                      = var.enable_security_center ? toset([
+    "Security",
+    "SecurityCenterFree"
+  ]) : toset([])
+
+  depends_on                    = [azurerm_log_analytics_solution.solution]
 } 

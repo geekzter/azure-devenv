@@ -6,6 +6,9 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
+variable deploy_log_analytics_extensions {
+  type                         = bool
+}
 variable domain {}
 variable diagnostics {
     type                       = bool
@@ -24,6 +27,10 @@ variable enable_aad_login {
     default                    = false
 }
 variable enable_accelerated_networking {
+    type                       = bool
+    default                    = false
+}
+variable enable_security_center {
     type                       = bool
     default                    = false
 }

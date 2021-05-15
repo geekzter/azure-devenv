@@ -16,6 +16,9 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
+variable deploy_log_analytics_extensions {
+  type                         = bool
+}
 variable diagnostics {
     type                       = bool
     default                    = false
@@ -29,6 +32,10 @@ variable dns_zone_id {
     default                    = null
 }
 variable enable_accelerated_networking {
+    type                       = bool
+    default                    = false
+}
+variable enable_security_center {
     type                       = bool
     default                    = false
 }

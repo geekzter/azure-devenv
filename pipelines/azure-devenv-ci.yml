@@ -34,8 +34,12 @@ parameters:
   default: false
 - name: unpinTerraformProviders
   displayName: Unpin Terraform provider versions
-  type: boolean
-  default: false
+  type: string
+  default: No
+  values:
+  - No
+  - Yes
+  - Strategy
 
 trigger: none
 
@@ -74,13 +78,12 @@ variables:
   value: ${{ parameters.workspace }}
 - name: 'scriptDirectory'
   value: '$(Build.SourcesDirectory)/scripts'
+- name: 'terraformArtifactName'
+  value: 'terraform'
 - name: 'terraformDirectory'
   value: '$(Build.SourcesDirectory)/terraform'
 - name: 'TF_VAR_admin_username'
   value: 'ciuser'
-- ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
-  - name: 'TF_VAR_resource_suffix'
-    value: '$(Build.BuildId)'
 - name: 'TF_VAR_run_id'
   value: '$(Build.BuildId)'
 - name: 'TF_VAR_ssh_private_key'
@@ -108,6 +111,28 @@ jobs:
     name: '$(pool)'
     vmImage: $(vmImage)
 
+  ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
+    strategy:
+      matrix:
+        pinTerraformProviders:
+          publishTerraformArtifact: true
+          TF_VAR_resource_suffix: '$(Build.BuildId)p'
+          unpinTerraformProviders: false
+        unpinTerraformProviders:
+          publishTerraformArtifact: false
+          TF_VAR_resource_suffix: '$(Build.BuildId)u'
+          unpinTerraformProviders: true
+      maxParallel: 1
+
+  variables:
+    ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
+      # Not runnig as strategy
+      ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
+        TF_VAR_resource_suffix: '$(Build.BuildId)'
+      unpinTerraformProviders: ${{ eq(parameters.unpinTerraformProviders, 'Yes') }}
+    publishTerraformArtifact: true
+    resourceGroup: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
+
   workspace:
     clean: all
 
@@ -117,7 +142,6 @@ jobs:
         ssh-keygen -q -m PEM -N '' -f $(TF_VAR_ssh_private_key)
       displayName: 'Generate SSH key pair'
       workingDirectory: '$(terraformDirectory)'
-
 
     - ${{ if not(parameters.unpinTerraform) }}:
       - pwsh: |
@@ -142,7 +166,7 @@ jobs:
       inputs:
         terraformVersion: '$(terraformConfig.version)'
 
-    - ${{ if parameters.unpinTerraformProviders }}:
+    - ${{ if or(eq(parameters.unpinTerraformProviders, 'Yes'),eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
       # Unpin version e.g. "= 2.56" -> "~> 2.56"
       - pwsh: |
           (Get-Content ./provider.tf) -replace " = `" *= +",' = "~> ' | Out-File provider.tf
@@ -151,6 +175,8 @@ jobs:
             Remove-Item .terraform.lock.hcl -Force
           }
         displayName: 'Unpin Terraform provider versions'
+        # condition required as '- ${{ if ' template expression is not evaluated when using a strategy
+        condition: and(succeeded(), eq(variables['unpinTerraformProviders'],'true'))
         workingDirectory: '$(terraformDirectory)'
 
     - task: TerraformCLI@0
@@ -165,6 +191,12 @@ jobs:
         backendAzureRmContainerName: '$(TF_STATE_CONTAINER_NAME)'
         backendAzureRmKey: 'terraform.tfstate'
         allowTelemetryCollection: true
+
+    - ${{ if ne(parameters.destroy, 'Never') }}:
+      - publish: $(terraformDirectory)
+        displayName: 'Publish Terraform workspace'
+        condition: and(succeeded(), eq(variables['publishTerraformArtifact'],'true'))
+        artifact: $(terraformArtifactName)
 
     - ${{ if parameters.clear }}:
       - task: AzureCLI@2
@@ -203,8 +235,6 @@ jobs:
         if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
           $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
         }
-        # Set random CIDR (to reduce the risk of clashing VNet peerings with agent VNet)
-        $env:TF_VAR_resource_suffix ??= "$(Build.BuildId)"
 
         # List environment variables
         Get-ChildItem -Path Env: -Recurse -Include ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
@@ -250,6 +280,7 @@ jobs:
 
     - task: TerraformCLI@0
       displayName: 'Terraform output'
+      condition: succeededOrFailed()
       inputs:
         command: 'output'
         workingDirectory: '$(terraformDirectory)'
@@ -342,7 +373,12 @@ jobs:
     timeoutInMinutes: $[ variables['jobTimeOutMinutes'] ]
 
     variables:
-      terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
+      providerConfig: $[ dependencies.Provision.outputs['providerConfig.content'] ]
+      terraformDirectory: $(Pipeline.Workspace)/$(terraformArtifactName)
+      ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
+        terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
+      ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
+        terraformVersion: $[ dependencies.Provision.outputs['pinTerraformProviders.terraformConfig.version'] ]
 
     pool:
       name: '$(pool)'
@@ -409,6 +445,10 @@ jobs:
       displayName: 'Install terraform'
       inputs:
         terraformVersion: '$(terraformVersion)'
+
+    - download: current
+      displayName: 'Download Terraform directory from previous job'
+      artifact: $(terraformArtifactName)
 
     - task: TerraformCLI@0
       displayName: 'Terraform init'

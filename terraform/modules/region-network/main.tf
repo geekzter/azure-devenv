@@ -8,7 +8,7 @@ resource azurerm_virtual_network region_network {
   tags                         = var.tags
 }
 resource azurerm_monitor_diagnostic_setting region_network {
-  name                         = "${azurerm_virtual_network.region_network.name}-logs"
+  name                         = "${azurerm_virtual_network.region_network.name}-diagnostics"
   target_resource_id           = azurerm_virtual_network.region_network.id
   log_analytics_workspace_id   = var.log_analytics_workspace_id
 
@@ -59,6 +59,47 @@ resource azurerm_public_ip bastion_ip {
 
   count                        = var.deploy_bastion ? 1 : 0
 }
+resource azurerm_monitor_diagnostic_setting bastion_ip {
+  name                         = "${azurerm_public_ip.bastion_ip.0.name}-logs"
+  target_resource_id           = azurerm_public_ip.bastion_ip.0.id
+  log_analytics_workspace_id   = var.log_analytics_workspace_id
+
+  log {
+    category                   = "DDoSProtectionNotifications"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+  log {
+    category                   = "DDoSMitigationFlowLogs"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+  log {
+    category                   = "DDoSMitigationReports"
+    enabled                    = true
+
+    retention_policy {
+      enabled                  = false
+    }
+  }  
+
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
+  }
+
+  count                        = var.deploy_bastion ? 1 : 0
+} 
+
 resource azurerm_bastion_host bastion {
   name                         = "${azurerm_virtual_network.region_network.name}-bastion"
   location                     = var.location
@@ -75,7 +116,7 @@ resource azurerm_bastion_host bastion {
   count                        = var.deploy_bastion ? 1 : 0
 }
 resource azurerm_monitor_diagnostic_setting bastion {
-  name                         = "${azurerm_bastion_host.bastion.0.name}-logs"
+  name                         = "${azurerm_bastion_host.bastion.0.name}-diagnostics"
   target_resource_id           = azurerm_bastion_host.bastion.0.id
   log_analytics_workspace_id   = var.log_analytics_workspace_id
 

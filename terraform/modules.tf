@@ -21,6 +21,7 @@ module linux_vm {
   user_name                    = var.admin_username
   user_password                = local.password
   dependency_monitor           = true
+  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   domain                       = var.vm_domain
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
@@ -28,6 +29,7 @@ module linux_vm {
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
   enable_accelerated_networking = false
+  enable_security_center       = var.enable_security_center
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
@@ -54,8 +56,9 @@ module linux_vm {
   vm_size                      = var.linux_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
-  for_each                     = toset(var.locations)
+  for_each                     = var.deploy_linux ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
   ]
@@ -70,11 +73,13 @@ module windows_vm {
   admin_password               = local.password
   bg_info                      = true
   dependency_monitor           = true
+  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking
+  enable_security_center       = var.enable_security_center
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
@@ -96,8 +101,9 @@ module windows_vm {
   vm_size                      = var.windows_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
-  for_each                     = toset(var.locations)
+  for_each                     = var.deploy_windows ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
   ]

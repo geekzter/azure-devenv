@@ -21,10 +21,24 @@ variable deploy_vpn {
   type                         = bool
   default                      = false
 }
+variable deploy_linux {
+  type                         = bool
+  default                      = true
+  description                  = "Disabling this, also disables DNS forwarding"
+}
+variable deploy_log_analytics_extensions {
+  type                         = bool
+  default                      = true
+  description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
+}
+variable deploy_windows {
+  type                         = bool
+  default                      = true
+}
+
 variable development_resource_group {
   default                      = "Development"
 }
-
 variable development_network {
   default                      = "Development-vnet"
 }
@@ -39,6 +53,10 @@ variable dns_zone_id {
   default                      = null
 }
 variable enable_disk_encryption {
+  type                         = bool
+  default                      = false
+}
+variable enable_security_center {
   type                         = bool
   default                      = false
 }
