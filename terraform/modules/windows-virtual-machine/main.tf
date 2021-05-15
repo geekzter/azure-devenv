@@ -305,6 +305,38 @@ resource null_resource start_vm {
   }
 }
 
+# Remove conflicting extensions
+resource null_resource prepare_log_analytics {
+  provisioner local-exec {
+    command                    = "${path.root}/../scripts/remove_vm_extension.ps1 -VmName ${azurerm_windows_virtual_machine.vm.name} -ResourceGroupName ${var.resource_group_name} -Publisher Microsoft.EnterpriseCloud.Monitoring -ExtensionType MicrosoftMonitoringAgent -SkipExtensionName OmsAgentForMe"
+    interpreter                = ["pwsh","-nop","-command"]
+  }
+
+  count                        = var.deploy_log_analytics_extensions ? 1 : 0
+  depends_on                   = [null_resource.start_vm]
+}
+
+resource azurerm_virtual_machine_extension log_analytics {
+  name                         = "OmsAgentForMe"
+  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
+  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
+  type                         = "MicrosoftMonitoringAgent"
+  type_handler_version         = "1.0"
+  auto_upgrade_minor_version   = true
+  settings                     = jsonencode({
+    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
+    "azureResourceId"          = azurerm_windows_virtual_machine.vm.id
+    "stopOnMultipleConnections"= "true"
+  })
+  protected_settings           = jsonencode({
+    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  })
+
+  count                        = var.deploy_log_analytics_extensions ? 1 : 0
+  tags                         = var.tags
+  depends_on                   = [null_resource.prepare_log_analytics]
+}
+
 resource azurerm_virtual_machine_extension azure_monitor {
   name                         = "AzureMonitorWindowsAgent"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
@@ -322,7 +354,9 @@ resource time_sleep vm_sleep {
   create_duration              = "300s"
 
   count                        = var.disk_encryption ? 1 : 0
-  depends_on                   = [azurerm_windows_virtual_machine.vm]
+  depends_on                   = [
+                                  azurerm_virtual_machine_extension.log_analytics,
+  ]
 }
 
 resource azurerm_virtual_machine_extension disk_encryption {
@@ -348,32 +382,9 @@ resource azurerm_virtual_machine_extension disk_encryption {
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
                                   time_sleep.vm_sleep
                                   ]
-}
-
-resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "MicrosoftMonitoringAgent"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
-  type                         = "MicrosoftMonitoringAgent"
-  type_handler_version         = "1.0"
-  auto_upgrade_minor_version   = true
-  settings                     = jsonencode({
-    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
-    "azureResourceId"          = azurerm_windows_virtual_machine.vm.id
-    "stopOnMultipleConnections"= "true"
-  })
-  protected_settings           = jsonencode({
-    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-  })
-
-  tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
 }
 
 resource azurerm_virtual_machine_extension aad_login {
@@ -388,7 +399,6 @@ resource azurerm_virtual_machine_extension aad_login {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 } 
@@ -405,7 +415,6 @@ resource azurerm_virtual_machine_extension bginfo {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
@@ -433,7 +442,6 @@ resource azurerm_virtual_machine_extension diagnostics {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
@@ -449,7 +457,8 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
                                  ] 
 }
 resource azurerm_virtual_machine_extension network_watcher {
@@ -464,7 +473,6 @@ resource azurerm_virtual_machine_extension network_watcher {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }
@@ -479,7 +487,6 @@ resource azurerm_virtual_machine_extension policy {
   tags                         = var.tags
   depends_on                   = [
                                   null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.disk_encryption
                                  ]
 }

@@ -318,8 +318,21 @@ resource null_resource cloud_config_status {
   ]
 }
 
+# Remove conflicting extensions
+resource null_resource prepare_log_analytics {
+  provisioner local-exec {
+    command                    = "${path.root}/../scripts/remove_vm_extension.ps1 -VmName ${azurerm_linux_virtual_machine.vm.name} -ResourceGroupName ${var.resource_group_name} -Publisher Microsoft.EnterpriseCloud.Monitoring -ExtensionType OmsAgentForLinux -SkipExtensionName OmsAgentForMe"
+    interpreter                = ["pwsh","-nop","-command"]
+  }
+
+  count                        = var.deploy_log_analytics_extensions ? 1 : 0
+  depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status
+  ]
+}
+
 resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "OmsAgentForLinux"
+  name                         = "OmsAgentForMe"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
   type                         = "OmsAgentForLinux"
@@ -332,8 +345,9 @@ resource azurerm_virtual_machine_extension log_analytics {
     "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
   })
 
+  count                        = var.deploy_log_analytics_extensions ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.cloud_config_status]
+  depends_on                   = [null_resource.prepare_log_analytics]
 }
 
 # resource azurerm_virtual_machine_extension azure_monitor {
@@ -357,7 +371,10 @@ resource azurerm_virtual_machine_extension aad_login {
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+  depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status,
+    azurerm_virtual_machine_extension.log_analytics
+  ]
   count                        = var.enable_aad_login ? 1 : 0
 } 
 
@@ -371,7 +388,10 @@ resource azurerm_virtual_machine_extension dependency_monitor {
 
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+  depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status,
+    azurerm_virtual_machine_extension.log_analytics
+  ]
 }
 resource azurerm_virtual_machine_extension network_watcher {
   name                         = "AzureNetworkWatcherExtension"
@@ -383,7 +403,10 @@ resource azurerm_virtual_machine_extension network_watcher {
 
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+  depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status,
+    azurerm_virtual_machine_extension.log_analytics
+  ]
 }
 resource azurerm_virtual_machine_extension policy {
   name                         = "AzurePolicyforLinux"
@@ -394,7 +417,10 @@ resource azurerm_virtual_machine_extension policy {
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
+  depends_on                   = [
+    azurerm_virtual_machine_extension.cloud_config_status,
+    azurerm_virtual_machine_extension.log_analytics
+  ]
 }
 
 resource azurerm_security_center_server_vulnerability_assessment qualys {

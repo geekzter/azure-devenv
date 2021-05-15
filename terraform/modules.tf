@@ -21,6 +21,7 @@ module linux_vm {
   user_name                    = var.admin_username
   user_password                = local.password
   dependency_monitor           = true
+  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   domain                       = var.vm_domain
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
@@ -72,6 +73,7 @@ module windows_vm {
   admin_password               = local.password
   bg_info                      = true
   dependency_monitor           = true
+  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id

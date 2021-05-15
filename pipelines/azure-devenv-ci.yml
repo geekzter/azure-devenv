@@ -279,6 +279,7 @@ jobs:
 
     - task: TerraformCLI@0
       displayName: 'Terraform output'
+      condition: succeededOrFailed()
       inputs:
         command: 'output'
         workingDirectory: '$(terraformDirectory)'

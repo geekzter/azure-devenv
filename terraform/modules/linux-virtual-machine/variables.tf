@@ -6,6 +6,9 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
+variable deploy_log_analytics_extensions {
+  type                         = bool
+}
 variable domain {}
 variable diagnostics {
     type                       = bool
