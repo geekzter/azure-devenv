@@ -258,15 +258,17 @@ resource azurerm_linux_virtual_machine vm {
   }  
 }
 
-resource null_resource start_vm {
-  # Always run this
-  triggers                     = {
-    always_run                 = timestamp()
-  }
+resource azurerm_monitor_diagnostic_setting vm {
+  name                         = "${azurerm_linux_virtual_machine.vm.name}-diagnostics"
+  target_resource_id           = azurerm_linux_virtual_machine.vm.id
+  storage_account_id           = var.diagnostics_storage_id
 
-  provisioner local-exec {
-    # Start VM, so we can make changes
-    command                    = "az vm start --ids ${azurerm_linux_virtual_machine.vm.id}"
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
   }
 }
 
@@ -285,8 +287,6 @@ resource azurerm_virtual_machine_extension cloud_config_status {
   timeouts {
     create                     = "60m"
   }  
-  
-  depends_on                   = [null_resource.start_vm]
 }
 
 resource null_resource cloud_config_status {
@@ -312,9 +312,9 @@ resource null_resource cloud_config_status {
   }
 
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status,
-    azurerm_network_interface_security_group_association.nic_nsg,
-    azurerm_network_security_rule.terraform_ssh,
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_network_interface_security_group_association.nic_nsg,
+                                  azurerm_network_security_rule.terraform_ssh,
   ]
 }
 
@@ -327,7 +327,7 @@ resource null_resource prepare_log_analytics {
 
   count                        = var.deploy_log_analytics_extensions ? 1 : 0
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
 }
 
@@ -347,7 +347,10 @@ resource azurerm_virtual_machine_extension log_analytics {
 
   count                        = var.deploy_log_analytics_extensions ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [null_resource.prepare_log_analytics]
+  depends_on                   = [
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  null_resource.prepare_log_analytics
+  ]
 }
 
 # resource azurerm_virtual_machine_extension azure_monitor {
@@ -372,8 +375,8 @@ resource azurerm_virtual_machine_extension aad_login {
 
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status,
-    azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.log_analytics
   ]
   count                        = var.enable_aad_login ? 1 : 0
 } 
@@ -389,8 +392,8 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status,
-    azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.log_analytics
   ]
 }
 resource azurerm_virtual_machine_extension network_watcher {
@@ -404,8 +407,8 @@ resource azurerm_virtual_machine_extension network_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status,
-    azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.log_analytics
   ]
 }
 resource azurerm_virtual_machine_extension policy {
@@ -489,6 +492,13 @@ resource azurerm_virtual_machine_extension disk_encryption {
   tags                         = var.tags
 
   depends_on                   = [
+                                  azurerm_security_center_server_vulnerability_assessment.qualys,
+                                  azurerm_virtual_machine_extension.aad_login,
+                                  # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.network_watcher,
+                                  azurerm_virtual_machine_extension.policy,
                                   time_sleep.vm_sleep
   ]
 }
@@ -507,36 +517,4 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
 
   tags                         = var.tags
   count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
-}
-
-# HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
-resource azurerm_monitor_diagnostic_setting vm {
-  name                         = "${azurerm_linux_virtual_machine.vm.name}-diagnostics"
-  target_resource_id           = azurerm_linux_virtual_machine.vm.id
-  storage_account_id           = var.diagnostics_storage_id
-
-  metric {
-    category                   = "AllMetrics"
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-
-  # Start VM, so we can destroy VM extensions
-  provisioner local-exec {
-    command                    = "az vm start --ids ${self.target_resource_id}"
-    when                       = destroy
-  }
-
-  depends_on                   = [
-                                  azurerm_security_center_server_vulnerability_assessment.qualys,
-                                  azurerm_virtual_machine_extension.aad_login,
-                                  # azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.disk_encryption,
-                                  azurerm_virtual_machine_extension.log_analytics,
-                                  azurerm_virtual_machine_extension.network_watcher,
-                                  azurerm_virtual_machine_extension.policy
-  ]
 }

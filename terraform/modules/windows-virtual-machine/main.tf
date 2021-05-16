@@ -293,15 +293,17 @@ resource azurerm_windows_virtual_machine vm {
   tags                         = var.tags
 }
 
-resource null_resource start_vm {
-  # Always run this
-  triggers                     = {
-    always_run                 = timestamp()
-  }
+resource azurerm_monitor_diagnostic_setting vm {
+  name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
+  target_resource_id           = azurerm_windows_virtual_machine.vm.id
+  storage_account_id           = var.diagnostics_storage_id
 
-  provisioner local-exec {
-    # Start VM, so we can make changes
-    command                    = "az vm start --ids ${azurerm_windows_virtual_machine.vm.id}"
+  metric {
+    category                   = "AllMetrics"
+
+    retention_policy {
+      enabled                  = false
+    }
   }
 }
 
@@ -313,7 +315,6 @@ resource null_resource prepare_log_analytics {
   }
 
   count                        = var.deploy_log_analytics_extensions ? 1 : 0
-  depends_on                   = [null_resource.start_vm]
 }
 
 resource azurerm_virtual_machine_extension log_analytics {
@@ -346,7 +347,6 @@ resource azurerm_virtual_machine_extension azure_monitor {
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
-  depends_on                   = [null_resource.start_vm]
 }
 
 # Delay DiskEncryption to mitigate race condition
@@ -397,10 +397,7 @@ resource azurerm_virtual_machine_extension aad_login {
 
   count                        = var.aad_login ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 } 
 
 resource azurerm_virtual_machine_extension bginfo {
@@ -413,10 +410,7 @@ resource azurerm_virtual_machine_extension bginfo {
 
   count                        = var.bg_info ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
 
 resource azurerm_virtual_machine_extension diagnostics {
@@ -440,10 +434,7 @@ resource azurerm_virtual_machine_extension diagnostics {
 
   count                        = var.diagnostics ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
 resource azurerm_virtual_machine_extension dependency_monitor {
   name                         = "DAExtension"
@@ -456,9 +447,8 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  null_resource.start_vm,
                                   azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.log_analytics
                                  ] 
 }
 resource azurerm_virtual_machine_extension network_watcher {
@@ -471,10 +461,7 @@ resource azurerm_virtual_machine_extension network_watcher {
 
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
 resource azurerm_virtual_machine_extension policy {
   name                         = "AzurePolicyforWindows"
@@ -485,17 +472,13 @@ resource azurerm_virtual_machine_extension policy {
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
-  depends_on                   = [
-                                  null_resource.start_vm,
-                                  azurerm_virtual_machine_extension.disk_encryption
-                                 ]
+  depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
 
 resource azurerm_security_center_server_vulnerability_assessment qualys {
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
 
   depends_on                   = [
-                                  null_resource.start_vm,
                                   azurerm_virtual_machine_extension.aad_login,
                                   azurerm_virtual_machine_extension.azure_monitor,
                                   # azurerm_virtual_machine_extension.bginfo,
@@ -524,40 +507,6 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
 
   tags                         = var.tags
   count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
-}
-
-# HACK: Use this as the last resource created for a VM, so we can set a destroy action to happen prior to VM (extensions) destroy
-resource azurerm_monitor_diagnostic_setting vm {
-  name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
-  target_resource_id           = azurerm_windows_virtual_machine.vm.id
-  storage_account_id           = var.diagnostics_storage_id
-
-  metric {
-    category                   = "AllMetrics"
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-
-  # Start VM, so we can destroy VM extensions
-  provisioner local-exec {
-    command                    = "az vm start --ids ${self.target_resource_id}"
-    when                       = destroy
-  }
-
-  depends_on                   = [
-                                  azurerm_security_center_server_vulnerability_assessment.qualys,
-                                  azurerm_virtual_machine_extension.aad_login,
-                                  azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.bginfo,
-                                  azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.disk_encryption,
-                                  azurerm_virtual_machine_extension.log_analytics,
-                                  azurerm_virtual_machine_extension.network_watcher,
-                                  azurerm_virtual_machine_extension.policy
-  ]
 }
 
 resource local_file pprivate_rdp_file {
