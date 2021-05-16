@@ -88,10 +88,6 @@ variable linux_os_sku {
 variable linux_os_version {
   default                      = "latest"
 }
-variable linux_shutdown_time {
-  default                      = "2300"
-  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown. Note shutting down the Linux VM will also disable DNS forwarding for VPN connections."
-}
 variable linux_vm_size {
   default                      = "Standard_B2s"
 }
@@ -99,6 +95,11 @@ variable linux_vm_size {
 variable locations {
   type                         = list
   default                      = ["westeurope"]
+}
+
+variable log_analytics_workspace_id {
+  description                  = "Specify a pre-existing Log Analytics workspace. The workspace needs to have the Security, SecurityCenterFree, ServiceMap, Updates, VMInsights solutions provisioned"
+  default                      = ""
 }
 
 variable public_access_enabled {
@@ -119,6 +120,11 @@ variable script_wrapper_check {
   description                  = "Set to true in a .auto.tfvars file to force Terraform to check whether it's run from deploy.ps1"
   type                         = bool
   default                      = false
+}
+
+variable shutdown_time {
+  default                      = "23:59"
+  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown."
 }
 
 variable ssh_private_key {
@@ -146,10 +152,6 @@ variable windows_sku {
 }
 variable windows_os_version {
   default                      = "latest"
-}
-variable windows_shutdown_time {
-  default                      = "2300"
-  description                  = "Time the VM will be stopped daily. Setting this to null or an empty string disables auto shutdown."
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

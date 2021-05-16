@@ -55,7 +55,7 @@ output linux_new_os_version_available {
 }
 
 output log_analytics_workspace_id {
-  value                        = azurerm_log_analytics_workspace.monitor.id
+  value                        = local.log_analytics_workspace_id
 }
 
 output managed_identity_name {

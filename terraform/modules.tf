@@ -1,4 +1,3 @@
-
 module region_network {
   source                       = "./modules/region-network"
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -7,7 +6,7 @@ module region_network {
 
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   deploy_bastion               = var.deploy_bastion
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
 
   for_each                     = toset(var.locations)
@@ -35,7 +34,7 @@ module linux_vm {
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "l"
   network_watcher              = true
   os_offer                     = var.linux_os_offer
@@ -45,7 +44,7 @@ module linux_vm {
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   scripts_container_id         = azurerm_storage_container.scripts.id
-  shutdown_time                = var.linux_shutdown_time
+  shutdown_time                = var.shutdown_time
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
   tags                         = azurerm_resource_group.vm_resource_group.tags
@@ -58,6 +57,7 @@ module linux_vm {
 
   for_each                     = var.deploy_linux ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
@@ -85,7 +85,7 @@ module windows_vm {
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "w"
   network_watcher              = true
   os_sku                       = var.windows_sku
@@ -95,7 +95,7 @@ module windows_vm {
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
-  shutdown_time                = var.windows_shutdown_time
+  shutdown_time                = var.shutdown_time
   timezone                     = var.timezone
   user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
   vm_size                      = var.windows_vm_size
@@ -103,6 +103,7 @@ module windows_vm {
 
   for_each                     = var.deploy_windows ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
@@ -116,7 +117,7 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   organization                 = var.organization
   virtual_network_id           = module.region_network[azurerm_resource_group.vm_resource_group.location].virtual_network_id
   subnet_range                 = cidrsubnet(module.region_network[azurerm_resource_group.vm_resource_group.location].address_space,11,4)

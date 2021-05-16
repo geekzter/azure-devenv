@@ -1,0 +1,73 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "automationAccountName": {
+            "type": "string"
+        },
+        "interval": {
+            "type": "int"
+        },
+        "operatingSystem": {
+            "type": "string"
+        },
+        "scheduleName": {
+            "type": "string"
+        },
+        "scope": {
+            "type": "array"
+        },
+        "startTime": {
+            "type": "string"
+        },
+        "timeZone": {
+            "type": "string"
+        }
+    },
+    "variables": {},        
+    "resources": [
+        {
+            "apiVersion": "2019-06-01",
+            "type": "Microsoft.Automation/automationAccounts/softwareUpdateConfigurations",
+            "name": "[concat(parameters('automationAccountName'),'/',parameters('scheduleName'))]",
+            "properties": {
+                "updateConfiguration": {
+                    "operatingSystem": "[parameters('operatingSystem')]",
+                    "duration": "PT2H",
+                    "linux": {
+                        "excludedPackageNameMasks": [],
+                        "includedPackageClassifications": "Critical, Security",
+                        "rebootSetting": "Never"
+                    },
+                    "azureVirtualMachines": [],
+                    "nonAzureComputerNames": [],
+                    "targets": {
+                        "azureQueries": [
+                            {
+                                "scope": "[parameters('scope')]"
+                            }
+                        ],
+                        "nonAzureQueries": []
+                    }
+                },
+                "scheduleInfo": {
+                    "frequency": "Week",
+                    "startTime": "[parameters('startTime')]",
+                    "timeZone": "[parameters('timeZone')]",
+                    "interval": "[parameters('interval')]",
+                    "advancedSchedule": {
+                        "weekDays": [
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                            "Sunday"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

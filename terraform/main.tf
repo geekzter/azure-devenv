@@ -208,7 +208,7 @@ resource azurerm_key_vault vault {
 resource azurerm_monitor_diagnostic_setting key_vault {
   name                         = "${azurerm_key_vault.vault.name}-logs"
   target_resource_id           = azurerm_key_vault.vault.id
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
 
   log {
     category                   = "AuditEvent"
