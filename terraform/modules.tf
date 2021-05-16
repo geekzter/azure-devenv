@@ -1,4 +1,3 @@
-
 module region_network {
   source                       = "./modules/region-network"
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
@@ -7,7 +6,7 @@ module region_network {
 
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   deploy_bastion               = var.deploy_bastion
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
 
   for_each                     = toset(var.locations)
@@ -35,7 +34,7 @@ module linux_vm {
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "l"
   network_watcher              = true
   os_offer                     = var.linux_os_offer
@@ -86,7 +85,7 @@ module windows_vm {
   git_name                     = var.git_name
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "w"
   network_watcher              = true
   os_sku                       = var.windows_sku
@@ -118,7 +117,7 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_address               = [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address]
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = local.log_analytics_workspace_id
   organization                 = var.organization
   virtual_network_id           = module.region_network[azurerm_resource_group.vm_resource_group.location].virtual_network_id
   subnet_range                 = cidrsubnet(module.region_network[azurerm_resource_group.vm_resource_group.location].address_space,11,4)

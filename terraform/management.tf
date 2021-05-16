@@ -16,6 +16,10 @@ resource azurerm_storage_account diagnostics {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
+locals {
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+}
+
 resource azurerm_log_analytics_workspace monitor {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-loganalytics"
   location                     = azurerm_resource_group.vm_resource_group.location
