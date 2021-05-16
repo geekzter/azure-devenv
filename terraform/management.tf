@@ -106,6 +106,8 @@ resource azurerm_log_analytics_linked_service automation {
   read_access_id               = azurerm_automation_account.automation.id
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
+
+  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
 }
 
 locals {
@@ -142,6 +144,7 @@ resource azurerm_resource_group_template_deployment linux_updates {
   template_content             = file("${path.module}/../arm/update-management-linux.json")
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
+  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
   depends_on                   = [azurerm_log_analytics_linked_service.automation]
 }
 resource azurerm_resource_group_template_deployment windows_updates {
@@ -174,5 +177,6 @@ resource azurerm_resource_group_template_deployment windows_updates {
   template_content             = file("${path.module}/../arm/update-management-windows.json")
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
+  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
   depends_on                   = [azurerm_log_analytics_linked_service.automation]
 }
