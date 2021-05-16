@@ -17,7 +17,7 @@ resource azurerm_storage_account diagnostics {
 }
 
 locals {
-  log_analytics_workspace_id   = azurerm_log_analytics_workspace.monitor.id
+  log_analytics_workspace_id   = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id : azurerm_log_analytics_workspace.monitor.0.id
 }
 
 resource azurerm_log_analytics_workspace monitor {
@@ -27,11 +27,12 @@ resource azurerm_log_analytics_workspace monitor {
   sku                          = "PerGB2018"
   retention_in_days            = 30
 
+  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 resource azurerm_monitor_diagnostic_setting monitor {
-  name                         = "${azurerm_log_analytics_workspace.monitor.name}-diag"
-  target_resource_id           = azurerm_log_analytics_workspace.monitor.id
+  name                         = "${azurerm_log_analytics_workspace.monitor.0.name}-diag"
+  target_resource_id           = azurerm_log_analytics_workspace.monitor.0.id
   storage_account_id           = azurerm_storage_account.diagnostics.id
 
   log {
@@ -49,20 +50,22 @@ resource azurerm_monitor_diagnostic_setting monitor {
       enabled                  = false
     }
   }
+
+  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
 }
 resource azurerm_log_analytics_solution solution {
   solution_name                = each.value
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  workspace_resource_id        = azurerm_log_analytics_workspace.monitor.id
-  workspace_name               = azurerm_log_analytics_workspace.monitor.name
+  workspace_resource_id        = azurerm_log_analytics_workspace.monitor.0.id
+  workspace_name               = azurerm_log_analytics_workspace.monitor.0.name
 
   plan {
     publisher                  = "Microsoft"
     product                    = "OMSGallery/${each.value}"
   }
 
-  for_each                     = toset([
+  for_each                     = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? toset([]) : toset([
     "ServiceMap",
     "Updates",
     "VMInsights",
@@ -72,15 +75,15 @@ resource azurerm_log_analytics_solution security_center {
   solution_name                = each.value
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  workspace_resource_id        = azurerm_log_analytics_workspace.monitor.id
-  workspace_name               = azurerm_log_analytics_workspace.monitor.name
+  workspace_resource_id        = azurerm_log_analytics_workspace.monitor.0.id
+  workspace_name               = azurerm_log_analytics_workspace.monitor.0.name
 
   plan {
     publisher                  = "Microsoft"
     product                    = "OMSGallery/${each.value}"
   }
 
-  for_each                     = var.enable_security_center ? toset([
+  for_each                     = (var.log_analytics_workspace_id == "" && var.log_analytics_workspace_id == null) && var.enable_security_center ? toset([
     "Security",
     "SecurityCenterFree"
   ]) : toset([])
@@ -99,7 +102,7 @@ resource azurerm_automation_account automation {
 
 resource azurerm_log_analytics_linked_service automation {
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  workspace_id                 = azurerm_log_analytics_workspace.monitor.id
+  workspace_id                 = local.log_analytics_workspace_id
   read_access_id               = azurerm_automation_account.automation.id
 
   tags                         = azurerm_resource_group.vm_resource_group.tags

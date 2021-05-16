@@ -97,6 +97,11 @@ variable locations {
   default                      = ["westeurope"]
 }
 
+variable log_analytics_workspace_id {
+  description                  = "Specify a pre-existing Log Analytics workspace. The workspace needs to have the Security, SecurityCenterFree, ServiceMap, Updates, VMInsights solutions provisioned"
+  default                      = ""
+}
+
 variable public_access_enabled {
   type                         = bool
   default                      = true
