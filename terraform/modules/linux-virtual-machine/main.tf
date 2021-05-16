@@ -508,7 +508,7 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   location                     = azurerm_linux_virtual_machine.vm.location
   enabled                      = true
 
-  daily_recurrence_time        = var.shutdown_time
+  daily_recurrence_time        = replace(var.shutdown_time,":","")
   timezone                     = var.timezone
 
   notification_settings {

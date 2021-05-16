@@ -45,7 +45,7 @@ module linux_vm {
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   scripts_container_id         = azurerm_storage_container.scripts.id
-  shutdown_time                = var.linux_shutdown_time
+  shutdown_time                = var.shutdown_time
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
   tags                         = azurerm_resource_group.vm_resource_group.tags
@@ -58,6 +58,7 @@ module linux_vm {
 
   for_each                     = var.deploy_linux ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
@@ -95,7 +96,7 @@ module windows_vm {
   scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
-  shutdown_time                = var.windows_shutdown_time
+  shutdown_time                = var.shutdown_time
   timezone                     = var.timezone
   user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
   vm_size                      = var.windows_vm_size
@@ -103,6 +104,7 @@ module windows_vm {
 
   for_each                     = var.deploy_windows ? toset(var.locations) : toset([])
   depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     module.region_network,
     time_sleep.script_wrapper_check
