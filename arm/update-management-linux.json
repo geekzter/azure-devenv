@@ -27,7 +27,7 @@
     "variables": {},        
     "resources": [
         {
-            "apiVersion": "2017-05-15-preview",
+            "apiVersion": "2019-06-01",
             "type": "Microsoft.Automation/automationAccounts/softwareUpdateConfigurations",
             "name": "[concat(parameters('automationAccountName'),'/',parameters('scheduleName'))]",
             "properties": {

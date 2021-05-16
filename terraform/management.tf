@@ -110,63 +110,62 @@ resource azurerm_resource_group_template_deployment linux_updates {
   resource_group_name          = azurerm_automation_account.automation.resource_group_name
   deployment_mode              = "Incremental"
   parameters_content           = jsonencode({
-    "automationAccountName"    = {
+    automationAccountName      = {
       value                    = azurerm_automation_account.automation.name
     }
-    "interval"                 = {
+    interval                   = {
       value                    = 1
     }
-    "operatingSystem"          = {
+    operatingSystem            = {
       value                    = "Linux"
     }
-    "scheduleName"             = {
+    scheduleName               = {
       value                    = "${azurerm_resource_group.vm_resource_group.name}-linux-update-schedule"
     }
-    "scope"                    = {
+    scope                      = {
       value                    = [azurerm_resource_group.vm_resource_group.id]
     }
-    "startTime"                = {
+    startTime                  = {
       value                    = local.update_time
     }
-    "timeZone"                 = {
+    timeZone                   = {
       value                    = var.timezone
     }
   })
-  template_content             = file("${path.module}/../arm/update-management.json")
+  template_content             = file("${path.module}/../arm/update-management-linux.json")
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
   depends_on                   = [azurerm_log_analytics_linked_service.automation]
 }
-# "Critical, Security, UpdateRollup, ServicePack, Definition, Updates"
-# resource azurerm_resource_group_template_deployment windows_updates {
-#   name                         = "${azurerm_resource_group.vm_resource_group.name}-windows-updates"
-#   resource_group_name          = azurerm_automation_account.automation.resource_group_name
-#   deployment_mode              = "Incremental"
-#   parameters_content           = jsonencode({
-#     "automationAccountName"    = {
-#       value                    = azurerm_automation_account.automation.name
-#     }
-#     "scheduleName"             = {
-#       value                    = "${azurerm_resource_group.vm_resource_group.name}-windows-update-schedule"
-#     }
-#     "interval"                 = {
-#       value                    = 1
-#     }
-#     "operatingSystem"          = {
-#       value                    = "Windows"
-#     }
-#     "resourceGroupId"          = {
-#       value                    = azurerm_resource_group.vm_resource_group.id
-#     }
-#     "startTime"                = {
-#       value                    = local.update_time
-#     }
-#     "timeZone"                 = {
-#       value                    = var.timezone
-#     }
-#   })
-#   template_content             = file("${path.module}/../arm/update-management.json")
+resource azurerm_resource_group_template_deployment windows_updates {
+  name                         = "${azurerm_resource_group.vm_resource_group.name}-windows-updates"
+  resource_group_name          = azurerm_automation_account.automation.resource_group_name
+  deployment_mode              = "Incremental"
+  parameters_content           = jsonencode({
+    automationAccountName      = {
+      value                    = azurerm_automation_account.automation.name
+    }
+    interval                   = {
+      value                    = 1
+    }
+    operatingSystem            = {
+      value                    = "Windows"
+    }
+    scheduleName               = {
+      value                    = "${azurerm_resource_group.vm_resource_group.name}-windows-update-schedule"
+    }
+    scope                      = {
+      value                    = [azurerm_resource_group.vm_resource_group.id]
+    }
+    startTime                  = {
+      value                    = local.update_time
+    }
+    timeZone                   = {
+      value                    = var.timezone
+    }
+  })
+  template_content             = file("${path.module}/../arm/update-management-windows.json")
 
-#   tags                         = azurerm_resource_group.vm_resource_group.tags
-#   depends_on                   = [azurerm_log_analytics_linked_service.automation]
-# }
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+  depends_on                   = [azurerm_log_analytics_linked_service.automation]
+}
