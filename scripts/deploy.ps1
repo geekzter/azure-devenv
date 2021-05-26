@@ -55,7 +55,7 @@ if (($workspace -ieq "prod") -and $Force) {
 try {
     $tfdirectory = (Get-TerraformDirectory)
     Push-Location $tfdirectory
-    AzLogin
+    AzLogin -DisplayMessages
     # Print version info
     terraform -version
 
