@@ -66,7 +66,6 @@ variable public_access_enabled {
   type                         = bool
 }
 variable resource_group_name {}
-variable scripts_container_id {}
 variable shutdown_time {}
 variable ssh_private_key {}
 variable ssh_public_key {}

@@ -25,6 +25,7 @@ output public_ip_address {
 output public_fqdn {
     value                      = local.public_fqdn
 }
+
 output vm_id {
     value                      = azurerm_windows_virtual_machine.vm.id
 }

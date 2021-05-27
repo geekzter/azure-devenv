@@ -260,12 +260,6 @@ resource azurerm_storage_account automation_storage {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
-resource azurerm_storage_container scripts {
-  name                         = "scripts"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  container_access_type        = "container"
-}
-
 resource azurerm_storage_container configuration {
   name                         = "configuration"
   storage_account_name         = azurerm_storage_account.automation_storage.name

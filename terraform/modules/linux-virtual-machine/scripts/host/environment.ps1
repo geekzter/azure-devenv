@@ -4,12 +4,12 @@ $env:ASPNETCORE_ENVIRONMENT="Development"
 
 
 # Terraform environment variables
-$env:TF_STATE_backend_resource_group="${tf_backend_resource_group}"
-$env:TF_STATE_backend_storage_account="${tf_backend_storage_account}"
-# $env:TF_STATE_backend_storage_container="${tf_backend_storage_container}"
-$env:TF_VAR_backend_resource_group="${tf_backend_resource_group}"
-$env:TF_VAR_backend_storage_account="${tf_backend_storage_account}"
-# $env:TF_VAR_backend_storage_container="${tf_backend_storage_container}"
+$env:TF_STATE_backend_resource_group="${tf_state_resource_group}"
+$env:TF_STATE_backend_storage_account="${tf_state_storage_account}"
+# $env:TF_STATE_backend_storage_container="${tf_state_storage_container}"
+$env:TF_VAR_backend_resource_group="${tf_state_resource_group}"
+$env:TF_VAR_backend_storage_account="${tf_state_storage_account}"
+# $env:TF_VAR_backend_storage_container="${tf_state_storage_container}"
 
 #$env:ARM_PROVIDER_ENHANCED_VALIDATION="false"
 #$env:ARM_PROVIDER_STRICT="false"
