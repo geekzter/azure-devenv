@@ -318,6 +318,10 @@ resource null_resource cloud_config_status {
 
 # Remove conflicting extensions
 resource null_resource prepare_log_analytics {
+  triggers                     = {
+    vm                         = azurerm_linux_virtual_machine.vm.id
+  }
+
   provisioner local-exec {
     command                    = "${path.root}/../scripts/remove_vm_extension.ps1 -VmName ${azurerm_linux_virtual_machine.vm.name} -ResourceGroupName ${var.resource_group_name} -Publisher Microsoft.EnterpriseCloud.Monitoring -ExtensionType OmsAgentForLinux -SkipExtensionName OmsAgentForMe"
     interpreter                = ["pwsh","-nop","-command"]
