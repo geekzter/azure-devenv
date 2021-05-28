@@ -273,7 +273,7 @@ resource azurerm_monitor_diagnostic_setting vm {
 # Remove conflicting extensions
 resource null_resource prepare_log_analytics {
   triggers                     = {
-    vm                         = azurerm_linux_virtual_machine.vm.id
+    vm                         = azurerm_windows_virtual_machine.vm.id
   }
 
   provisioner local-exec {
