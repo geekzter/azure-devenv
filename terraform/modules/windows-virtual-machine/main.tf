@@ -249,7 +249,7 @@ resource azurerm_windows_virtual_machine vm {
   tags                         = var.tags
   lifecycle {
     ignore_changes             = [
-      # Let bootstrap-os update the host configuration
+      additional_unattend_content,
       custom_data
     ]
   }  
