@@ -19,6 +19,7 @@ variable disk_encryption {
     default                    = false
 }
 variable diagnostics_storage_id {}
+variable diagnostics_storage_sas {}
 variable dns_zone_id {
     default                    = null
 }

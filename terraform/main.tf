@@ -249,7 +249,7 @@ resource azurerm_storage_account automation_storage {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
-  allow_blob_public_access     = true
+  allow_blob_public_access     = false
   blob_properties {
     delete_retention_policy {
       days                     = 365

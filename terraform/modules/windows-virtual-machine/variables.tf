@@ -23,11 +23,12 @@ variable diagnostics {
     type                       = bool
     default                    = false
 }
+variable diagnostics_storage_id {}
+variable diagnostics_storage_sas {}
 variable disk_encryption {
     type                       = bool
     default                    = false
 }
-variable diagnostics_storage_id {}
 variable dns_zone_id {
     default                    = null
 }
