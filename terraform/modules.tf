@@ -25,6 +25,7 @@ module linux_vm {
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
+  diagnostics_storage_sas      = data.azurerm_storage_account_sas.diagnostics.sas
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
   enable_accelerated_networking = false
@@ -43,7 +44,6 @@ module linux_vm {
   os_version                   = var.linux_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
-  scripts_container_id         = azurerm_storage_container.scripts.id
   shutdown_time                = var.shutdown_time
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
@@ -77,6 +77,7 @@ module windows_vm {
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
+  diagnostics_storage_sas      = data.azurerm_storage_account_sas.diagnostics.sas
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking
   enable_security_center       = var.enable_security_center
@@ -92,7 +93,6 @@ module windows_vm {
   os_version                   = var.windows_os_version
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
-  scripts_container_id         = azurerm_storage_container.scripts.id
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
   shutdown_time                = var.shutdown_time
@@ -105,6 +105,7 @@ module windows_vm {
   depends_on                   = [
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
+    azurerm_role_assignment.terraform_storage_owner,
     module.region_network,
     time_sleep.script_wrapper_check
   ]

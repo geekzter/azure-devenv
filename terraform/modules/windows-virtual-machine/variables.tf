@@ -23,11 +23,12 @@ variable diagnostics {
     type                       = bool
     default                    = false
 }
+variable diagnostics_storage_id {}
+variable diagnostics_storage_sas {}
 variable disk_encryption {
     type                       = bool
     default                    = false
 }
-variable diagnostics_storage_id {}
 variable dns_zone_id {
     default                    = null
 }
@@ -66,7 +67,6 @@ variable public_access_enabled {
 variable private_dns_zone {}
 variable resource_group_name {}
 variable user_assigned_identity_id {}
-variable scripts_container_id {}
 variable shutdown_time {}
 variable tags {}
 variable timezone {}

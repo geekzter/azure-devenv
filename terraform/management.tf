@@ -5,7 +5,7 @@ resource azurerm_storage_account diagnostics {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
-  allow_blob_public_access     = true
+  allow_blob_public_access     = false
   blob_properties {
     delete_retention_policy {
       days                     = 365
@@ -14,6 +14,37 @@ resource azurerm_storage_account diagnostics {
   enable_https_traffic_only    = true
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
+}
+data azurerm_storage_account_sas diagnostics {
+  connection_string            = azurerm_storage_account.diagnostics.primary_connection_string
+  https_only                   = true
+
+  resource_types {
+    service                    = true
+    container                  = true
+    object                     = true
+  }
+
+  services {
+    blob                       = true
+    queue                      = false
+    table                      = true
+    file                       = true
+  }
+
+  start                        = formatdate("YYYY-MM-DD",timestamp())
+  expiry                       = formatdate("YYYY-MM-DD",timeadd(timestamp(),"8760h")) # 1 year from now (365 days)
+
+  permissions {
+    read                       = true
+    add                        = true
+    create                     = true
+    write                      = true
+    delete                     = false
+    list                       = false
+    update                     = false
+    process                    = false
+  }
 }
 
 locals {
@@ -144,7 +175,7 @@ resource azurerm_resource_group_template_deployment linux_updates {
   template_content             = file("${path.module}/../arm/update-management-linux.json")
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
-  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
+  count                        = var.enable_update_schedule && (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) ? 1 : 0
   depends_on                   = [azurerm_log_analytics_linked_service.automation]
 }
 resource azurerm_resource_group_template_deployment windows_updates {
@@ -177,6 +208,6 @@ resource azurerm_resource_group_template_deployment windows_updates {
   template_content             = file("${path.module}/../arm/update-management-windows.json")
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
-  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
+  count                        = var.enable_update_schedule && (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) ? 1 : 0
   depends_on                   = [azurerm_log_analytics_linked_service.automation]
 }

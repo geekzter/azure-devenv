@@ -1,12 +1,4 @@
 locals {
-  client_config                = {
-    gitemail                   = var.git_email
-    gitname                    = var.git_name
-    scripturl                  = local.script_url
-    environmentscripturl       = local.environment_script_url
-    workspace                  = terraform.workspace
-  }
-
   diagnostics_storage_name     = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-1)
   diagnostics_storage_rg       = element(split("/",var.diagnostics_storage_id),length(split("/",var.diagnostics_storage_id))-5)
   dns_zone_name                = var.dns_zone_id != null ? element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1) : null
@@ -15,35 +7,25 @@ locals {
   key_vault_rg                 = element(split("/",var.key_vault_id),length(split("/",var.key_vault_id))-5)
   log_analytics_workspace_name = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-1)
   log_analytics_workspace_rg   = element(split("/",var.log_analytics_workspace_id),length(split("/",var.log_analytics_workspace_id))-5)
-  scripts_container_name       = element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-1)
-  scripts_storage_name         = element(split(".",element(split("/",var.scripts_container_id),length(split("/",var.scripts_container_id))-2)),0)
   virtual_network_id           = join("/",slice(split("/",var.vm_subnet_id),0,length(split("/",var.vm_subnet_id))-2))
-
-  environment_variables        = merge(
-    {
-      arm_subscription_id      = data.azurerm_client_config.current.subscription_id
-      arm_tenant_id            = data.azurerm_client_config.current.tenant_id
-      # Defaults, will be overriden by variables passed into map merge
-      tf_backend_resource_group = ""
-      tf_backend_storage_account= ""
-      tf_backend_storage_container= ""
-      subnet_id                = var.vm_subnet_id
-      virtual_network_id       = local.virtual_network_id
-    },
-    var.environment_variables
-  )
-
-  # Hide dependency on script blobs, so we prevent VM re-creation if script changes
-  environment_filename         = "environment"
-  environment_script_url       = "${var.scripts_container_id}/${local.environment_filename}_${var.location}.ps1"
-  script_filename              = "setup_windows_vm"
-  script_url                   = "${var.scripts_container_id}/${local.script_filename}_${var.location}.ps1"
 
   private_fqdn                 = replace(azurerm_private_dns_a_record.computer_name.fqdn,"/\\W*$/","")
   public_fqdn                  = local.dns_zone_rg != null ? replace(azurerm_dns_a_record.fqdn.0.fqdn,"/\\W*$/","") : azurerm_public_ip.pip.fqdn
 
   vm_name                      = "${data.azurerm_resource_group.vm_resource_group.name}-${var.location}-${var.moniker}"
   computer_name                = substr(lower(replace("windows${var.location}","/a|e|i|o|u|y/","")),0,15)
+
+  environment_variables        = merge(
+    {
+      arm_subscription_id      = data.azurerm_client_config.current.subscription_id
+      arm_tenant_id            = data.azurerm_client_config.current.tenant_id
+      # Defaults, will be overriden by variables passed into map merge
+      tf_state_resource_group = ""
+      tf_state_storage_account= ""
+      tf_state_storage_container= ""
+    },
+    var.environment_variables
+  )
 }
 
 data azurerm_client_config current {}
@@ -172,36 +154,6 @@ resource azurerm_network_interface_security_group_association nic_nsg {
   network_security_group_id    = azurerm_network_security_group.nsg.id
 }
 
-resource azurerm_storage_blob setup_windows_vm_cmd {
-  name                         = "${local.script_filename}_${var.location}.cmd"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  source_content               = templatefile("${path.module}/scripts/host/${local.script_filename}.cmd", { 
-    scripturl                  = local.script_url
-  })
-}
-
-resource azurerm_storage_blob setup_windows_vm_ps1 {
-  name                         = "${local.script_filename}_${var.location}.ps1"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  # Use source_content to trigger change when file changes
-  source_content               = file("${path.module}/scripts/host/${local.script_filename}.ps1")
-}
-
-resource azurerm_storage_blob environment_ps1 {
-  name                         = "${local.environment_filename}_${var.location}.ps1"
-  storage_account_name         = local.scripts_storage_name
-  storage_container_name       = local.scripts_container_name
-
-  type                         = "Block"
-  source_content               = templatefile("${path.module}/scripts/host/${local.environment_filename}.ps1", local.environment_variables)
-}
-
 # Adapted from https://github.com/Azure/terraform-azurerm-diskencrypt/blob/master/main.tf
 resource azurerm_key_vault_key disk_encryption_key {
   name                         = "${local.vm_name}-disk-key"
@@ -258,18 +210,22 @@ resource azurerm_windows_virtual_machine vm {
   }
   additional_unattend_content {
     setting                    = "FirstLogonCommands"
-    content                    = templatefile("${path.module}/scripts/host/FirstLogonCommands.xml", { 
-      username                 = var.admin_username, 
-      password                 = var.admin_password, 
-      scripturl                = local.script_url
-    })
+    content                    = file("${path.module}/scripts/host/FirstLogonCommands.xml")
   }
   
   boot_diagnostics {
-    storage_account_uri        = data.azurerm_storage_account.diagnostics.primary_blob_endpoint
+    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${var.diagnostics_storage_sas}"
   }
 
-  custom_data                  = base64encode(jsonencode(local.client_config))
+  custom_data                  = base64encode(templatefile("${path.module}/scripts/host/setup_windows_vm.ps1", merge(
+    { 
+      git_email                = var.git_email,
+      git_name                 = var.git_name,
+      subnet_id                = var.vm_subnet_id,
+      virtual_network_id       = local.virtual_network_id
+    },
+    local.environment_variables
+  )))
 
   identity {
     type                       = "SystemAssigned, UserAssigned"
@@ -291,7 +247,14 @@ resource azurerm_windows_virtual_machine vm {
   }
 
   tags                         = var.tags
+  lifecycle {
+    ignore_changes             = [
+      additional_unattend_content,
+      custom_data
+    ]
+  }  
 }
+
 
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
@@ -309,6 +272,10 @@ resource azurerm_monitor_diagnostic_setting vm {
 
 # Remove conflicting extensions
 resource null_resource prepare_log_analytics {
+  triggers                     = {
+    vm                         = azurerm_windows_virtual_machine.vm.id
+  }
+
   provisioner local-exec {
     command                    = "${path.root}/../scripts/remove_vm_extension.ps1 -VmName ${azurerm_windows_virtual_machine.vm.name} -ResourceGroupName ${var.resource_group_name} -Publisher Microsoft.EnterpriseCloud.Monitoring -ExtensionType MicrosoftMonitoringAgent -SkipExtensionName OmsAgentForMe"
     interpreter                = ["pwsh","-nop","-command"]
