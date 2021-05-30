@@ -122,7 +122,7 @@ try {
 
     if ($Apply) {
         # Taint Admin SSH rule(s) so they will be replaced and Terraform can get in to check cloud-init status
-        Write-Host "Tainting admin SSH rules..."
+        Write-Host "Tainting admin SSH rules to get just-in-time deployment access..."
         terraform state list | Select-String -Pattern "admin_ssh" | foreach-object {
             $resource = ($_ -replace "`"","`\`"")
             Invoke-Expression "terraform taint '$resource'"

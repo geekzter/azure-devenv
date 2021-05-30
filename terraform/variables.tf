@@ -60,6 +60,10 @@ variable enable_security_center {
   type                         = bool
   default                      = false
 }
+variable enable_update_schedule {
+  type                         = bool
+  default                      = true
+}
 variable environment_variables {
   type                         = map
   default = {
