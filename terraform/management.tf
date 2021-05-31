@@ -114,7 +114,7 @@ resource azurerm_log_analytics_solution security_center {
     product                    = "OMSGallery/${each.value}"
   }
 
-  for_each                     = (var.log_analytics_workspace_id == "" && var.log_analytics_workspace_id == null) && var.enable_security_center ? toset([
+  for_each                     = (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) && var.enable_security_center ? toset([
     "Security",
     "SecurityCenterFree"
   ]) : toset([])
