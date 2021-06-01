@@ -54,7 +54,7 @@ pr:
     - '*.md'  
 
 schedules:
-- cron: '0 3 * * *'
+- cron: '0 23 * * *'
   displayName: 'Nightly build (UTC)'
   # Run if there are no changes
   always: 'true'
