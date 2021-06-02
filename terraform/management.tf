@@ -1,54 +1,6 @@
-resource azurerm_storage_account diagnostics {
-  name                         = "${lower(replace(azurerm_resource_group.vm_resource_group.name,"-",""))}${local.suffix}diag"
-  location                     = azurerm_resource_group.vm_resource_group.location
-  resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  account_kind                 = "StorageV2"
-  account_tier                 = "Standard"
-  account_replication_type     = "LRS"
-  allow_blob_public_access     = false
-  blob_properties {
-    delete_retention_policy {
-      days                     = 365
-    }
-  }
-  enable_https_traffic_only    = true
-
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-}
-data azurerm_storage_account_sas diagnostics {
-  connection_string            = azurerm_storage_account.diagnostics.primary_connection_string
-  https_only                   = true
-
-  resource_types {
-    service                    = true
-    container                  = true
-    object                     = true
-  }
-
-  services {
-    blob                       = true
-    queue                      = false
-    table                      = true
-    file                       = true
-  }
-
-  start                        = formatdate("YYYY-MM-DD",timestamp())
-  expiry                       = formatdate("YYYY-MM-DD",timeadd(timestamp(),"8760h")) # 1 year from now (365 days)
-
-  permissions {
-    read                       = true
-    add                        = true
-    create                     = true
-    write                      = true
-    delete                     = false
-    list                       = false
-    update                     = false
-    process                    = false
-  }
-}
-
 locals {
   log_analytics_workspace_id   = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? var.log_analytics_workspace_id : azurerm_log_analytics_workspace.monitor.0.id
+  diagnostics_storage_id       = module.region_network[azurerm_resource_group.vm_resource_group.location].diagnostics_storage_id
 }
 
 resource azurerm_log_analytics_workspace monitor {
@@ -64,7 +16,7 @@ resource azurerm_log_analytics_workspace monitor {
 resource azurerm_monitor_diagnostic_setting monitor {
   name                         = "${azurerm_log_analytics_workspace.monitor.0.name}-diag"
   target_resource_id           = azurerm_log_analytics_workspace.monitor.0.id
-  storage_account_id           = azurerm_storage_account.diagnostics.id
+  storage_account_id           = local.diagnostics_storage_id
 
   log {
     category                   = "Audit"

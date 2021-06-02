@@ -165,7 +165,7 @@ resource azurerm_private_dns_zone_virtual_network_link internal_link {
   tags                         = var.tags
 }
 
-resource azurerm_storage_account diagnostics_storage {
+resource azurerm_storage_account diagnostics {
   name                         = "dev${var.location}diag${var.tags["suffix"]}"
   location                     = var.location
   resource_group_name          = var.resource_group_name
@@ -175,4 +175,35 @@ resource azurerm_storage_account diagnostics_storage {
   enable_https_traffic_only    = true
 
   tags                         = var.tags
+}
+data azurerm_storage_account_sas diagnostics {
+  connection_string            = azurerm_storage_account.diagnostics.primary_connection_string
+  https_only                   = true
+
+  resource_types {
+    service                    = true
+    container                  = true
+    object                     = true
+  }
+
+  services {
+    blob                       = true
+    queue                      = false
+    table                      = true
+    file                       = true
+  }
+
+  start                        = formatdate("YYYY-MM-DD",timestamp())
+  expiry                       = formatdate("YYYY-MM-DD",timeadd(timestamp(),"8760h")) # 1 year from now (365 days)
+
+  permissions {
+    read                       = true
+    add                        = true
+    create                     = true
+    write                      = true
+    delete                     = false
+    list                       = false
+    update                     = false
+    process                    = false
+  }
 }
