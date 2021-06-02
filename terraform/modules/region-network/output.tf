@@ -5,9 +5,6 @@ output address_space {
 output diagnostics_storage_id {
     value                      = azurerm_storage_account.diagnostics.id
 }
-output diagnostics_storage_sas {
-    value                      = data.azurerm_storage_account_sas.diagnostics.sas
-}
 
 output egress_ip_address {
     value                      = azurerm_public_ip.egress.ip_address

@@ -38,6 +38,37 @@ data azurerm_storage_account diagnostics {
   name                         = local.diagnostics_storage_name
   resource_group_name          = local.diagnostics_storage_rg
 }
+data azurerm_storage_account_sas diagnostics {
+  connection_string            = data.azurerm_storage_account.diagnostics.primary_connection_string
+  https_only                   = true
+
+  resource_types {
+    service                    = true
+    container                  = true
+    object                     = true
+  }
+
+  services {
+    blob                       = true
+    queue                      = false
+    table                      = true
+    file                       = true
+  }
+
+  start                        = formatdate("YYYY-MM-DD",timestamp())
+  expiry                       = formatdate("YYYY-MM-DD",timeadd(timestamp(),"8760h")) # 1 year from now (365 days)
+
+  permissions {
+    read                       = true
+    add                        = true
+    create                     = true
+    write                      = true
+    delete                     = false
+    list                       = false
+    update                     = false
+    process                    = false
+  }
+}
 
 data azurerm_key_vault vault {
   name                         = local.key_vault_name
@@ -214,7 +245,7 @@ resource azurerm_windows_virtual_machine vm {
   }
   
   boot_diagnostics {
-    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${var.diagnostics_storage_sas}"
+    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${data.azurerm_storage_account_sas.diagnostics.sas}"
   }
 
   custom_data                  = base64encode(templatefile("${path.module}/scripts/host/setup_windows_vm.ps1", merge(

@@ -25,7 +25,6 @@ module linux_vm {
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
-  diagnostics_storage_sas      = module.region_network[each.key].diagnostics_storage_sas
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
   enable_accelerated_networking = false
@@ -77,7 +76,6 @@ module windows_vm {
   diagnostics                  = true
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
-  diagnostics_storage_sas      = module.region_network[each.key].diagnostics_storage_sas
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking
   enable_security_center       = var.enable_security_center
