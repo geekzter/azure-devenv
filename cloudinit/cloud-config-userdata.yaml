@@ -55,8 +55,9 @@ packages:
   - man
   - mc
   - nano
-  - nmap
+  # - nmap
   - node-typescript
+  - python-minimal
   - sed
   - snapd
   - telnet
@@ -65,6 +66,7 @@ packages:
   - tree
   - unixodbc-dev
   - unzip
+  - wget
   - whois
   # Services
   - dnsmasq
