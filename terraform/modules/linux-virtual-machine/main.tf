@@ -458,6 +458,7 @@ resource azurerm_security_center_server_vulnerability_assessment qualys {
   depends_on                   = [
                                   azurerm_virtual_machine_extension.aad_login,
                                   azurerm_virtual_machine_extension.dependency_monitor,
+                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
                                   azurerm_virtual_machine_extension.policy
@@ -488,6 +489,7 @@ resource time_sleep vm_sleep {
                                   azurerm_security_center_server_vulnerability_assessment.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
                                   # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
@@ -520,6 +522,7 @@ resource azurerm_virtual_machine_extension disk_encryption {
                                   azurerm_security_center_server_vulnerability_assessment.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
                                   # azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.dependency_monitor,
                                   azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
