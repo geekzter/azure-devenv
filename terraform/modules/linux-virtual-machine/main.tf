@@ -404,21 +404,6 @@ resource azurerm_virtual_machine_extension log_analytics {
 #   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 # }
 
-resource azurerm_virtual_machine_extension aad_login {
-  name                         = "AADLoginForLinux"
-  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.ActiveDirectory.LinuxSSH"
-  type                         = "AADLoginForLinux"
-  type_handler_version         = "1.0"
-  auto_upgrade_minor_version   = true
-
-  tags                         = var.tags
-  depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.log_analytics
-  ]
-  count                        = var.enable_aad_login ? 1 : 0
-} 
 resource azurerm_virtual_machine_extension diagnostics {
   name                         = "LinuxDiagnostic"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
@@ -444,6 +429,23 @@ resource azurerm_virtual_machine_extension diagnostics {
                                   azurerm_virtual_machine_extension.log_analytics
   ]
 }
+
+resource azurerm_virtual_machine_extension aad_login {
+  name                         = "AADLoginForLinux"
+  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
+  publisher                    = "Microsoft.Azure.ActiveDirectory.LinuxSSH"
+  type                         = "AADLoginForLinux"
+  type_handler_version         = "1.0"
+  auto_upgrade_minor_version   = true
+
+  tags                         = var.tags
+  depends_on                   = [
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.log_analytics
+  ]
+  count                        = var.enable_aad_login ? 1 : 0
+} 
 resource azurerm_virtual_machine_extension dependency_monitor {
   name                         = "DAExtension"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
@@ -456,6 +458,7 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   tags                         = var.tags
   depends_on                   = [
                                   azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
 }
@@ -471,6 +474,7 @@ resource azurerm_virtual_machine_extension network_watcher {
   tags                         = var.tags
   depends_on                   = [
                                   azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
 }
@@ -484,8 +488,9 @@ resource azurerm_virtual_machine_extension policy {
 
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.cloud_config_status,
-    azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.log_analytics
   ]
 }
 

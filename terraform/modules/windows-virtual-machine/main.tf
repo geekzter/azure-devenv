@@ -514,7 +514,7 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
 }
 
-resource local_file pprivate_rdp_file {
+resource local_file private_rdp_file {
   content                      = templatefile("${path.module}/rdp.tpl",
   {
     host                       = azurerm_network_interface.nic.private_ip_address
