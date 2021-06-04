@@ -437,7 +437,7 @@ resource azurerm_virtual_machine_extension diagnostics {
     "storageAccountEndPoint"   = "https://core.windows.net"
   })
 
-  count                        = var.diagnostics ? 1 : 0
+  count                        = var.enable_vm_diagnostics ? 1 : 0
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }

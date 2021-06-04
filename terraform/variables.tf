@@ -64,6 +64,10 @@ variable enable_update_schedule {
   type                         = bool
   default                      = true
 }
+variable enable_vm_diagnostics {
+  type                         = bool
+  default                      = false
+}
 variable environment_variables {
   type                         = map
   default = {
