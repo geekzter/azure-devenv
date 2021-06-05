@@ -10,16 +10,11 @@ variable deploy_log_analytics_extensions {
   type                         = bool
 }
 variable domain {}
-variable diagnostics {
-    type                       = bool
-    default                    = false
-}
 variable disk_encryption {
     type                       = bool
     default                    = false
 }
 variable diagnostics_storage_id {}
-variable diagnostics_storage_sas {}
 variable dns_zone_id {
     default                    = null
 }
@@ -32,6 +27,10 @@ variable enable_accelerated_networking {
     default                    = false
 }
 variable enable_security_center {
+    type                       = bool
+    default                    = false
+}
+variable enable_vm_diagnostics {
     type                       = bool
     default                    = false
 }

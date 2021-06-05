@@ -74,17 +74,19 @@ resource time_sleep script_wrapper_check {
 resource azurerm_resource_group vm_resource_group {
   name                         = "dev-${terraform.workspace}-${local.suffix}"
   location                     = var.locations[0]
-  tags                         = {
-    application                = "Development Environment"
-    environment                = "dev"
-    provisioner                = "terraform"
-    repository                 = "azure-devenv"
-    runid                      = var.run_id
-    shutdown                   = "true"
-    suffix                     = local.suffix
-    workspace                  = terraform.workspace
-  }
-
+  tags                         = merge(
+    {
+      application              = "Development Environment"
+      environment              = "dev"
+      provisioner              = "terraform"
+      repository               = "azure-devenv"
+      runid                    = var.run_id
+      shutdown                 = "true"
+      suffix                   = local.suffix
+      workspace                = terraform.workspace
+    },
+    var.tags
+  )  
   depends_on                   = [time_sleep.script_wrapper_check]
 }
 

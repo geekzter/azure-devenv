@@ -38,6 +38,44 @@ data azurerm_storage_account diagnostics {
   name                         = local.diagnostics_storage_name
   resource_group_name          = local.diagnostics_storage_rg
 }
+resource time_offset sas_expiry {
+  offset_years                 = 1
+}
+resource time_offset sas_start {
+  offset_days                  = -10
+}
+data azurerm_storage_account_sas diagnostics {
+  connection_string            = data.azurerm_storage_account.diagnostics.primary_connection_string
+  https_only                   = true
+
+  resource_types {
+    service                    = false
+    container                  = true
+    object                     = true
+  }
+
+  services {
+    blob                       = true
+    queue                      = false
+    table                      = true
+    file                       = false
+  }
+
+  start                        = time_offset.sas_start.rfc3339
+  expiry                       = time_offset.sas_expiry.rfc3339  
+
+  permissions {
+    read                       = false
+    add                        = true
+    create                     = true
+    write                      = true
+    delete                     = false
+    list                       = true
+    update                     = true
+    process                    = false
+  }
+}
+
 
 data azurerm_key_vault vault {
   name                         = local.key_vault_name
@@ -214,7 +252,7 @@ resource azurerm_windows_virtual_machine vm {
   }
   
   boot_diagnostics {
-    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${var.diagnostics_storage_sas}"
+    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${data.azurerm_storage_account_sas.diagnostics.sas}"
   }
 
   custom_data                  = base64encode(templatefile("${path.module}/scripts/host/setup_windows_vm.ps1", merge(
@@ -399,7 +437,7 @@ resource azurerm_virtual_machine_extension diagnostics {
     "storageAccountEndPoint"   = "https://core.windows.net"
   })
 
-  count                        = var.diagnostics ? 1 : 0
+  count                        = var.enable_vm_diagnostics ? 1 : 0
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
@@ -476,7 +514,7 @@ resource azurerm_dev_test_global_vm_shutdown_schedule auto_shutdown {
   count                        = var.shutdown_time != null && var.shutdown_time != "" ? 1 : 0
 }
 
-resource local_file pprivate_rdp_file {
+resource local_file private_rdp_file {
   content                      = templatefile("${path.module}/rdp.tpl",
   {
     host                       = azurerm_network_interface.nic.private_ip_address

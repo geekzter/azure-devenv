@@ -64,6 +64,10 @@ variable enable_update_schedule {
   type                         = bool
   default                      = true
 }
+variable enable_vm_diagnostics {
+  type                         = bool
+  default                      = false
+}
 variable environment_variables {
   type                         = map
   default = {
@@ -138,6 +142,15 @@ variable ssh_private_key {
 variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"
 }
+
+variable tags {
+  description                  = "A map of the tags to use for the resources that are deployed"
+  type                         = map
+
+  default = {
+    shutdown                   = "true"
+  }  
+} 
 
 variable timezone {
   default                      = "W. Europe Standard Time"

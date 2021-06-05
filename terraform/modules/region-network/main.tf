@@ -165,7 +165,7 @@ resource azurerm_private_dns_zone_virtual_network_link internal_link {
   tags                         = var.tags
 }
 
-resource azurerm_storage_account diagnostics_storage {
+resource azurerm_storage_account diagnostics {
   name                         = "dev${var.location}diag${var.tags["suffix"]}"
   location                     = var.location
   resource_group_name          = var.resource_group_name

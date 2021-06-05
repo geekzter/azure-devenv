@@ -19,12 +19,7 @@ variable dependency_monitor {
 variable deploy_log_analytics_extensions {
   type                         = bool
 }
-variable diagnostics {
-    type                       = bool
-    default                    = false
-}
 variable diagnostics_storage_id {}
-variable diagnostics_storage_sas {}
 variable disk_encryption {
     type                       = bool
     default                    = false
@@ -39,6 +34,10 @@ variable enable_accelerated_networking {
 variable enable_security_center {
     type                       = bool
     default                    = false
+}
+variable enable_vm_diagnostics {
+    type                       = bool
+    default                    = true
 }
 variable environment_variables {
   type                         = map

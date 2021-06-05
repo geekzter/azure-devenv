@@ -3,7 +3,7 @@ output address_space {
 }
 
 output diagnostics_storage_id {
-    value                      = azurerm_storage_account.diagnostics_storage.id
+    value                      = azurerm_storage_account.diagnostics.id
 }
 
 output egress_ip_address {
