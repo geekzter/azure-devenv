@@ -91,6 +91,7 @@ write_files:
     content: |
       # This file has been created by Terraform -> cloud-config 
       nameserver 127.0.0.1
+      nameserver 168.63.129.16 # Fall back to Azure DNS if dnsmasq times out
       options trust-ad
       search ${nic_domain_suffix}
       search ${domain_suffix}
