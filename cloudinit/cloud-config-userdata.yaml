@@ -77,7 +77,7 @@ packages:
   - kubectl
   # Microsoft
   - azure-cli
-  - azure-functions-core-tools
+  - azure-functions-core-tools-3
   - blobfuse
   - dotnet-sdk-3.1
   # - msodbcsql17
