@@ -41,6 +41,10 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
+output key_vault_name {
+  value       = azurerm_key_vault.vault.name
+}
+
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }

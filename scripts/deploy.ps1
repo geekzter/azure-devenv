@@ -144,7 +144,21 @@ try {
                     az vm start --ids $vms --query "[].name" -o tsv
                 }
             }
+
+            $keyVault = (Get-TerraformOutput "key_vault_name")
+            if ($keyVault) {
+                $ipAddress=$(Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9).Trim()
+                Write-Information "Public IP address is $ipAddress"
+                # Get block(s) the public IP address belongs to
+                # HACK: We need this to cater for changing public IP addresses e.g. Azure Pipelines Hosted Agents
+                $ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
+                Write-Information "Public IP prefix is $ipPrefix"
+    
+                Write-Host "Adding rule for Key Vault $keyVault to allow prefix $ipPrefix..."
+                az keyvault network-rule add -g $resourceGroup -n $keyVault --ip-address $ipPrefix -o none
+            }
         }
+
         Pop-Location
 
         # Create plan
