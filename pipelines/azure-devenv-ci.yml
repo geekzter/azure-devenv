@@ -280,27 +280,6 @@ jobs:
         failOnStandardError: true
         workingDirectory: '$(scriptDirectory)'
 
-    # - task: TerraformCLI@0
-    #   displayName: 'Terraform plan'
-    #   inputs:
-    #     command: 'plan'
-    #     workingDirectory: '$(terraformDirectory)'
-    #     environmentServiceName: '$(subscriptionConnection)'
-    #     runAzLogin: true
-    #     commandOptions: '-out=ci.tfplan'
-    #     allowTelemetryCollection: true
-    #     publishPlanResults: 'ci'
-
-    # - task: TerraformCLI@0
-    #   displayName: 'Terraform apply'
-    #   inputs:
-    #     command: 'apply'
-    #     workingDirectory: '$(terraformDirectory)'
-    #     environmentServiceName: '$(subscriptionConnection)'
-    #     runAzLogin: true
-    #     commandOptions: 'ci.tfplan'
-    #     allowTelemetryCollection: true
-
     - task: TerraformCLI@0
       displayName: 'Terraform output'
       condition: succeededOrFailed()
