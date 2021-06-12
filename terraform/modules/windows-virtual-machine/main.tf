@@ -288,7 +288,8 @@ resource azurerm_windows_virtual_machine vm {
   lifecycle {
     ignore_changes             = [
       additional_unattend_content,
-      custom_data
+      custom_data,
+      source_image_reference.0.version
     ]
   }  
 }

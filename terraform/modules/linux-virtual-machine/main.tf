@@ -288,7 +288,8 @@ resource azurerm_linux_virtual_machine vm {
   lifecycle {
     ignore_changes             = [
       # Let bootstrap-os update the host configuration
-      custom_data
+      custom_data,
+      source_image_reference.0.version
     ]
   }  
 }
