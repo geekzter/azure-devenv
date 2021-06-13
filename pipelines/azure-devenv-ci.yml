@@ -293,7 +293,7 @@ jobs:
     - pwsh: |
         ./let_me_in.ps1
       # Punch holes in firewall for the agent this job runs on
-      displayName: 'Let me in'
+      displayName: 'Open ports for pipeline agent'
       workingDirectory: '$(scriptDirectory)'
 
     - task: AzureCLI@2
