@@ -231,7 +231,7 @@ jobs:
       displayName: 'Open ports for pipeline agent'
       workingDirectory: '$(scriptDirectory)'
 
-      - task: AzureCLI@2
+    - task: AzureCLI@2
       displayName: 'Restore SSH key pair'
       inputs:
         azureSubscription: '$(subscriptionConnection)'
