@@ -225,7 +225,13 @@ jobs:
           failOnStandardError: true
           workingDirectory: '$(terraformDirectory)'
 
-    - task: AzureCLI@2
+    - pwsh: |
+        ./let_me_in.ps1
+      # Punch holes in firewall for the agent this job runs on
+      displayName: 'Open ports for pipeline agent'
+      workingDirectory: '$(scriptDirectory)'
+
+      - task: AzureCLI@2
       displayName: 'Restore SSH key pair'
       inputs:
         azureSubscription: '$(subscriptionConnection)'
@@ -290,14 +296,7 @@ jobs:
       displayName: 'Prepare Terraform variables'
       workingDirectory: '$(terraformDirectory)'
 
-    - pwsh: |
-        ./let_me_in.ps1
-      # Punch holes in firewall for the agent this job runs on
-      displayName: 'Open ports for pipeline agent'
-      workingDirectory: '$(scriptDirectory)'
-
     - task: AzureCLI@2
-      name: cleanup
       displayName: 'Terraform plan & apply'
       inputs:
         azureSubscription: '$(subscriptionConnection)'
