@@ -57,8 +57,11 @@ if ($Keyname) {
         exit
     }
 
-    Write-Host "Saving ${sshPrivateKey}..."
+    Write-Host "Saving ${sshPrivateFile}..."
     Set-Content -Path $sshPrivateFile -Value $sshPrivateKey -Force:$Force
+    if (Get-Command chmod -ErrorAction SilentlyContinue) {
+        chmod 600 $sshPrivateFile
+    }
     Write-Host "Saving ${sshPublicFile}..."
     Set-Content -Path $sshPublicFile  -Value $sshPublicKey -Force:$Force
 } else {
