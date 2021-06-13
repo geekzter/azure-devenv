@@ -290,6 +290,12 @@ jobs:
       displayName: 'Prepare Terraform variables'
       workingDirectory: '$(terraformDirectory)'
 
+    - pwsh: |
+        ./let_me_in.ps1
+      name: terraformVariables
+      displayName: 'Let me in'
+      workingDirectory: '$(scriptDirectory)'
+
     - task: AzureCLI@2
       name: cleanup
       displayName: 'Terraform plan & apply'
