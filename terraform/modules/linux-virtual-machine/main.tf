@@ -164,6 +164,8 @@ resource azurerm_network_security_group nsg {
 
 resource azurerm_network_security_rule admin_ssh {
   name                         = "AdminSSH${count.index+1}"
+  # # Use unique names to force replacement and get just-in-time deployment access
+  # name                         = "AdminSSH-${formatdate("YYYYMMDDhhmmss",timestamp())}-${count.index+1}" 
   priority                     = count.index+201
   direction                    = "Inbound"
   access                       = var.public_access_enabled ? "Allow" : "Deny"
@@ -288,7 +290,8 @@ resource azurerm_linux_virtual_machine vm {
   lifecycle {
     ignore_changes             = [
       # Let bootstrap-os update the host configuration
-      custom_data
+      custom_data,
+      source_image_reference.0.version
     ]
   }  
 }

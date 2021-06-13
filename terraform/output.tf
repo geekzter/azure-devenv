@@ -41,6 +41,10 @@ output gateway_id {
   value                        = var.deploy_vpn ? module.vpn.0.gateway_id : null
 }
 
+output key_vault_name {
+  value                        = azurerm_key_vault.vault.name
+}
+
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
@@ -93,6 +97,13 @@ output root_cert_private_pem {
 output root_cert_public_pem {
   sensitive                    = false # Azure Pipeline Terraform task can't handline multiline sensitive output
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem : null
+}
+
+output ssh_private_key_id {
+  value                        = azurerm_key_vault_secret.ssh_private_key.id
+}
+output ssh_public_key_id {
+  value                        = azurerm_ssh_public_key.ssh_key.id
 }
 
 output virtual_network_id {
