@@ -99,6 +99,13 @@ output root_cert_public_pem {
   value                        = var.deploy_vpn ? module.vpn.0.root_cert_public_pem : null
 }
 
+output ssh_private_key_id {
+  value                        = azurerm_key_vault_secret.ssh_private_key.id
+}
+output ssh_public_key_id {
+  value                        = azurerm_ssh_public_key.ssh_key.id
+}
+
 output virtual_network_id {
   value                        = {for region in var.locations : region => module.region_network[region].virtual_network_id}
 }
