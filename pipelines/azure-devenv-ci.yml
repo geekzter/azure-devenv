@@ -292,7 +292,6 @@ jobs:
 
     - pwsh: |
         ./let_me_in.ps1
-      name: terraformVariables
       displayName: 'Let me in'
       workingDirectory: '$(scriptDirectory)'
 
