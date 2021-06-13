@@ -43,7 +43,11 @@ if (-not $sshPublicKey) {
 if ($Keyname) {
     $sshPrivateFile = $Keyname
     $sshPublicFile = "${Keyname}.pub"
+    $keyDirectory = (Split-Path $sshPrivateFile -Parent)
 
+    if ((-not (Test-Path $keyDirectory)) -and $Force) {
+        New-Item -ItemType Directory -Force -Path $keyDirectory | Out-Null 
+    }
     if (!$Force -and (Test-Path $sshPrivateFile)) {
         Write-Warning "${sshPrivateFile} already exists, exiting"
         exit

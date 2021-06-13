@@ -241,7 +241,11 @@ jobs:
           $env:ARM_SUBSCRIPTION_ID ??= $(az account show --query id -o tsv)
 
           ./get_ssh_key_pair.ps1 -Keyname $(TF_VAR_ssh_private_key) -Force
-          ls -al (Split-Path $(TF_VAR_ssh_private_key) -Parent)
+
+          $keyDirectory = (Split-Path $(TF_VAR_ssh_private_key) -Parent)
+          if (Test-Path $keyDirectory) {
+            ls -al $keyDirectory
+          }
         addSpnToEnvironment: true
         useGlobalConfig: true
         failOnStandardError: true
