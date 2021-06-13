@@ -22,6 +22,7 @@ param (
 $terraformDirectory = (Join-Path (Split-Path -parent -Path $PSScriptRoot) "terraform")
 Push-Location $terraformDirectory
 $resourceGroup = (Get-TerraformOutput resource_group_name)
+$keyVault = (Get-TerraformOutput "key_vault_name")
 
 if (-not $resourceGroup) {
     Write-Warning "No resources deployed in workspace $(terraform workspace show), exiting"
@@ -76,7 +77,6 @@ foreach ($nsg in $nsgs) {
 }
 
 # Update Key Vault firewall
-$keyVault = (Get-TerraformOutput "key_vault_name")
 if ($keyVault) {
     $ipAddress=$(Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9).Trim()
     Write-Information "Public IP address is $ipAddress"
@@ -87,4 +87,6 @@ if ($keyVault) {
 
     Write-Host "Adding rule for Key Vault $keyVault to allow prefix $ipPrefix..."
     az keyvault network-rule add -g $resourceGroup -n $keyVault --ip-address $ipPrefix -o none
+} else {
+    Write-Host "Key Vault not found"
 }

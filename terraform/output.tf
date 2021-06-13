@@ -42,7 +42,7 @@ output gateway_id {
 }
 
 output key_vault_name {
-  value       = azurerm_key_vault.vault.name
+  value                        = azurerm_key_vault.vault.name
 }
 
 output linux_main_fqdn {
