@@ -314,6 +314,7 @@ jobs:
 
     - task: AzureCLI@2
       displayName: 'Terraform plan & apply'
+      name: apply
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
@@ -344,13 +345,13 @@ jobs:
     #     allowTelemetryCollection: true
 
     - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
+        ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
       displayName: 'Wait for disk encryption to finish'
       workingDirectory: '$(scriptDirectory)'
 
     - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(TF_OUT_LINUX_MAIN_FQDN) 'ls -al ~'
+        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
       workingDirectory: '$(scriptDirectory)'
@@ -358,8 +359,8 @@ jobs:
     - ${{ if parameters.testReentrance }}:
       - pwsh: |
           # Pin used OS versions to prevent resources from being recreated
-          Write-Output "linux_os_version   = `"$(TF_OUT_LINUX_OS_VERSION)`""   | Out-File ci.auto.tfvars -Append -Force
-          Write-Output "windows_os_version = `"$(TF_OUT_WINDOWS_OS_VERSION)`"" | Out-File ci.auto.tfvars -Append -Force
+          Write-Output "linux_os_version   = `"$(apply.linux_os_version)`""   | Out-File ci.auto.tfvars -Append -Force
+          Write-Output "windows_os_version = `"$(apply.windows_os_version)`"" | Out-File ci.auto.tfvars -Append -Force
 
           Write-Host "Contents of ci.auto.tfvars:"
           Get-Content ci.auto.tfvars
