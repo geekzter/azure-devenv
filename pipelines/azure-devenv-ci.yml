@@ -333,15 +333,15 @@ jobs:
         failOnStandardError: true
         workingDirectory: '$(scriptDirectory)'
 
-    - task: TerraformCLI@0
-      displayName: 'Terraform output'
-      condition: succeededOrFailed()
-      inputs:
-        command: 'output'
-        workingDirectory: '$(terraformDirectory)'
-        environmentServiceName: '$(subscriptionConnection)'
-        runAzLogin: true
-        allowTelemetryCollection: true
+    # - task: TerraformCLI@0
+    #   displayName: 'Terraform output'
+    #   condition: succeededOrFailed()
+    #   inputs:
+    #     command: 'output'
+    #     workingDirectory: '$(terraformDirectory)'
+    #     environmentServiceName: '$(subscriptionConnection)'
+    #     runAzLogin: true
+    #     allowTelemetryCollection: true
 
     - pwsh: |
         ./disk_encryption_status.ps1 -ResourceGroup $(TF_OUT_RESOURCE_GROUP_NAME) -Wait
