@@ -39,6 +39,43 @@ resource azurerm_subnet vm_subnet {
                                   "Microsoft.KeyVault",
   ]
 }
+resource azurerm_network_security_group vm_nsg {
+  name                         = "${azurerm_virtual_network.region_network.name}-nsg"
+  location                     = var.location
+  resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
+
+  tags                         = var.tags
+}
+resource azurerm_network_security_rule ssh {
+  name                         = "AllowSSH"
+  priority                     = 201
+  direction                    = "Inbound"
+  access                       = "Allow"
+  protocol                     = "Tcp"
+  source_port_range            = "*"
+  destination_port_range       = "22"
+  source_address_prefix        = "*"
+  destination_address_prefix   = "*"
+  resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
+  network_security_group_name  = azurerm_network_security_group.vm_nsg.name
+}
+resource azurerm_network_security_rule rdp {
+  name                         = "AllowRDP"
+  priority                     = 202
+  direction                    = "Inbound"
+  access                       = "Allow"
+  protocol                     = "Tcp"
+  source_port_range            = "*"
+  destination_port_range       = "3389"
+  source_address_prefix        = "*"
+  destination_address_prefix   = "*"
+  resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
+  network_security_group_name  = azurerm_network_security_group.vm_nsg.name
+}
+resource azurerm_subnet_network_security_group_association vm_nsg {
+  subnet_id                    = azurerm_subnet.vm_subnet.id
+  network_security_group_id    = azurerm_network_security_group.vm_nsg.id
+}
 
 resource azurerm_subnet bastion_subnet {
   name                         = "AzureBastionSubnet"

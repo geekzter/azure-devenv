@@ -328,6 +328,18 @@ function Invoke (
     }
 }
 
+function Set-PipelineVariablesFromTerraform () {
+    $json = terraform output -json | ConvertFrom-Json -AsHashtable
+    foreach ($outputVariable in $json.keys) {
+        $value = $json[$outputVariable].value
+        if ($value) {
+            # Write variable output in the format a Pipeline can understand
+            # https://github.com/Microsoft/azure-pipelines-agent/blob/master/docs/preview/outputvariable.md
+            Write-Host "##vso[task.setvariable variable=${outputVariable};isOutput=true]${value}"
+        }
+    }
+}
+
 function Update-AzureVPNProfile (
     [parameter(Mandatory=$true)][string]$PackagePath,
     [parameter(Mandatory=$false)][string]$ClientCert,
