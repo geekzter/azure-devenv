@@ -49,7 +49,7 @@ Terraform generates RDP connection files for both private and public IP address 
 
 ### Pre-requisites
 #### Codespace
-The easiest method is to use a GitHub [Codespace](https://github.com/features/codespaces) (in beta). Just create a GitHub Codespace from the Code menu. This will create a Codespace with pre-requizites installed. 
+The easiest method is to use a GitHub [Codespace](https://github.com/features/codespaces) (in beta). Just create a GitHub Codespace from the Code menu. This will create a Codespace with prerequisites installed. 
 #### Local setup
 If you set this up locally, make sure you have the following pre-requisites:
 - [Azure CLI](http://aka.ms/azure-cli)
