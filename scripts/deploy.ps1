@@ -137,10 +137,11 @@ try {
                 }
             }
         }
-
         Pop-Location
+    }
 
-        # Create plan
+    if ($Plan -or $Apply) {
+            # Create plan
         Invoke "terraform plan $varArgs -out='$planFile' -var=""script_wrapper_check=false"" "
     }
 
