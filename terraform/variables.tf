@@ -164,11 +164,14 @@ variable windows_accelerated_networking {
   type                         = bool
   default                      = false
 }
-variable windows_sku {
-  default                      = "20h2-ent-g2"
+variable windows_offer {
+  default                      = "Windows-10"
 }
 variable windows_os_version {
   default                      = "latest"
+}
+variable windows_sku {
+  default                      = "win10-21h2-pro-g2"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

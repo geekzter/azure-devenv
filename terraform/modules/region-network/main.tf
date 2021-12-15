@@ -46,29 +46,29 @@ resource azurerm_network_security_group vm_nsg {
 
   tags                         = var.tags
 }
-resource azurerm_network_security_rule ssh {
-  name                         = "AllowSSH"
+resource azurerm_network_security_rule ras {
+  name                         = "AllowRAS"
   priority                     = 201
   direction                    = "Inbound"
   access                       = "Allow"
   protocol                     = "Tcp"
   source_port_range            = "*"
-  destination_port_range       = "22"
+  destination_port_ranges      = ["22","3389"]
   source_address_prefix        = var.vpn_range
   destination_address_prefix   = "VirtualNetwork"
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }
-resource azurerm_network_security_rule rdp {
-  name                         = "AllowRDP"
-  priority                     = 202
+resource azurerm_network_security_rule terraform_ssh {
+  name                         = "TerraformSSH"
+  priority                     = 299
   direction                    = "Inbound"
   access                       = "Allow"
   protocol                     = "Tcp"
   source_port_range            = "*"
-  destination_port_range       = "3389"
-  source_address_prefix        = var.vpn_range
-  destination_address_prefix   = "VirtualNetwork"
+  destination_port_range       = "22"
+  source_address_prefixes      = var.admin_cidr_ranges
+  destination_address_prefix   = "*"
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }
@@ -76,98 +76,6 @@ resource azurerm_subnet_network_security_group_association vm_nsg {
   subnet_id                    = azurerm_subnet.vm_subnet.id
   network_security_group_id    = azurerm_network_security_group.vm_nsg.id
 }
-
-resource azurerm_subnet bastion_subnet {
-  name                         = "AzureBastionSubnet"
-  virtual_network_name         = azurerm_virtual_network.region_network.name
-  resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-  address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],11,0)]
-
-  count                        = var.deploy_bastion ? 1 : 0
-}
-resource azurerm_public_ip bastion_ip {
-  name                         = "${azurerm_virtual_network.region_network.name}-bastion-ip"
-  location                     = var.location
-  resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-  allocation_method            = "Static"
-  sku                          = "Standard"
-
-  tags                         = var.tags
-
-  count                        = var.deploy_bastion ? 1 : 0
-}
-resource azurerm_monitor_diagnostic_setting bastion_ip {
-  name                         = "${azurerm_public_ip.bastion_ip.0.name}-logs"
-  target_resource_id           = azurerm_public_ip.bastion_ip.0.id
-  log_analytics_workspace_id   = var.log_analytics_workspace_id
-
-  log {
-    category                   = "DDoSProtectionNotifications"
-    enabled                    = true
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-  log {
-    category                   = "DDoSMitigationFlowLogs"
-    enabled                    = true
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-  log {
-    category                   = "DDoSMitigationReports"
-    enabled                    = true
-
-    retention_policy {
-      enabled                  = false
-    }
-  }  
-
-  metric {
-    category                   = "AllMetrics"
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-
-  count                        = var.deploy_bastion ? 1 : 0
-} 
-
-resource azurerm_bastion_host bastion {
-  name                         = "${azurerm_virtual_network.region_network.name}-bastion"
-  location                     = var.location
-  resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-
-  ip_configuration {
-    name                       = "configuration"
-    subnet_id                  = azurerm_subnet.bastion_subnet.0.id
-    public_ip_address_id       = azurerm_public_ip.bastion_ip.0.id
-  }
-
-  tags                         = var.tags
-
-  count                        = var.deploy_bastion ? 1 : 0
-}
-resource azurerm_monitor_diagnostic_setting bastion {
-  name                         = "${azurerm_bastion_host.bastion.0.name}-diagnostics"
-  target_resource_id           = azurerm_bastion_host.bastion.0.id
-  log_analytics_workspace_id   = var.log_analytics_workspace_id
-
-  log {
-    category                   = "BastionAuditLogs"
-    enabled                    = true
-
-    retention_policy {
-      enabled                  = false
-    }
-  }
-
-  count                        = var.deploy_bastion ? 1 : 0
-} 
 
 resource azurerm_nat_gateway egress {
   name                         = "${azurerm_virtual_network.region_network.name}-natgw"

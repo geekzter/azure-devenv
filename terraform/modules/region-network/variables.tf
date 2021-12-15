@@ -1,6 +1,10 @@
 variable address_space {
     description                = "The IP range for the VNet"
 }
+variable admin_cidr_ranges {
+    type                       = list
+    default                    = []
+}
 variable deploy_bastion {
     type                       = bool
 }

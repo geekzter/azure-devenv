@@ -54,6 +54,9 @@ variable network_watcher {
     type                       = bool
     default                    = false
 }
+variable os_offer {
+    default                    = "Windows-10"
+}
 variable os_sku {
     default                    = "20h2-ent-g2"
 }

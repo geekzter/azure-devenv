@@ -221,7 +221,7 @@ data azurerm_platform_image latest_image {
 locals {
   # Workaround for:
   # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
-  os_offer                     = "Windows-10"
+  os_offer                     = var.os_offer
   os_publisher                 = "MicrosoftWindowsDesktop"
   os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
   os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
