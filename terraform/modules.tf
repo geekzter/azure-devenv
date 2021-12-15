@@ -8,6 +8,7 @@ module region_network {
   deploy_bastion               = var.deploy_bastion
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
+  vpn_range                    = var.vpn_range
 
   for_each                     = toset(var.locations)
   depends_on                   = [time_sleep.script_wrapper_check]

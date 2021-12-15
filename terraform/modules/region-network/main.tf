@@ -54,8 +54,8 @@ resource azurerm_network_security_rule ssh {
   protocol                     = "Tcp"
   source_port_range            = "*"
   destination_port_range       = "22"
-  source_address_prefix        = "*"
-  destination_address_prefix   = "*"
+  source_address_prefix        = var.vpn_range
+  destination_address_prefix   = "VirtualNetwork"
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }
@@ -67,8 +67,8 @@ resource azurerm_network_security_rule rdp {
   protocol                     = "Tcp"
   source_port_range            = "*"
   destination_port_range       = "3389"
-  source_address_prefix        = "*"
-  destination_address_prefix   = "*"
+  source_address_prefix        = var.vpn_range
+  destination_address_prefix   = "VirtualNetwork"
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }

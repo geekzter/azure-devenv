@@ -22,4 +22,6 @@ variable tags {
   description                  = "A map of the tags to use for the resources that are deployed"
   type                         = map
 } 
-
+variable vpn_range {
+    description                = "The client subnet range for VPN"
+}
