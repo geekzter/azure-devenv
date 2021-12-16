@@ -232,7 +232,7 @@ jobs:
     - ${{ if not(parameters.clear) }}:
       - task: AzureCLI@2
         # Punch holes in firewall for the agent this job runs on
-        displayName: 'Open ports for pipeline agent'
+        displayName: 'Open ports on pre-existing virtual machines'
         inputs:
           azureSubscription: '$(subscriptionConnection)'
           scriptType: pscore
@@ -349,7 +349,7 @@ jobs:
 
     - task: AzureCLI@2
       # Punch holes in firewall for the agent this job runs on
-      displayName: 'Open ports for pipeline agent'
+      displayName: 'Open ports on virtual machines'
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
