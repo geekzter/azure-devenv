@@ -1,6 +1,10 @@
 variable address_space {
     description                = "The IP range for the VNet"
 }
+variable admin_cidr_ranges {
+    type                       = list
+    default                    = []
+}
 variable deploy_bastion {
     type                       = bool
 }
@@ -22,4 +26,6 @@ variable tags {
   description                  = "A map of the tags to use for the resources that are deployed"
   type                         = map
 } 
-
+variable vpn_range {
+    description                = "The client subnet range for VPN"
+}
