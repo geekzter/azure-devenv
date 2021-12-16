@@ -174,24 +174,6 @@ resource azurerm_network_security_rule admin_ssh {
   destination_address_prefix   = "*"
   resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.nsg.name
-
-  # depends_on                   = [
-  #   null_resource.cloud_config_status # Close this port once we have obtained cloud init status via remote-provisioner
-  # ]
-}
-
-resource azurerm_network_security_rule terraform_ssh {
-  name                         = "TerraformSSH"
-  priority                     = 299
-  direction                    = "Inbound"
-  access                       = "Allow"
-  protocol                     = "Tcp"
-  source_port_range            = "*"
-  destination_port_range       = "22"
-  source_address_prefix        = var.terraform_cidr
-  destination_address_prefix   = "*"
-  resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
-  network_security_group_name  = azurerm_network_security_group.nsg.name
 }
 
 resource azurerm_network_interface_security_group_association nic_nsg {
@@ -322,35 +304,6 @@ resource azurerm_virtual_machine_extension cloud_config_status {
     create                     = "60m"
   }  
 }
-
-# resource null_resource cloud_config_status {
-#   triggers                     = {
-#     vm                         = azurerm_linux_virtual_machine.vm.id
-#   }
-
-#   # Get cloud-init status, waiting for completion if needed
-#   provisioner remote-exec {
-#     inline                     = [
-#       "echo -n 'waiting for cloud-init to complete'",
-#       "/usr/bin/cloud-init status --long --wait >/dev/null", # Let Terraform print progress
-#       "systemctl status cloud-final.service --full --no-pager --wait"
-#     ]
-
-#     connection {
-#       type                     = "ssh"
-#       user                     = var.user_name
-#       # password                 = var.user_password
-#       private_key              = file(var.ssh_private_key)
-#       host                     = azurerm_public_ip.pip.ip_address
-#     }
-#   }
-
-#   depends_on                   = [
-#                                   azurerm_virtual_machine_extension.cloud_config_status,
-#                                   azurerm_network_interface_security_group_association.nic_nsg,
-#                                   azurerm_network_security_rule.terraform_ssh,
-#   ]
-# }
 
 # Remove conflicting extensions
 resource null_resource prepare_log_analytics {
