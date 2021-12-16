@@ -70,6 +70,8 @@ variables:
   value: 180
 - name: 'repository'
   value: 'azure-devenv'
+- name: AZURE_CORE_ONLY_SHOW_ERRORS
+  value: 'true'
 - name: AZURE_EXTENSION_USE_DYNAMIC_INSTALL
   value: 'yes_without_prompt'
 - name: 'TF_IN_AUTOMATION'
@@ -337,16 +339,6 @@ jobs:
         retryCountOnTaskFailure: 3
         workingDirectory: '$(scriptDirectory)'
 
-    # - task: TerraformCLI@0
-    #   displayName: 'Terraform output'
-    #   condition: succeededOrFailed()
-    #   inputs:
-    #     command: 'output'
-    #     workingDirectory: '$(terraformDirectory)'
-    #     environmentServiceName: '$(subscriptionConnection)'
-    #     runAzLogin: true
-    #     allowTelemetryCollection: true
-
     - pwsh: |
         ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
@@ -354,6 +346,7 @@ jobs:
       workingDirectory: '$(scriptDirectory)'
 
     - bash: |
+        ./let_me_in.ps1
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
