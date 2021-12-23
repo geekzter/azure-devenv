@@ -1,6 +1,3 @@
-# Ignore files with sensitive information
-backend.tf
-
 # Ignore generated RDP files
 *.rdp
 
@@ -17,3 +14,14 @@ data/**
 *.p12
 *.pem
 *.pfx
+
+#  Terraform
+**/.terraform/*
+*.plan
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.auto.tfvars
+*.tfvars
+terraform.log
+backend.tf
