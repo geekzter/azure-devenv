@@ -68,7 +68,7 @@ resource azurerm_network_security_rule admin_ras {
   source_port_range            = "*"
   destination_port_ranges      = ["22","3389"]
   source_address_prefixes      = var.admin_cidr_ranges
-  destination_address_prefix   = "VirtualNetwork"
+  destination_address_prefix   = "*"
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }
