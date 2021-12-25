@@ -21,6 +21,7 @@ module linux_vm {
   admin_cidr_ranges            = local.admin_cidr_ranges
   user_name                    = var.admin_username
   user_password                = local.password
+  bootstrap_branch             = var.bootstrap_branch
   dependency_monitor           = true
   deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   domain                       = var.vm_domain

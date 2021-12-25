@@ -2,6 +2,9 @@ variable admin_cidr_ranges {
     type                       = list
     default                    = []
 }
+variable bootstrap_branch {
+    default                    = "master"
+}
 variable dependency_monitor {
     type                       = bool
     default                    = false
