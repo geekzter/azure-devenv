@@ -126,7 +126,7 @@ if (!(Test-Path $settingsFile)) {
     }
     $settings | ConvertTo-Json | Out-File $settingsFile
 }
-& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Packages Developer -PowerShell:$true -Settings:$true
+& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Branch ${bootstrap_branch} -Packages Developer -PowerShell:$true -Settings:$true
 
 # Developer shortcuts
 if (Test-Path "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState") {
