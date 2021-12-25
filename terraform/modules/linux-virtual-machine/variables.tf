@@ -26,6 +26,10 @@ variable enable_accelerated_networking {
     type                       = bool
     default                    = false
 }
+variable enable_policy_extension {
+    type                       = bool
+    default                    = false
+}
 variable enable_security_center {
     type                       = bool
     default                    = false
@@ -60,6 +64,10 @@ variable os_sku {
 }
 variable os_version {
     default                    = "latest"
+}
+variable prepare_host {
+  type                         = bool
+  default                      = true
 }
 variable private_dns_zone {}
 variable public_access_enabled {

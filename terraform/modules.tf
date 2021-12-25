@@ -29,7 +29,8 @@ module linux_vm {
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
   enable_accelerated_networking = false
-  enable_security_center       = var.enable_security_center
+  enable_policy_extension      = var.enable_policy_extensions
+  enable_security_center       = var.enable_policy_extensions
   enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
@@ -43,6 +44,7 @@ module linux_vm {
   os_publisher                 = var.linux_os_publisher
   os_sku                       = var.linux_os_sku
   os_version                   = var.linux_os_version
+  prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   shutdown_time                = var.shutdown_time
@@ -73,13 +75,15 @@ module windows_vm {
   admin_username               = var.admin_username
   admin_password               = local.password
   bg_info                      = true
+  bootstrap_branch             = var.bootstrap_branch
   dependency_monitor           = true
   deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
   enable_accelerated_networking = var.windows_accelerated_networking
-  enable_security_center       = var.enable_security_center
+  enable_policy_extension      = var.enable_policy_extensions
+  enable_security_center       = var.enable_policy_extensions
   enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
@@ -90,8 +94,10 @@ module windows_vm {
   moniker                      = "w"
   network_watcher              = true
   os_offer                     = var.windows_offer
+  os_publisher                 = var.windows_publisher
   os_sku                       = var.windows_sku
   os_version                   = var.windows_os_version
+  prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   resource_group_name          = azurerm_resource_group.vm_resource_group.name

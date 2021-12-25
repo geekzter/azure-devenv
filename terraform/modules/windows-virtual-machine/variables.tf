@@ -12,6 +12,9 @@ variable bg_info {
     type                       = bool
     default                    = false
 }
+variable bootstrap_branch {
+    default                    = "master"
+}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -28,6 +31,10 @@ variable dns_zone_id {
     default                    = null
 }
 variable enable_accelerated_networking {
+    type                       = bool
+    default                    = false
+}
+variable enable_policy_extension {
     type                       = bool
     default                    = false
 }
@@ -57,6 +64,9 @@ variable network_watcher {
 variable os_offer {
     default                    = "Windows-10"
 }
+variable os_publisher {
+    default                    = "MicrosoftWindowsDesktop"
+}
 variable os_sku {
     default                    = "20h2-ent-g2"
 }
@@ -65,6 +75,10 @@ variable os_version {
 }
 variable public_access_enabled {
   type                         = bool
+}
+variable prepare_host {
+  type                         = bool
+  default                      = true
 }
 variable private_dns_zone {}
 variable resource_group_name {}
