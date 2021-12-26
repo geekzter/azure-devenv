@@ -300,7 +300,8 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          if ("$(TF_VAR_windows_offer)" -eq "visualstudio2022") {
+          $offer = "$(TF_VAR_windows_offer)"
+          if ($offer -and ($offer -ine "visualstudio2022")) {
             Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
             az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
             Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
