@@ -62,13 +62,13 @@ variable network_watcher {
     default                    = false
 }
 variable os_offer {
-    default                    = "Windows-10"
+    default                    = "visualstudio2022"
 }
 variable os_publisher {
-    default                    = "MicrosoftWindowsDesktop"
+    default                    = "microsoftvisualstudio"
 }
 variable os_sku {
-    default                    = "20h2-ent-g2"
+    default                    = "vs-2022-comm-latest-win11-n"
 }
 variable os_version {
     default                    = "latest"
@@ -78,7 +78,7 @@ variable public_access_enabled {
 }
 variable prepare_host {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 variable private_dns_zone {}
 variable resource_group_name {}

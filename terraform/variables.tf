@@ -116,7 +116,7 @@ variable log_analytics_workspace_id {
 
 variable prepare_host {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 
 variable public_access_enabled {
@@ -174,16 +174,16 @@ variable windows_accelerated_networking {
   default                      = false
 }
 variable windows_offer {
-  default                      = "Windows-10"
+  default                      = "visualstudio2022"
 }
 variable windows_os_version {
   default                      = "latest"
 }
 variable windows_publisher {
-  default                      = "MicrosoftWindowsDesktop"
+  default                      = "microsoftvisualstudio"
 }
 variable windows_sku {
-  default                      = "win10-21h2-pro-g2"
+  default                      = "vs-2022-comm-latest-win11-n"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"
