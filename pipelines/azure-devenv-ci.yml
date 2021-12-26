@@ -134,7 +134,7 @@ jobs:
       ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
         TF_VAR_resource_suffix: '$(Build.BuildId)'
       unpinTerraformProviders: ${{ eq(parameters.unpinTerraformProviders, 'Yes') }}
-    windows_offer: coalesce(variables['TF_VAR_windows_offer'],'') # Ensure variable exist so it gets expanded on PowerShell
+    windows_offer: variables['TF_VAR_windows_offer'] # Ensure variable exist so it gets expanded on PowerShell
     publishTerraformArtifact: true
     resourceGroup: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
 
@@ -310,146 +310,146 @@ jobs:
             Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
             Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
           } else {
-            Write-Host "Offer not set or explicitly set to something else than Visual Studio 2022"
+            Write-Host "Offer set to something else than Visual Studio 2022"
           }
         useGlobalConfig: true
         failOnStandardError: true
         workingDirectory: '$(terraformDirectory)'
         
-    - pwsh: |
-        if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
-          $env:TF_VAR_RESOURCE_SUFFIX = $null
-          $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
-        }
+    # - pwsh: |
+    #     if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
+    #       $env:TF_VAR_RESOURCE_SUFFIX = $null
+    #       $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
+    #     }
 
-        # List environment variables
-        Get-ChildItem -Path Env: -Recurse -Include ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
+    #     # List environment variables
+    #     Get-ChildItem -Path Env: -Recurse -Include ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
 
-        # Convert uppercased Terraform environment variables to .auto.tfvars file
-        foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
-          $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
-          $terraformVariableValue = $tfVar.Value
+    #     # Convert uppercased Terraform environment variables to .auto.tfvars file
+    #     foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
+    #       $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
+    #       $terraformVariableValue = $tfVar.Value
 
-          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
-            # Boolean or List, write as-is
-            Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
-          } else {
-            Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
-          }
-        } 
-        Write-Host "Contents of ci.auto.tfvars:"
-        Get-Content ci.auto.tfvars
-      name: terraformVariables
-      displayName: 'Prepare Terraform variables'
-      workingDirectory: '$(terraformDirectory)'
+    #       if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
+    #         # Boolean or List, write as-is
+    #         Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
+    #       } else {
+    #         Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
+    #       }
+    #     } 
+    #     Write-Host "Contents of ci.auto.tfvars:"
+    #     Get-Content ci.auto.tfvars
+    #   name: terraformVariables
+    #   displayName: 'Prepare Terraform variables'
+    #   workingDirectory: '$(terraformDirectory)'
 
-    - task: AzureCLI@2
-      displayName: 'Terraform plan & apply'
-      name: apply
-      inputs:
-        azureSubscription: '$(subscriptionConnection)'
-        scriptType: pscore
-        scriptLocation: inlineScript
-        inlineScript: |
-          # Propagate pipeline Service Principal as Terraform variables
-          $env:ARM_CLIENT_ID       ??= $env:servicePrincipalId
-          $env:ARM_CLIENT_SECRET   ??= $env:servicePrincipalKey
-          $env:ARM_TENANT_ID       ??= $env:tenantId
-          # Get from Azure CLI context
-          $env:ARM_TENANT_ID       ??= $(az account show --query tenantId -o tsv)
-          $env:ARM_SUBSCRIPTION_ID ??= $(az account show --query id -o tsv)
+    # - task: AzureCLI@2
+    #   displayName: 'Terraform plan & apply'
+    #   name: apply
+    #   inputs:
+    #     azureSubscription: '$(subscriptionConnection)'
+    #     scriptType: pscore
+    #     scriptLocation: inlineScript
+    #     inlineScript: |
+    #       # Propagate pipeline Service Principal as Terraform variables
+    #       $env:ARM_CLIENT_ID       ??= $env:servicePrincipalId
+    #       $env:ARM_CLIENT_SECRET   ??= $env:servicePrincipalKey
+    #       $env:ARM_TENANT_ID       ??= $env:tenantId
+    #       # Get from Azure CLI context
+    #       $env:ARM_TENANT_ID       ??= $(az account show --query tenantId -o tsv)
+    #       $env:ARM_SUBSCRIPTION_ID ??= $(az account show --query id -o tsv)
 
-          ./deploy.ps1 -apply -force
-        addSpnToEnvironment: true
-        useGlobalConfig: true
-        failOnStandardError: true
-        retryCountOnTaskFailure: 3
-        workingDirectory: '$(scriptDirectory)'
+    #       ./deploy.ps1 -apply -force
+    #     addSpnToEnvironment: true
+    #     useGlobalConfig: true
+    #     failOnStandardError: true
+    #     retryCountOnTaskFailure: 3
+    #     workingDirectory: '$(scriptDirectory)'
 
-    - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
-      displayName: 'Wait for disk encryption to finish'
-      workingDirectory: '$(scriptDirectory)'
+    # - pwsh: |
+    #     ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
+    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
+    #   displayName: 'Wait for disk encryption to finish'
+    #   workingDirectory: '$(scriptDirectory)'
 
-    - task: AzureCLI@2
-      # Punch holes in firewall for the agent this job runs on
-      displayName: 'Open ports on virtual machines'
-      inputs:
-        azureSubscription: '$(subscriptionConnection)'
-        scriptType: pscore
-        scriptLocation: inlineScript
-        inlineScript: |
-          # Propagate pipeline Service Principal as Terraform variables
-          $env:ARM_CLIENT_ID       ??= $env:servicePrincipalId
-          $env:ARM_CLIENT_SECRET   ??= $env:servicePrincipalKey
-          $env:ARM_TENANT_ID       ??= $env:tenantId
-          # Get from Azure CLI context
-          $env:ARM_TENANT_ID       ??= $(az account show --query tenantId -o tsv)
-          $env:ARM_SUBSCRIPTION_ID ??= $(az account show --query id -o tsv)
+    # - task: AzureCLI@2
+    #   # Punch holes in firewall for the agent this job runs on
+    #   displayName: 'Open ports on virtual machines'
+    #   inputs:
+    #     azureSubscription: '$(subscriptionConnection)'
+    #     scriptType: pscore
+    #     scriptLocation: inlineScript
+    #     inlineScript: |
+    #       # Propagate pipeline Service Principal as Terraform variables
+    #       $env:ARM_CLIENT_ID       ??= $env:servicePrincipalId
+    #       $env:ARM_CLIENT_SECRET   ??= $env:servicePrincipalKey
+    #       $env:ARM_TENANT_ID       ??= $env:tenantId
+    #       # Get from Azure CLI context
+    #       $env:ARM_TENANT_ID       ??= $(az account show --query tenantId -o tsv)
+    #       $env:ARM_SUBSCRIPTION_ID ??= $(az account show --query id -o tsv)
 
-          ./let_me_in.ps1
-        addSpnToEnvironment: true
-        useGlobalConfig: true
-        failOnStandardError: true
-        workingDirectory: '$(scriptDirectory)'
+    #       ./let_me_in.ps1
+    #     addSpnToEnvironment: true
+    #     useGlobalConfig: true
+    #     failOnStandardError: true
+    #     workingDirectory: '$(scriptDirectory)'
 
-    - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
-      displayName: 'Test SSH connection'
-      workingDirectory: '$(scriptDirectory)'
+    # - bash: |
+    #     ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
+    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
+    #   displayName: 'Test SSH connection'
+    #   workingDirectory: '$(scriptDirectory)'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform plan (re-entrance test)'
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        inputs:
-          command: 'plan'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: '-out=ci-update.tfplan'
-          allowTelemetryCollection: true
-          publishPlanResults: 'ci-update'
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@0
+    #     displayName: 'Terraform plan (re-entrance test)'
+    #     continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
+    #     inputs:
+    #       command: 'plan'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: '-out=ci-update.tfplan'
+    #       allowTelemetryCollection: true
+    #       publishPlanResults: 'ci-update'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        displayName: 'Terraform apply (re-entrance test)'
-        inputs:
-          command: 'apply'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: 'ci-update.tfplan'
-          allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@0
+    #     continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
+    #     displayName: 'Terraform apply (re-entrance test)'
+    #     inputs:
+    #       command: 'apply'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: 'ci-update.tfplan'
+    #       allowTelemetryCollection: true
+    #       retryCountOnTaskFailure: 3
 
-    - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - pwsh: |
-          Write-Host "##vso[task.setvariable variable=result;isOutput=true]success"
-        name: provisioningResult
-        displayName: 'Indicate provisioning success'
-        condition: succeeded()
+    # - ${{ if not(eq(parameters.destroy, 'Never')) }}:
+    #   - pwsh: |
+    #       Write-Host "##vso[task.setvariable variable=result;isOutput=true]success"
+    #     name: provisioningResult
+    #     displayName: 'Indicate provisioning success'
+    #     condition: succeeded()
 
-    - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
-        ${{ if eq(parameters.destroy, 'Always') }}:
-          condition: succeededOrFailed()
-        ${{ if eq(parameters.destroy, 'On failure') }}:
-          condition: failed()
-        ${{ if eq(parameters.destroy, 'On success') }}:
-          condition: succeeded()
-        continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
-        inputs:
-          command: 'destroy'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
+    # - ${{ if not(eq(parameters.destroy, 'Never')) }}:
+    #   - task: TerraformCLI@0
+    #     displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
+    #     ${{ if eq(parameters.destroy, 'Always') }}:
+    #       condition: succeededOrFailed()
+    #     ${{ if eq(parameters.destroy, 'On failure') }}:
+    #       condition: failed()
+    #     ${{ if eq(parameters.destroy, 'On success') }}:
+    #       condition: succeeded()
+    #     continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
+    #     inputs:
+    #       command: 'destroy'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       allowTelemetryCollection: true
+    #       retryCountOnTaskFailure: 3
 
 
 - ${{ if ne(parameters.destroy, 'Never') }}:
