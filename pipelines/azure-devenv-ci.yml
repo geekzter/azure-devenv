@@ -134,7 +134,7 @@ jobs:
       ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
         TF_VAR_resource_suffix: '$(Build.BuildId)'
       unpinTerraformProviders: ${{ eq(parameters.unpinTerraformProviders, 'Yes') }}
-    windows_offer: '$(TF_VAR_windows_offer)' # Ensure variable exist so it gets expanded on PowerShell
+    windows_offer: coalesce(variables['TF_VAR_windows_offer'],'') # Ensure variable exist so it gets expanded on PowerShell
     publishTerraformArtifact: true
     resourceGroup: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
 
