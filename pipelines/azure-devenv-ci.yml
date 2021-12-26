@@ -302,11 +302,15 @@ jobs:
         scriptLocation: inlineScript
         inlineScript: |
           $offer = "$(windows_offer)"
+          Write-Host "TF_VAR_windows_offer='$offer'"
           if (!$offer -or ($offer -ieq "visualstudio2022")) {
+            Write-Host "Offer not set or explicitly set to Visual Studio 2022"
             Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
             az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
             Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
             Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
+          } else {
+            Write-Host "Offer not set or explicitly set to something else than Visual Studio 2022"
           }
         useGlobalConfig: true
         failOnStandardError: true
