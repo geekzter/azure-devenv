@@ -294,16 +294,18 @@ jobs:
     - task: AzureCLI@2
       name: cleanup
       displayName: 'Avoid VM image versions with known issues'
-      continueOnError: true # Ignore if we can succeed without it this
+      #continueOnError: true # Ignore if we can succeed without it this
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
-          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
-          Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
-          Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
+          if ("$(TF_VAR_windows_offer)" -eq "visualstudio2022") {
+            Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
+            az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
+            Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
+            Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
+          }
         useGlobalConfig: true
         failOnStandardError: true
         workingDirectory: '$(terraformDirectory)'
@@ -391,17 +393,6 @@ jobs:
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
       workingDirectory: '$(scriptDirectory)'
-
-    - ${{ if parameters.testReentrance }}:
-      - pwsh: |
-          # Pin used OS versions to prevent resources from being recreated
-          Write-Output "linux_os_version   = `"$(apply.linux_os_version)`""   | Out-File ci.auto.tfvars -Append -Force
-          Write-Output "windows_os_version = `"$(apply.windows_os_version)`"" | Out-File ci.auto.tfvars -Append -Force
-
-          Write-Host "Contents of ci.auto.tfvars:"
-          Get-Content ci.auto.tfvars
-        displayName: 'Prepare Terraform OS variables'
-        workingDirectory: '$(terraformDirectory)'
 
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0
