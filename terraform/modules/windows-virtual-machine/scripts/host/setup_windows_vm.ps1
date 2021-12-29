@@ -117,17 +117,19 @@ $bootstrapScript = "$env:PUBLIC\bootstrap_windows.ps1"
 . $bootstrapScript -Branch ${bootstrap_branch}
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 $settingsFileSample = $settingsFile + ".sample"
-if (!(Test-Path $settingsFile) -and (Test-Path $settingsFileSample)) {
-    Get-Content $settingsFileSample | ConvertFrom-Json | Set-Variable settings
-    if ($gitEmail) {
-        $settings.GitEmail = $gitEmail       
+if (!(Test-Path $settingsFile)) {
+    if (Test-Path $settingsFileSample) {
+        Get-Content $settingsFileSample | ConvertFrom-Json | Set-Variable settings
+        if ($gitEmail) {
+            $settings.GitEmail = $gitEmail       
+        }
+        if ($gitName) {
+            $settings.GitName = $gitName
+        }
+        $settings | ConvertTo-Json | Out-File $settingsFile
+    } else {
+        Write-Warning "Unable to configure GitHub settings, settings file not found"
     }
-    if ($gitName) {
-        $settings.GitName = $gitName
-    }
-    $settings | ConvertTo-Json | Out-File $settingsFile
-} else {
-    Write-Warning "Unable to configure GitHub settings, settings file not found"
 }
 & ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Branch ${bootstrap_branch} -Packages Developer -PowerShell:$true -Settings:$true
 
