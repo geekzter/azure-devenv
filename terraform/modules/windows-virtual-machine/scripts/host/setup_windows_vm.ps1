@@ -119,6 +119,8 @@ $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 $settingsFileSample = $settingsFile + ".sample"
 if (!(Test-Path $settingsFile)) {
     if (Test-Path $settingsFileSample) {
+        Write-Host "Settings sample:"
+        Get-Content $settingsFileSample | ConvertFrom-Json
         Get-Content $settingsFileSample | ConvertFrom-Json | Set-Variable settings
         if ($gitEmail) {
             $settings.GitEmail = $gitEmail       
@@ -126,6 +128,8 @@ if (!(Test-Path $settingsFile)) {
         if ($gitName) {
             $settings.GitName = $gitName
         }
+        Write-Host "Settings:"
+        $settings
         $settings | ConvertTo-Json | Out-File $settingsFile
     } else {
         Write-Warning "Unable to configure GitHub settings, settings file not found"
