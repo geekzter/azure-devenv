@@ -119,9 +119,7 @@ $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 $settingsFileSample = $settingsFile + ".sample"
 if (!(Test-Path $settingsFile)) {
     if (Test-Path $settingsFileSample) {
-        Write-Host "Settings sample:"
-        Get-Content $settingsFileSample | ConvertFrom-Json
-        Get-Content $settingsFileSample | ConvertFrom-Json | Set-Variable settings
+        [object]$settings = (Get-Content $settingsFileSample | ConvertFrom-Json)
         if ($gitEmail) {
             $settings.GitEmail = $gitEmail       
         }
