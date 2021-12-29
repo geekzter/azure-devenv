@@ -86,5 +86,6 @@ variable timezone {}
 variable user_assigned_identity_id {}
 variable user_name {}
 variable user_password {}
+variable virtual_network_has_gateway {}
 variable vm_size {}
 variable vm_subnet_id {}

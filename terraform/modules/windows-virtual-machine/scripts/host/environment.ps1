@@ -4,6 +4,7 @@ $env:ASPNETCORE_ENVIRONMENT="Development"
 
 # Azure context
 $env:GEEKZTER_AGENT_SUBNET_ID="${subnet_id}"
+$env:GEEKZTER_AGENT_VIRTUAL_NETWORK_HAS_GATEWAY="${virtual_network_has_gateway}"
 $env:GEEKZTER_AGENT_VIRTUAL_NETWORK_ID="${virtual_network_id}"
 
 # Terraform environment variables

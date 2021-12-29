@@ -198,6 +198,7 @@ data cloudinit_config user_data {
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
       user_name                = var.user_name
+      virtual_network_has_gateway = var.virtual_network_has_gateway
       virtual_network_id       = local.virtual_network_id
     },
     local.environment_variables

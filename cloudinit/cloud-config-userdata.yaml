@@ -114,6 +114,7 @@ write_files:
   - path: /etc/environment
     content: |
       GEEKZTER_AGENT_SUBNET_ID="${subnet_id}"
+      GEEKZTER_AGENT_VIRTUAL_NETWORK_HAS_GATEWAY="${virtual_network_has_gateway}"
       GEEKZTER_AGENT_VIRTUAL_NETWORK_ID="${virtual_network_id}"
     append: true
 

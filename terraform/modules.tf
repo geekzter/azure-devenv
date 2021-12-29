@@ -57,6 +57,7 @@ module linux_vm {
   timezone                     = var.timezone
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
+  virtual_network_has_gateway  = var.deploy_vpn
   vm_size                      = var.linux_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
@@ -107,6 +108,7 @@ module windows_vm {
   shutdown_time                = var.shutdown_time
   timezone                     = var.timezone
   user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id
+  virtual_network_has_gateway  = var.deploy_vpn
   vm_size                      = var.windows_vm_size
   vm_subnet_id                 = module.region_network[each.key].vm_subnet_id
 
