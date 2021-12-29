@@ -63,7 +63,7 @@ resource azurerm_network_security_rule admin_ras {
   name                         = "AdminRAS"
   priority                     = 202
   direction                    = "Inbound"
-  access                       = "Deny"
+  access                       = var.public_access_enabled ? "Allow" : "Deny"
   protocol                     = "Tcp"
   source_port_range            = "*"
   destination_port_ranges      = ["22","3389"]
