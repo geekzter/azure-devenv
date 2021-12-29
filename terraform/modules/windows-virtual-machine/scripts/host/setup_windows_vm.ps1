@@ -116,8 +116,9 @@ $bootstrapScript = "$env:PUBLIC\bootstrap_windows.ps1"
 (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/geekzter/bootstrap-os/${bootstrap_branch}/windows/bootstrap_windows.ps1') | Out-File $bootstrapScript -Force
 . $bootstrapScript -Branch ${bootstrap_branch}
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
-if (!(Test-Path $settingsFile) -and (Test-Path "${settingsFile}.sample")) {
-    Get-Content "${settingsFile}.sample" | ConvertFrom-Json | Set-Variable settings
+$settingsFileSample = $settingsFile + ".sample"
+if (!(Test-Path $settingsFile) -and (Test-Path $settingsFileSample)) {
+    Get-Content $settingsFileSample | ConvertFrom-Json | Set-Variable settings
     if ($gitEmail) {
         $settings.GitEmail = $gitEmail       
     }
