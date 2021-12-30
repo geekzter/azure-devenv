@@ -12,5 +12,6 @@
 # linux_os_version               = "18.04.202101290" # PIN Linux version
 # locations                      = ["westeurope","northeurope"]
 # az vm image list-skus -l westeurope -f "Windows-10" -p "MicrosoftWindowsDesktop" -o table
+# az vm image list-skus -l westeurope -f "visualstudio2022" -p "microsoftvisualstudio" -o table
 # windows_sku                    = "20h2-ent-g2"
 # windows_os_version             = "19042.804.2102050012" # PIN Windows version

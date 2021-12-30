@@ -130,7 +130,7 @@ jobs:
 
   variables:
     ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
-      # Not runnig as strategy
+      # Not running as strategy
       ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
         TF_VAR_resource_suffix: '$(Build.BuildId)'
       unpinTerraformProviders: ${{ eq(parameters.unpinTerraformProviders, 'Yes') }}
@@ -291,6 +291,23 @@ jobs:
       displayName: 'Generate SSH key pair'
       workingDirectory: '$(terraformDirectory)'
 
+    - task: AzureCLI@2
+      name: cleanup
+      displayName: 'Avoid VM image versions with known issues'
+      #continueOnError: true # Ignore if we can succeed without it this
+      inputs:
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
+          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
+          Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
+          Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(terraformDirectory)'
+        
     - pwsh: |
         if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
           $env:TF_VAR_RESOURCE_SUFFIX = $null
@@ -376,17 +393,6 @@ jobs:
       workingDirectory: '$(scriptDirectory)'
 
     - ${{ if parameters.testReentrance }}:
-      - pwsh: |
-          # Pin used OS versions to prevent resources from being recreated
-          Write-Output "linux_os_version   = `"$(apply.linux_os_version)`""   | Out-File ci.auto.tfvars -Append -Force
-          Write-Output "windows_os_version = `"$(apply.windows_os_version)`"" | Out-File ci.auto.tfvars -Append -Force
-
-          Write-Host "Contents of ci.auto.tfvars:"
-          Get-Content ci.auto.tfvars
-        displayName: 'Prepare Terraform OS variables'
-        workingDirectory: '$(terraformDirectory)'
-
-    - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0
         displayName: 'Terraform plan (re-entrance test)'
         continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
@@ -436,7 +442,6 @@ jobs:
           runAzLogin: true
           allowTelemetryCollection: true
           retryCountOnTaskFailure: 3
-
 
 - ${{ if ne(parameters.destroy, 'Never') }}:
   # Clean up resources, in the event 'terraform destroy' fails   

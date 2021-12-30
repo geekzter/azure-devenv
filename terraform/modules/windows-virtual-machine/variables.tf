@@ -12,6 +12,9 @@ variable bg_info {
     type                       = bool
     default                    = false
 }
+variable bootstrap_branch {
+    default                    = "master"
+}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -28,6 +31,10 @@ variable dns_zone_id {
     default                    = null
 }
 variable enable_accelerated_networking {
+    type                       = bool
+    default                    = false
+}
+variable enable_policy_extension {
     type                       = bool
     default                    = false
 }
@@ -55,10 +62,13 @@ variable network_watcher {
     default                    = false
 }
 variable os_offer {
-    default                    = "Windows-10"
+    default                    = "visualstudio2022"
+}
+variable os_publisher {
+    default                    = "microsoftvisualstudio"
 }
 variable os_sku {
-    default                    = "20h2-ent-g2"
+    default                    = "vs-2022-comm-latest-win11-n"
 }
 variable os_version {
     default                    = "latest"
@@ -66,11 +76,16 @@ variable os_version {
 variable public_access_enabled {
   type                         = bool
 }
+variable prepare_host {
+  type                         = bool
+  default                      = false
+}
 variable private_dns_zone {}
 variable resource_group_name {}
 variable user_assigned_identity_id {}
 variable shutdown_time {}
 variable tags {}
 variable timezone {}
+variable virtual_network_has_gateway {}
 variable vm_size {}
 variable vm_subnet_id {}

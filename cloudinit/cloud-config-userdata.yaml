@@ -114,6 +114,7 @@ write_files:
   - path: /etc/environment
     content: |
       GEEKZTER_AGENT_SUBNET_ID="${subnet_id}"
+      GEEKZTER_AGENT_VIRTUAL_NETWORK_HAS_GATEWAY="${virtual_network_has_gateway}"
       GEEKZTER_AGENT_VIRTUAL_NETWORK_ID="${virtual_network_id}"
     append: true
 
@@ -133,7 +134,7 @@ runcmd:
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
   # User configuration
   - chown -R ${user_name}:${user_name} /home/${user_name}
-  - 'su -c "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/master/linux/bootstrap_linux.sh | sudo bash -s" ${user_name}'
+  - 'su -c "curl -sk https://raw.githubusercontent.com/geekzter/bootstrap-os/${bootstrap_branch}/linux/bootstrap_linux.sh | sudo bash -s" ${user_name}'
   - chown -R ${user_name}:${user_name} /home/${user_name}
   - 'su -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
   # Automatic updates: re-enable them

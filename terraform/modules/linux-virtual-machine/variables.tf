@@ -2,6 +2,9 @@ variable admin_cidr_ranges {
     type                       = list
     default                    = []
 }
+variable bootstrap_branch {
+    default                    = "master"
+}
 variable dependency_monitor {
     type                       = bool
     default                    = false
@@ -23,6 +26,10 @@ variable enable_aad_login {
     default                    = false
 }
 variable enable_accelerated_networking {
+    type                       = bool
+    default                    = false
+}
+variable enable_policy_extension {
     type                       = bool
     default                    = false
 }
@@ -61,6 +68,10 @@ variable os_sku {
 variable os_version {
     default                    = "latest"
 }
+variable prepare_host {
+  type                         = bool
+  default                      = true
+}
 variable private_dns_zone {}
 variable public_access_enabled {
   type                         = bool
@@ -75,5 +86,6 @@ variable timezone {}
 variable user_assigned_identity_id {}
 variable user_name {}
 variable user_password {}
+variable virtual_network_has_gateway {}
 variable vm_size {}
 variable vm_subnet_id {}

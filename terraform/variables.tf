@@ -13,6 +13,10 @@ variable address_space {
   default                      = "10.16.0.0/12"
 }
 
+variable bootstrap_branch {
+    default                    = "master"
+}
+
 variable deploy_bastion {
   type                         = bool
   default                      = true
@@ -56,7 +60,7 @@ variable enable_disk_encryption {
   type                         = bool
   default                      = false
 }
-variable enable_security_center {
+variable enable_policy_extensions {
   type                         = bool
   default                      = false
 }
@@ -108,6 +112,11 @@ variable locations {
 variable log_analytics_workspace_id {
   description                  = "Specify a pre-existing Log Analytics workspace. The workspace needs to have the Security, SecurityCenterFree, ServiceMap, Updates, VMInsights solutions provisioned"
   default                      = ""
+}
+
+variable prepare_host {
+  type                         = bool
+  default                      = false
 }
 
 variable public_access_enabled {
@@ -165,13 +174,16 @@ variable windows_accelerated_networking {
   default                      = false
 }
 variable windows_offer {
-  default                      = "Windows-10"
+  default                      = "visualstudio2022"
 }
 variable windows_os_version {
   default                      = "latest"
 }
+variable windows_publisher {
+  default                      = "microsoftvisualstudio"
+}
 variable windows_sku {
-  default                      = "win10-21h2-pro-g2"
+  default                      = "vs-2022-comm-latest-win11-n"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

@@ -113,20 +113,27 @@ Get-AppxPackage "Microsoft.Advertising.Xaml" | Remove-AppxPackage
 
 # Invoke bootstrap script from bootstrap-os repository
 $bootstrapScript = "$env:PUBLIC\bootstrap_windows.ps1"
-(New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/geekzter/bootstrap-os/master/windows/bootstrap_windows.ps1') | Out-File $bootstrapScript -Force
-. $bootstrapScript
+(New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/geekzter/bootstrap-os/${bootstrap_branch}/windows/bootstrap_windows.ps1') | Out-File $bootstrapScript -Force
+. $bootstrapScript -Branch ${bootstrap_branch}
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
+$settingsFileSample = $settingsFile + ".sample"
 if (!(Test-Path $settingsFile)) {
-    $settings = (Get-Content "$settingsFile.sample" | ConvertFrom-Json)
-    if ($gitEmail) {
-        $settings.GitEmail = $gitEmail       
+    if (Test-Path $settingsFileSample) {
+        [object]$settings = (Get-Content $settingsFileSample | ConvertFrom-Json)
+        if ($gitEmail) {
+            $settings.GitEmail = $gitEmail       
+        }
+        if ($gitName) {
+            $settings.GitName = $gitName
+        }
+        Write-Host "Settings:"
+        $settings
+        $settings | ConvertTo-Json | Out-File $settingsFile
+    } else {
+        Write-Warning "Unable to configure GitHub settings, settings file not found"
     }
-    if ($gitName) {
-        $settings.GitName = $gitName
-    }
-    $settings | ConvertTo-Json | Out-File $settingsFile
 }
-& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -All
+& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Branch ${bootstrap_branch} -Packages Developer -PowerShell:$true -Settings:$true
 
 # Developer shortcuts
 if (Test-Path "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState") {

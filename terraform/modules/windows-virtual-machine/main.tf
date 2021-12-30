@@ -220,7 +220,7 @@ locals {
   # Workaround for:
   # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
   os_offer                     = var.os_offer
-  os_publisher                 = "MicrosoftWindowsDesktop"
+  os_publisher                 = var.os_publisher
   os_version_latest            = element(split("/",data.azurerm_platform_image.latest_image.id),length(split("/",data.azurerm_platform_image.latest_image.id))-1)
   os_version                   = (var.os_version != null && var.os_version != "" && var.os_version != "latest") ? var.os_version : local.os_version_latest
 }
@@ -236,17 +236,24 @@ resource azurerm_windows_virtual_machine vm {
   computer_name                = local.computer_name
   enable_automatic_updates     = true
 
-  additional_unattend_content {
-    setting                    = "AutoLogon"
-    content                    = templatefile("${path.module}/scripts/host/AutoLogon.xml", { 
-      count                    = 99, 
-      username                 = var.admin_username, 
-      password                 = var.admin_password
-    })
+  dynamic "additional_unattend_content" {
+    for_each = range(var.prepare_host ? 1 : 0)
+    content {
+      setting                = "AutoLogon"
+      content                = templatefile("${path.module}/scripts/host/AutoLogon.xml", { 
+        count                = 99, 
+        username             = var.admin_username, 
+        password             = var.admin_password
+      })
+    }
   }
-  additional_unattend_content {
-    setting                    = "FirstLogonCommands"
-    content                    = file("${path.module}/scripts/host/FirstLogonCommands.xml")
+
+  dynamic "additional_unattend_content" {
+    for_each = range(var.prepare_host ? 1 : 0)
+    content {
+      setting                = "FirstLogonCommands"
+      content                = file("${path.module}/scripts/host/FirstLogonCommands.xml")
+    }
   }
   
   boot_diagnostics {
@@ -255,9 +262,11 @@ resource azurerm_windows_virtual_machine vm {
 
   custom_data                  = base64encode(templatefile("${path.module}/scripts/host/setup_windows_vm.ps1", merge(
     { 
+      bootstrap_branch         = var.bootstrap_branch
       git_email                = var.git_email,
       git_name                 = var.git_name,
       subnet_id                = var.vm_subnet_id,
+      virtual_network_has_gateway = var.virtual_network_has_gateway
       virtual_network_id       = local.virtual_network_id
     },
     local.environment_variables
@@ -291,7 +300,6 @@ resource azurerm_windows_virtual_machine vm {
     ]
   }  
 }
-
 
 resource azurerm_monitor_diagnostic_setting vm {
   name                         = "${azurerm_windows_virtual_machine.vm.name}-diagnostics"
@@ -475,6 +483,7 @@ resource azurerm_virtual_machine_extension policy {
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
 
+  count                        = var.enable_policy_extension ? 1 : 0
   tags                         = var.tags
   depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }

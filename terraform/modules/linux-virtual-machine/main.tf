@@ -189,6 +189,7 @@ data cloudinit_config user_data {
   part {
     content                    = templatefile("${path.root}/../cloudinit/cloud-config-userdata.yaml",merge(
     {
+      bootstrap_branch         = var.bootstrap_branch
       domain_suffix            = var.domain
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       host_name                = local.computer_name
@@ -197,6 +198,7 @@ data cloudinit_config user_data {
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
       user_name                = var.user_name
+      virtual_network_has_gateway = var.virtual_network_has_gateway
       virtual_network_id       = local.virtual_network_id
     },
     local.environment_variables
@@ -232,7 +234,7 @@ resource azurerm_linux_virtual_machine vm {
   encryption_at_host_enabled   = false # Requires confidential compute VM SKU
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
-  custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
+  custom_data                  = var.prepare_host ? base64encode(data.cloudinit_config.user_data.rendered) : null
 
   admin_ssh_key {
     username                   = var.user_name
@@ -438,6 +440,7 @@ resource azurerm_virtual_machine_extension policy {
   type_handler_version         = "1.0"
   auto_upgrade_minor_version   = true
 
+  count                        = var.enable_policy_extension ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   azurerm_virtual_machine_extension.cloud_config_status,

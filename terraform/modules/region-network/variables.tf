@@ -19,6 +19,9 @@ variable log_analytics_workspace_id {
     default                    = null
 }
 variable private_dns_zone_name {}
+variable public_access_enabled {
+  type                         = bool
+}
 variable resource_group_name {
   description                  = "The name of the resource group"
 }
