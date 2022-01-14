@@ -233,7 +233,6 @@ jobs:
           scriptLocation: inlineScript
           inlineScript: |
             ./set_terraform_azurerm_vars.ps1
-
             ./let_me_in.ps1
           addSpnToEnvironment: true
           useGlobalConfig: true
@@ -251,7 +250,6 @@ jobs:
             ./set_terraform_azurerm_vars.ps1
 
             ./get_ssh_key_pair.ps1 -Keyname $(TF_VAR_ssh_private_key) -Force
-
             $keyDirectory = (Split-Path $(TF_VAR_ssh_private_key) -Parent)
             if (Test-Path $keyDirectory) {
               ls -al $keyDirectory
@@ -326,7 +324,6 @@ jobs:
         scriptLocation: inlineScript
         inlineScript: |
           ./set_terraform_azurerm_vars.ps1
-
           ./deploy.ps1 -apply -force
         addSpnToEnvironment: true
         useGlobalConfig: true
@@ -349,7 +346,6 @@ jobs:
         scriptLocation: inlineScript
         inlineScript: |
           ./set_terraform_azurerm_vars.ps1
-
           ./let_me_in.ps1
         addSpnToEnvironment: true
         useGlobalConfig: true
