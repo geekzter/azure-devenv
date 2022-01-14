@@ -19,7 +19,6 @@ if ($pipeline) {
 if (Get-Command az -ErrorAction SilentlyContinue) {
     # Get from Azure CLI context
     az account show 2>$null | ConvertFrom-Json | Set-Variable account
-
     if ($account) {
         $env:ARM_TENANT_ID       ??= $account.tenantId
         $env:ARM_SUBSCRIPTION_ID ??= $account.id    

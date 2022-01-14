@@ -56,8 +56,8 @@ pr:
     - '*.md'  
 
 schedules:
-- cron: '0 23 * * *'
-  displayName: 'Nightly build (UTC)'
+- cron: '0 23 * * Mon,Wed,Fri'
+  displayName: 'Bi-Nightly build (UTC)'
   # Run if there are no changes
   always: 'true'
   branches:
@@ -205,7 +205,7 @@ jobs:
           scriptType: pscore
           scriptLocation: inlineScript
           inlineScript: |
-            ../scripts/set_terraform_vars.ps1
+            ../scripts/set_terraform_azurerm_vars.ps1
 
             $terraformState = (terraform state pull | ConvertFrom-Json)
             if ($terraformState.resources) {
@@ -232,7 +232,7 @@ jobs:
           scriptType: pscore
           scriptLocation: inlineScript
           inlineScript: |
-            ./set_terraform_vars.ps1
+            ./set_terraform_azurerm_vars.ps1
 
             ./let_me_in.ps1
           addSpnToEnvironment: true
@@ -248,7 +248,7 @@ jobs:
           scriptType: pscore
           scriptLocation: inlineScript
           inlineScript: |
-            ./set_terraform_vars.ps1
+            ./set_terraform_azurerm_vars.ps1
 
             ./get_ssh_key_pair.ps1 -Keyname $(TF_VAR_ssh_private_key) -Force
 
@@ -325,7 +325,7 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./set_terraform_vars.ps1
+          ./set_terraform_azurerm_vars.ps1
 
           ./deploy.ps1 -apply -force
         addSpnToEnvironment: true
@@ -348,7 +348,7 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./set_terraform_vars.ps1
+          ./set_terraform_azurerm_vars.ps1
 
           ./let_me_in.ps1
         addSpnToEnvironment: true
@@ -527,7 +527,7 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ../scripts/set_terraform_vars.ps1
+          ../scripts/set_terraform_azurerm_vars.ps1
 
           $terraformState = (terraform state pull | ConvertFrom-Json)
           if ($terraformState.resources) {
