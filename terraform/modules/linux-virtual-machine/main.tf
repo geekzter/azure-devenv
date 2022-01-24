@@ -255,12 +255,18 @@ resource azurerm_linux_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
-  source_image_reference {
-    publisher                  = var.os_publisher
-    offer                      = var.os_offer
-    sku                        = var.os_sku
-    version                    = local.os_version
-  }
+
+  source_image_id              = var.os_image_id
+
+  dynamic "source_image_reference" {
+    for_each = range(var.os_image_id == null || var.os_image_id == "" ? 1 : 0) 
+    content {
+      publisher                = var.os_publisher
+      offer                    = var.os_offer
+      sku                      = var.os_sku
+      version                  = local.os_version
+    }
+  } 
 
   tags                         = var.tags
   depends_on                   = [
@@ -271,6 +277,7 @@ resource azurerm_linux_virtual_machine vm {
     ignore_changes             = [
       # Let bootstrap-os update the host configuration
       custom_data,
+      source_image_id,
       source_image_reference.0.version
     ]
   }  
@@ -288,19 +295,22 @@ resource azurerm_monitor_diagnostic_setting vm {
       enabled                  = false
     }
   }
+
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
-resource azurerm_virtual_machine_extension cloud_config_status {
-  name                         = "CloudConfigStatusScript"
+resource azurerm_virtual_machine_extension post_cloud_init {
+  name                         = "PostCloudInitScript"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Extensions"
   type                         = "CustomScript"
-  type_handler_version         = "2.0"
+  type_handler_version         = "2.1"
+  auto_upgrade_minor_version   = true
   settings                     = jsonencode({
-    "commandToExecute"         = "/usr/bin/cloud-init status --long --wait ; systemctl status cloud-final.service --full --no-pager --wait"
+    "script"                   = filebase64("${path.module}/scripts/host/post_cloud_init.sh")
   })
-  tags                         = var.tags
 
+  tags                         = var.tags
 
   timeouts {
     create                     = "60m"
@@ -320,7 +330,7 @@ resource null_resource prepare_log_analytics {
 
   count                        = var.deploy_log_analytics_extensions ? 1 : 0
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status
+                                  azurerm_virtual_machine_extension.post_cloud_init
   ]
 }
 
@@ -329,7 +339,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
   type                         = "OmsAgentForLinux"
-  type_handler_version         = "1.7"
+  type_handler_version         = "1.13"
   auto_upgrade_minor_version   = true
   settings                     = jsonencode({
     "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
@@ -341,7 +351,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   count                        = var.deploy_log_analytics_extensions ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   null_resource.prepare_log_analytics
   ]
 }
@@ -379,7 +389,7 @@ resource azurerm_virtual_machine_extension diagnostics {
   count                        = var.enable_vm_diagnostics ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
 }
@@ -394,7 +404,7 @@ resource azurerm_virtual_machine_extension aad_login {
 
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
@@ -411,7 +421,7 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
@@ -427,7 +437,7 @@ resource azurerm_virtual_machine_extension network_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]
@@ -443,7 +453,7 @@ resource azurerm_virtual_machine_extension policy {
   count                        = var.enable_policy_extension ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
+                                  azurerm_virtual_machine_extension.post_cloud_init,
                                   azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.log_analytics
   ]

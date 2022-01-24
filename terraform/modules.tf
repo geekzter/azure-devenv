@@ -42,6 +42,8 @@ module linux_vm {
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "l"
   network_watcher              = true
+  # os_image_id                  = "/subscriptions/84c1a2c7-585a-4753-ad28-97f69618cf12/resourceGroups/Shared/providers/Microsoft.Compute/galleries/testgal/images/Ubuntu1804/versions/0.0.1"
+  os_image_id                  = "/subscriptions/84c1a2c7-585a-4753-ad28-97f69618cf12/resourceGroups/Shared/providers/Microsoft.Compute/galleries/testgal/images/Ubuntu2004/versions/0.0.3"
   os_offer                     = var.linux_os_offer
   os_publisher                 = var.linux_os_publisher
   os_sku                       = var.linux_os_sku
