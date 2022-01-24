@@ -281,7 +281,7 @@ jobs:
         scriptLocation: inlineScript
         inlineScript: |
           Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
-          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
+          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16' && version!='2022.01.14'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
           Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
           Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
         useGlobalConfig: true
