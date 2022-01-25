@@ -42,8 +42,7 @@ module linux_vm {
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "l"
   network_watcher              = true
-  # os_image_id                  = "/subscriptions/84c1a2c7-585a-4753-ad28-97f69618cf12/resourceGroups/Shared/providers/Microsoft.Compute/galleries/testgal/images/Ubuntu1804/versions/0.0.1"
-  os_image_id                  = "/subscriptions/84c1a2c7-585a-4753-ad28-97f69618cf12/resourceGroups/Shared/providers/Microsoft.Compute/galleries/testgal/images/Ubuntu2004/versions/0.0.3"
+  os_image_id                  = var.linux_os_image_id
   os_offer                     = var.linux_os_offer
   os_publisher                 = var.linux_os_publisher
   os_sku                       = var.linux_os_sku
@@ -98,9 +97,10 @@ module windows_vm {
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "w"
   network_watcher              = true
-  os_offer                     = var.windows_offer
-  os_publisher                 = var.windows_publisher
-  os_sku                       = var.windows_sku
+  os_image_id                  = var.windows_os_image_id
+  os_offer                     = var.windows_os_offer
+  os_publisher                 = var.windows_os_publisher
+  os_sku                       = var.windows_os_sku
   os_version                   = var.windows_os_version
   prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name

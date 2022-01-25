@@ -61,6 +61,9 @@ variable network_watcher {
     type                       = bool
     default                    = false
 }
+variable os_image_id {
+  default                      = null
+}
 variable os_offer {
     default                    = "visualstudio2022"
 }

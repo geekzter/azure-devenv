@@ -145,7 +145,7 @@ output windows_main_fqdn {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
 output windows_os_sku {
-  value                        = var.deploy_windows ? var.windows_sku : null
+  value                        = var.deploy_windows ? var.windows_os_sku : null
 }
 output windows_os_version {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version : null

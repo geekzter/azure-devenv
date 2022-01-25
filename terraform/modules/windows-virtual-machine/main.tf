@@ -282,14 +282,17 @@ resource azurerm_windows_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
-  # BUG: https://github.com/terraform-providers/terraform-provider-azurerm/issues/6745
-  # source_image_id              = local.vm_image_id
-  source_image_reference {
-    publisher                  = local.os_publisher
-    offer                      = local.os_offer
-    sku                        = var.os_sku
-    version                    = local.os_version
-  }
+  source_image_id              = var.os_image_id
+
+  dynamic "source_image_reference" {
+    for_each = range(var.os_image_id == null || var.os_image_id == "" ? 1 : 0) 
+    content {
+      publisher                = local.os_publisher
+      offer                    = local.os_offer
+      sku                      = var.os_sku
+      version                  = local.os_version
+    }
+  } 
 
   tags                         = var.tags
   lifecycle {
