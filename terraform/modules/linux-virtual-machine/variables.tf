@@ -46,6 +46,10 @@ variable environment_variables {
 } 
 variable git_email {}
 variable git_name {}
+variable install_tools {
+  type                         = bool
+  default                      = true
+}
 variable key_vault_id {}
 variable location {}
 variable log_analytics_workspace_id {
@@ -70,10 +74,6 @@ variable os_sku {
 }
 variable os_version {
     default                    = "latest"
-}
-variable prepare_host {
-  type                         = bool
-  default                      = true
 }
 variable private_dns_zone {}
 variable public_access_enabled {

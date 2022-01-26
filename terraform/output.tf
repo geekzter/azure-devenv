@@ -28,11 +28,6 @@ output client_cert_public_pem {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
-output cloud_config {
-  sensitive                    = true
-  value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
-}
-
 output dns_server_address {
   value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address : null
 }
@@ -45,6 +40,10 @@ output key_vault_name {
   value                        = azurerm_key_vault.vault.name
 }
 
+output linux_cloud_config {
+  sensitive                    = true
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
+}
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }

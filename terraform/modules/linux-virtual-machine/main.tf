@@ -187,14 +187,49 @@ data cloudinit_config user_data {
   base64_encode                = false
 
   part {
-    content                    = templatefile("${path.root}/../cloudinit/cloud-config-userdata.yaml",merge(
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-post-generation.yaml",
     {
-      bootstrap_branch         = var.bootstrap_branch
+      user_name                = var.user_name
+    })
+    content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
+  }
+
+  part {
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-orchestration.yaml",
+    {
+      host_name                = local.computer_name
+    })
+    content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
+  }
+
+  part {
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-dns.yaml",
+    {
       domain_suffix            = var.domain
-      environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       host_name                = local.computer_name
       nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
       private_ip_address       = azurerm_network_interface.nic.private_ip_address
+    })
+    content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
+  }
+
+  dynamic "part" {
+    for_each = range(var.install_tools ? 1 : 0)
+    content {
+      content                  = file("${path.root}/../cloudinit/cloud-config-tools.yaml")
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
+  }
+
+  part {
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-user.yaml",merge(
+    {
+      bootstrap_branch         = var.bootstrap_branch
+      environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
       user_name                = var.user_name
@@ -204,9 +239,8 @@ data cloudinit_config user_data {
     local.environment_variables
     ))
     content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
   }
-
-  #merge_type                   = "list(append)+dict(recurse_array)+str()"
 }
 
 data azurerm_platform_image latest_image {
@@ -234,7 +268,7 @@ resource azurerm_linux_virtual_machine vm {
   encryption_at_host_enabled   = false # Requires confidential compute VM SKU
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
-  custom_data                  = var.prepare_host ? base64encode(data.cloudinit_config.user_data.rendered) : null
+  custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
 
   admin_ssh_key {
     username                   = var.user_name
