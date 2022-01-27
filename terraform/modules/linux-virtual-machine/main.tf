@@ -229,6 +229,7 @@ data cloudinit_config user_data {
     content                    = templatefile("${path.root}/../cloudinit/cloud-config-user.yaml",merge(
     {
       bootstrap_branch         = var.bootstrap_branch
+      bootstrap_switches       = var.install_tools ? "" : "--skip-packages"
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
@@ -268,7 +269,7 @@ resource azurerm_linux_virtual_machine vm {
   encryption_at_host_enabled   = false # Requires confidential compute VM SKU
   network_interface_ids        = [azurerm_network_interface.nic.id]
   computer_name                = local.computer_name
-  custom_data                  = base64encode(data.cloudinit_config.user_data.rendered)
+  custom_data                  = var.prepare_host ? base64encode(data.cloudinit_config.user_data.rendered) : null
 
   admin_ssh_key {
     username                   = var.user_name

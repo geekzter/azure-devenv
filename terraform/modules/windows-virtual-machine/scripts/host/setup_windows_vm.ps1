@@ -14,6 +14,7 @@ $armSubscriptionID = '${arm_subscription_id}'
 $armTenantID       = '${arm_tenant_id}'
 $gitEmail          = '${git_email}'
 $gitName           = '${git_name}'
+$packages          = '${packages}'
 $subnetID          = '${subnet_id}'
 $tfStateResourceGroup = '${tf_state_resource_group}'
 $tfStateStorageAccount = '${tf_state_storage_account}'
@@ -111,10 +112,16 @@ Get-AppxPackage "Microsoft.ZuneMusic" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.ZuneVideo" | Remove-AppxPackage
 Get-AppxPackage "Microsoft.Advertising.Xaml" | Remove-AppxPackage
 
+# Run post generation chocolatey cleanup, if present on image
+if (Test-Path C:\post-generation\Choco.ps1) {
+    # https://github.com/actions/virtual-environments/blob/main/docs/create-image-and-azure-resources.md#post-generation-scripts
+    & C:\post-generation\Choco.ps1
+}
+
 # Invoke bootstrap script from bootstrap-os repository
 $bootstrapScript = "$env:PUBLIC\bootstrap_windows.ps1"
 (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/geekzter/bootstrap-os/${bootstrap_branch}/windows/bootstrap_windows.ps1') | Out-File $bootstrapScript -Force
-. $bootstrapScript -Branch ${bootstrap_branch}
+. $bootstrapScript -Branch ${bootstrap_branch} -Packages $packages 
 $settingsFile = "~\Source\GitHub\geekzter\bootstrap-os\common\settings.json"
 $settingsFileSample = $settingsFile + ".sample"
 if (!(Test-Path $settingsFile)) {
@@ -133,7 +140,8 @@ if (!(Test-Path $settingsFile)) {
         Write-Warning "Unable to configure GitHub settings, settings file not found"
     }
 }
-& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Branch ${bootstrap_branch} -Packages Developer -PowerShell:$true -Settings:$true
+
+& ~\Source\GitHub\geekzter\bootstrap-os\windows\bootstrap_windows.ps1 -Branch ${bootstrap_branch} -Packages None -PowerShell:$true -Settings:$true
 
 # Developer shortcuts
 if (Test-Path "$env:userprofile\AppData\Local\Packages\Microsoft.AzureVpn_8wekyb3d8bbwe\LocalState") {
@@ -158,5 +166,10 @@ foreach ($repo in $repos) {
         git clone https://github.com/geekzter/$repo
     }
 }
-
 Invoke-Item $repoRoot
+
+# Run post generation, of available on image
+if (Test-Path C:\post-generation) {
+    # https://github.com/actions/virtual-environments/blob/main/docs/create-image-and-azure-resources.md#post-generation-scripts
+    Get-ChildItem C:\post-generation -Filter *.ps1 | ForEach-Object { & $_.FullName }
+}

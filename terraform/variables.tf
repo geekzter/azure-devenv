@@ -88,6 +88,10 @@ variable global_vnet_peering {
   type                         = bool
   default                      = true
 }
+variable install_tools {
+  type                         = bool
+  default                      = false
+}
 variable linux_os_image_id {
   default                      = null
 }
@@ -119,7 +123,7 @@ variable log_analytics_workspace_id {
 
 variable prepare_host {
   type                         = bool
-  default                      = false
+  default                      = true
 }
 
 variable public_access_enabled {
@@ -189,7 +193,7 @@ variable windows_os_publisher {
   default                      = "microsoftvisualstudio"
 }
 variable windows_os_sku {
-  default                      = "vs-2022-comm-latest-win11-n"
+  default                      = "vs-2022-comm-latest-ws2022"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

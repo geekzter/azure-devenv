@@ -29,7 +29,7 @@ runcmd:
   - git clone https://github.com/geekzter/bootstrap-os.git /home/${user_name}/src/bootstrap-os
   - cd /home/${user_name}/src/bootstrap-os/linux
   - git switch ${bootstrap_branch}
-  - sudo ./bootstrap_linux2.sh --skip-packages
+  - sudo ./bootstrap_linux2.sh ${bootstrap_switches}
   - chown -R ${user_name}:${user_name} /home/${user_name}
   - 'su -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
   # - '[ -d /opt/post-generation ] && sudo su -c "find /opt/post-generation -mindepth 1 -maxdepth 1 -type f -name *.sh -exec bash {} \;"'

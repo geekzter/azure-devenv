@@ -37,7 +37,7 @@ module linux_vm {
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
-  install_tools                = var.prepare_host
+  install_tools                = var.install_tools
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
   log_analytics_workspace_id   = local.log_analytics_workspace_id
@@ -48,6 +48,7 @@ module linux_vm {
   os_publisher                 = var.linux_os_publisher
   os_sku                       = var.linux_os_sku
   os_version                   = var.linux_os_version
+  prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled
   shutdown_time                = var.shutdown_time
@@ -102,6 +103,7 @@ module windows_vm {
   os_publisher                 = var.windows_os_publisher
   os_sku                       = var.windows_os_sku
   os_version                   = var.windows_os_version
+  packages                     = var.install_tools ? ["Developer"] : ["None"]
   prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
   public_access_enabled        = var.public_access_enabled

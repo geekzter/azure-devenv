@@ -265,6 +265,7 @@ resource azurerm_windows_virtual_machine vm {
       bootstrap_branch         = var.bootstrap_branch
       git_email                = var.git_email,
       git_name                 = var.git_name,
+      packages                 = join(",", var.packages),
       subnet_id                = var.vm_subnet_id,
       virtual_network_has_gateway = var.virtual_network_has_gateway
       virtual_network_id       = local.virtual_network_id
