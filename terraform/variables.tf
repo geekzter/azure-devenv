@@ -193,7 +193,7 @@ variable windows_os_publisher {
   default                      = "microsoftvisualstudio"
 }
 variable windows_os_sku {
-  default                      = "vs-2022-comm-latest-ws2022"
+  default                      = "vs-2022-comm-latest-win11-n"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"
