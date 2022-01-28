@@ -29,6 +29,10 @@ variable enable_accelerated_networking {
     type                       = bool
     default                    = false
 }
+variable enable_dns_proxy {
+    type                       = bool
+    default                    = false
+}
 variable enable_policy_extension {
     type                       = bool
     default                    = false

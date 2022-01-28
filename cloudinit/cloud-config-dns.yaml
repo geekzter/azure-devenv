@@ -1,4 +1,3 @@
-#cloud-config
 bootcmd:
   - echo ${private_ip_address} ${host_name} >> /etc/hosts # Make sure this still resolves when cutting over DNS
   

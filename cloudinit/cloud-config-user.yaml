@@ -1,5 +1,3 @@
-bootcmd:
-
 packages:
   # Core
   - apt-transport-https

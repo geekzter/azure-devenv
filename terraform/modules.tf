@@ -31,6 +31,7 @@ module linux_vm {
   dns_zone_id                  = var.dns_zone_id
   enable_aad_login             = false
   enable_accelerated_networking = false
+  enable_dns_proxy             = var.deploy_vpn
   enable_policy_extension      = var.enable_policy_extensions
   enable_security_center       = var.enable_policy_extensions
   enable_vm_diagnostics        = var.enable_vm_diagnostics
