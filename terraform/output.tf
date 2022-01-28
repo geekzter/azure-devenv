@@ -47,6 +47,12 @@ output linux_cloud_config {
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
+output linux_os_image_id {
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_image_id : null
+}
+output linux_os_sku {
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_sku : null
+}
 output linux_os_version {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version : null
 }
@@ -143,8 +149,11 @@ output vm_public_fqdn {
 output windows_main_fqdn {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
+output windows_os_image_id {
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_image_id : null
+}
 output windows_os_sku {
-  value                        = var.deploy_windows ? var.windows_os_sku : null
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_sku : null
 }
 output windows_os_version {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version : null
