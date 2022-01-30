@@ -1,8 +1,16 @@
+bootcmd:
+  - curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - # Microsoft
+
+apt:
+  sources:
+    microsoft-prod.list:
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
+
 packages:
-  # Core
   - apt-transport-https
   - ca-certificates
   - curl
+  - powershell
 
 write_files: 
   - path: /home/${user_name}/.config/powershell/setup_linux_vm.ps1
@@ -26,8 +34,13 @@ runcmd:
   - mkdir -p /home/${user_name}/src/bootstrap-os 2>/dev/null
   - git clone https://github.com/geekzter/bootstrap-os.git /home/${user_name}/src/bootstrap-os
   - cd /home/${user_name}/src/bootstrap-os/linux
-  - git switch ${bootstrap_branch}
-  - sudo ./bootstrap_linux2.sh ${bootstrap_switches}
+  - git checkout ${bootstrap_branch}
+  # - sudo ./bootstrap_linux2.sh ${bootstrap_switches}
+  - sudo su -l -c "~/src/bootstrap-os/linux/bootstrap_linux2.sh ${bootstrap_switches}" ${user_name}
   - chown -R ${user_name}:${user_name} /home/${user_name}
-  - 'su -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
-  # - '[ -d /opt/post-generation ] && sudo su -c "find /opt/post-generation -mindepth 1 -maxdepth 1 -type f -name *.sh -exec bash {} \;"'
+  - 'su -l -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
+
+# TODO
+# [  160.082104] cloud-init[2633]: /root/.gitignore -> /home/eric/src/bootstrap-os/dotfiles/.gitignore
+# [  160.086548] cloud-init[2633]: /root/.tmux.conf -> /home/eric/src/bootstrap-os/dotfiles/.tmux.conf
+# [  160.090987] cloud-init[2633]: /root/.zshrc -> /home/eric/src/bootstrap-os/dotfiles/.zshrc

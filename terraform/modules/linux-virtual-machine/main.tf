@@ -186,13 +186,16 @@ data cloudinit_config user_data {
   gzip                         = false
   base64_encode                = false
 
-  part {
-    content                    = templatefile("${path.root}/../cloudinit/cloud-config-post-generation.yaml",
-    {
-      user_name                = var.user_name
-    })
-    content_type               = "text/cloud-config"
-    merge_type                 = "list(append)+dict(recurse_array)+str()"
+  dynamic "part" {
+    for_each = range(var.os_image_id != null && var.os_image_id != "" ? 1 : 0) 
+    content {
+      content                  = templatefile("${path.root}/../cloudinit/cloud-config-post-generation.yaml",
+      {
+        user_name              = var.user_name
+      })
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
   }
   part {
     content                    = templatefile("${path.root}/../cloudinit/cloud-config-orchestration.yaml",
@@ -224,20 +227,6 @@ data cloudinit_config user_data {
       merge_type               = "list(append)+dict(recurse_array)+str()"
     }
   }
-  # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
-  # Pre-installing the agent, will make the VM extension install succeed
-  dynamic "part" {
-    for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
-    content {
-      content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
-      {
-        workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
-        workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-      })
-      content_type             = "text/cloud-config"
-      merge_type               = "list(append)+dict(recurse_array)+str()"
-    }
-  }
   part {
     content                    = templatefile("${path.root}/../cloudinit/cloud-config-user.yaml",merge(
     {
@@ -254,6 +243,20 @@ data cloudinit_config user_data {
     ))
     content_type               = "text/cloud-config"
     merge_type                 = "list(append)+dict(recurse_array)+str()"
+  }
+  # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
+  # Pre-installing the agent, will make the VM extension install succeed
+  dynamic "part" {
+    for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
+    content {
+      content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
+      {
+        workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
+        workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+      })
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
   }
 }
 
