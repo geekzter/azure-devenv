@@ -231,7 +231,7 @@ data cloudinit_config user_data {
     content                    = templatefile("${path.root}/../cloudinit/cloud-config-user.yaml",merge(
     {
       bootstrap_branch         = var.bootstrap_branch
-      bootstrap_switches       = var.install_tools ? "" : "--skip-packages"
+      bootstrap_switches       = "--skip-packages" # var.install_tools ? "" : "--skip-packages"
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
@@ -244,20 +244,20 @@ data cloudinit_config user_data {
     content_type               = "text/cloud-config"
     merge_type                 = "list(append)+dict(recurse_array)+str()"
   }
-  # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
-  # Pre-installing the agent, will make the VM extension install succeed
-  dynamic "part" {
-    for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
-    content {
-      content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
-      {
-        workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
-        workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-      })
-      content_type             = "text/cloud-config"
-      merge_type               = "list(append)+dict(recurse_array)+str()"
-    }
-  }
+  # # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
+  # # Pre-installing the agent, will make the VM extension install succeed
+  # dynamic "part" {
+  #   for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
+  #   content {
+  #     content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
+  #     {
+  #       workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
+  #       workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  #     })
+  #     content_type             = "text/cloud-config"
+  #     merge_type               = "list(append)+dict(recurse_array)+str()"
+  #   }
+  # }
 }
 
 data azurerm_platform_image latest_image {

@@ -24,9 +24,6 @@ apt:
       source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
 
 package_update: true
-  # Disable package upgrades to get rid of the following error
-  #   Could not get lock /var/lib/dpkg/lock-frontend - open (11: Resource temporarily unavailable)
-# package_upgrade: true
 packages:
   # Core
   - apt-transport-https
