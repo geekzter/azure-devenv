@@ -120,12 +120,12 @@ jobs:
       matrix:
         primary:
           publishTerraformArtifact: true
-          subtituteAlternateVariables: false
+          substituteAlternateVariables: false
           TF_VAR_resource_suffix: '$(Build.BuildId)p'
           unpinTerraformProviders: false
         alternate:
           publishTerraformArtifact: false
-          subtituteAlternateVariables: true
+          substituteAlternateVariables: true
           TF_VAR_resource_suffix: '$(Build.BuildId)u'
           unpinTerraformProviders: true
       maxParallel: 1
@@ -297,7 +297,7 @@ jobs:
         }
 
         # Parse alternate strategy variables
-        if ($$(subtituteAlternateVariables)) {
+        if ($$(substituteAlternateVariables)) {
           foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
             $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
             $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
