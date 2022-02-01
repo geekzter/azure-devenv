@@ -298,8 +298,9 @@ jobs:
 
         # Parse alternate strategy variables
         if ($$(subtituteAlternateVariables)) {
-          foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*)) {
-            $primaryVariableName = $alternateVar.Name.Substring(10).ToLowerInvariant()
+          foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
+            $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
+            $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
             $variableValue = $alternateVar.Value
 
             # Overwrite primary value with alternate
@@ -308,7 +309,7 @@ jobs:
         }
 
         # List environment variables
-        Get-ChildItem -Path Env: -Recurse -Include ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
+        Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*,ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
 
         # Convert uppercased Terraform environment variables to .auto.tfvars file
         foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
