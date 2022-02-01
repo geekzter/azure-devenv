@@ -278,7 +278,7 @@ jobs:
     - task: AzureCLI@2
       name: cleanup
       displayName: 'Avoid VM image versions with known issues'
-      #continueOnError: true # Ignore if we can succeed without it this
+      condition: startsWith(variables['TF_VAR_windows_os_version'], 'vs-2022-comm')
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
