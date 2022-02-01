@@ -21,7 +21,7 @@ apt:
     azure-cli.list:
       source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bionic main"
     microsoft-prod.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/$RELEASE/prod bionic main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
 
 package_update: true
 packages:
