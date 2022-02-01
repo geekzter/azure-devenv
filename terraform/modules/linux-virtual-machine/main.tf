@@ -418,6 +418,8 @@ resource azurerm_virtual_machine_extension log_analytics {
 #   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 # }
 
+# TODO: Replace with Azure Monitoring Agent
+# https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/diagnostics-linux?tabs=azcli#python-requirement
 resource azurerm_virtual_machine_extension diagnostics {
   name                         = "LinuxDiagnostic"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
