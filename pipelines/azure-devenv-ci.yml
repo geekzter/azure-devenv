@@ -74,6 +74,8 @@ variables:
   value: 'true'
 - name: AZURE_EXTENSION_USE_DYNAMIC_INSTALL
   value: 'yes_without_prompt'
+- name: 'substituteAlternateVariables'
+  value: 'false'
 - name: 'TF_IN_AUTOMATION'
   value: 'true'
 - name: 'TF_INPUT'
@@ -126,7 +128,7 @@ jobs:
         alternate:
           publishTerraformArtifact: false
           substituteAlternateVariables: true
-          TF_VAR_resource_suffix: '$(Build.BuildId)u'
+          TF_VAR_resource_suffix: '$(Build.BuildId)a'
           unpinTerraformProviders: true
       maxParallel: 1
 
