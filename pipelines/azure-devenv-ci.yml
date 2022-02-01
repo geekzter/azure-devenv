@@ -118,12 +118,12 @@ jobs:
   ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
     strategy:
       matrix:
-        pinTerraformProviders:
+        primary:
           publishTerraformArtifact: true
           subtituteAlternateVariables: false
           TF_VAR_resource_suffix: '$(Build.BuildId)p'
           unpinTerraformProviders: false
-        unpinTerraformProviders:
+        alternate:
           publishTerraformArtifact: false
           subtituteAlternateVariables: true
           TF_VAR_resource_suffix: '$(Build.BuildId)u'
