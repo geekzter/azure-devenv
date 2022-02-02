@@ -443,10 +443,10 @@ jobs:
     variables:
       providerConfig: $[ dependencies.Provision.outputs['providerConfig.content'] ]
       terraformDirectory: $(Pipeline.Workspace)/$(terraformArtifactName)
-      ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
-        terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
       ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
         terraformVersion: $[ dependencies.Provision.outputs['pinTerraformProviders.terraformConfig.version'] ]
+      ${{ else }}:
+        terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
 
     pool:
       name: '$(pool)'
@@ -509,7 +509,7 @@ jobs:
           resourceGroupName: '$(resourceGroup)'
 
     - task: TerraformInstaller@0
-      condition: succeededOrFailed() # Procees clearing Terraform state, even if resources could not be removed
+      condition: succeededOrFailed() # Process clearing Terraform state, even if resources could not be removed
       displayName: 'Install terraform'
       inputs:
         terraformVersion: '$(terraformVersion)'
