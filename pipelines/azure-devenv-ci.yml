@@ -33,7 +33,7 @@ parameters:
   type: boolean
   default: false
 - name: unpinTerraformProviders
-  displayName: Unpin Terraform provider versions
+  displayName: Strategy (Terraform provider pinning, alternate variables)
   type: string
   default: No
   values:
