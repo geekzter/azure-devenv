@@ -1,0 +1,5 @@
+# bootcmd:
+  #- while ( fuser /var/lib/dpkg/lock >/dev/null 2>&1 ); do sleep 5; done;
+  #- while ( fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ); do sleep 5; done;
+
+final_message: "${host_name} is up after $UPTIME seconds"

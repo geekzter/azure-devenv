@@ -7,11 +7,17 @@ output computer_name {
 output name {
     value                      = local.vm_name
 }
+output os_image_id {
+    value                      = azurerm_linux_virtual_machine.vm.source_image_id
+}
+output os_sku {
+    value                      = length(azurerm_linux_virtual_machine.vm.source_image_reference) == 0 ? null : azurerm_linux_virtual_machine.vm.source_image_reference.0.sku
+}
 output os_version {
-    value                      = local.os_version
+    value                      = length(azurerm_linux_virtual_machine.vm.source_image_reference) == 0 ? null : azurerm_linux_virtual_machine.vm.source_image_reference.0.version
 }
 output os_version_latest {
-    value                      = local.os_version_latest
+    value                      = length(azurerm_linux_virtual_machine.vm.source_image_reference) == 0 ? null : local.os_version_latest
 }
 output private_ip_address {
     value                      = azurerm_network_interface.nic.private_ip_address

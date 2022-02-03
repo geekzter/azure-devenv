@@ -33,7 +33,7 @@ parameters:
   type: boolean
   default: false
 - name: unpinTerraformProviders
-  displayName: Unpin Terraform provider versions
+  displayName: Strategy (Terraform provider pinning, alternate variables)
   type: string
   default: No
   values:
@@ -74,6 +74,8 @@ variables:
   value: 'true'
 - name: AZURE_EXTENSION_USE_DYNAMIC_INSTALL
   value: 'yes_without_prompt'
+- name: 'substituteAlternateVariables'
+  value: 'false'
 - name: 'TF_IN_AUTOMATION'
   value: 'true'
 - name: 'TF_INPUT'
@@ -118,13 +120,15 @@ jobs:
   ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
     strategy:
       matrix:
-        pinTerraformProviders:
+        primary:
           publishTerraformArtifact: true
+          substituteAlternateVariables: false
           TF_VAR_resource_suffix: '$(Build.BuildId)p'
           unpinTerraformProviders: false
-        unpinTerraformProviders:
+        alternate:
           publishTerraformArtifact: false
-          TF_VAR_resource_suffix: '$(Build.BuildId)u'
+          substituteAlternateVariables: true
+          TF_VAR_resource_suffix: '$(Build.BuildId)a'
           unpinTerraformProviders: true
       maxParallel: 1
 
@@ -274,14 +278,14 @@ jobs:
     - task: AzureCLI@2
       name: cleanup
       displayName: 'Avoid VM image versions with known issues'
-      #continueOnError: true # Ignore if we can succeed without it this
+      condition: startsWith(coalesce(variables['TF_VAR_windows_os_version'],'vs-2022-comm-latest-win11-n'), 'vs-2022-comm')
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
           Write-Output '$(TF_VAR_locations)' | ConvertFrom-Json | Select-Object -First 1 | Set-Variable location
-          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
+          az vm image list -l $location -s "vs-2022-comm-latest-ws2022" -f "visualstudio2022" -p "microsoftvisualstudio" --query "max_by([?version!='2021.12.16' && version!='2022.01.14'],&version).version" --all -o tsv | Set-Item env:TF_VAR_windows_os_version
           Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`""
           Write-Output "windows_os_version = `"${env:TF_VAR_windows_os_version}`"" | Out-File ci.auto.tfvars -Append -Force
         useGlobalConfig: true
@@ -294,8 +298,21 @@ jobs:
           $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
         }
 
+        # Parse alternate strategy variables
+        if ($$(substituteAlternateVariables)) {
+          foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
+            $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
+            $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
+            $variableValue = $alternateVar.Value
+
+            # Replace primary value with alternate
+            Get-ChildItem -path env: -Recurse -Include $primaryVariableName | Remove-Item
+            Set-Item env:${primaryVariableName} -Value $variableValue
+          } 
+        }
+
         # List environment variables
-        Get-ChildItem -Path Env: -Recurse -Include ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
+        Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*,ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
 
         # Convert uppercased Terraform environment variables to .auto.tfvars file
         foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
@@ -426,10 +443,10 @@ jobs:
     variables:
       providerConfig: $[ dependencies.Provision.outputs['providerConfig.content'] ]
       terraformDirectory: $(Pipeline.Workspace)/$(terraformArtifactName)
-      ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
-        terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
       ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
-        terraformVersion: $[ dependencies.Provision.outputs['pinTerraformProviders.terraformConfig.version'] ]
+        terraformVersion: $[ dependencies.Provision.outputs['primary.terraformConfig.version'] ]
+      ${{ else }}:
+        terraformVersion: $[ dependencies.Provision.outputs['terraformConfig.version'] ]
 
     pool:
       name: '$(pool)'
@@ -492,7 +509,7 @@ jobs:
           resourceGroupName: '$(resourceGroup)'
 
     - task: TerraformInstaller@0
-      condition: succeededOrFailed() # Procees clearing Terraform state, even if resources could not be removed
+      condition: succeededOrFailed() # Process clearing Terraform state, even if resources could not be removed
       displayName: 'Install terraform'
       inputs:
         terraformVersion: '$(terraformVersion)'

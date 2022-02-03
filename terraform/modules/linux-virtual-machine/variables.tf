@@ -29,6 +29,10 @@ variable enable_accelerated_networking {
     type                       = bool
     default                    = false
 }
+variable enable_dns_proxy {
+    type                       = bool
+    default                    = false
+}
 variable enable_policy_extension {
     type                       = bool
     default                    = false
@@ -46,6 +50,10 @@ variable environment_variables {
 } 
 variable git_email {}
 variable git_name {}
+variable install_tools {
+  type                         = bool
+  default                      = false
+}
 variable key_vault_id {}
 variable location {}
 variable log_analytics_workspace_id {
@@ -55,6 +63,9 @@ variable moniker {}
 variable network_watcher {
     type                       = bool
     default                    = false
+}
+variable os_image_id {
+  default                      = null
 }
 variable os_offer {
   default                      = "UbuntuServer"

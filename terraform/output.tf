@@ -28,11 +28,6 @@ output client_cert_public_pem {
   value                        = var.deploy_vpn ? module.vpn.0.client_cert_public_pem : null
 }
 
-output cloud_config {
-  sensitive                    = true
-  value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
-}
-
 output dns_server_address {
   value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address : null
 }
@@ -45,8 +40,18 @@ output key_vault_name {
   value                        = azurerm_key_vault.vault.name
 }
 
+output linux_cloud_config {
+  sensitive                    = true
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].cloud_config : null
+}
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
+}
+output linux_os_image_id {
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_image_id : null
+}
+output linux_os_sku {
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_sku : null
 }
 output linux_os_version {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_version : null
@@ -144,8 +149,11 @@ output vm_public_fqdn {
 output windows_main_fqdn {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
+output windows_os_image_id {
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_image_id : null
+}
 output windows_os_sku {
-  value                        = var.deploy_windows ? var.windows_sku : null
+  value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_sku : null
 }
 output windows_os_version {
   value                        = var.deploy_windows ? module.windows_vm[azurerm_resource_group.vm_resource_group.location].os_version : null

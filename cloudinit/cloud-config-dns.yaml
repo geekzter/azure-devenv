@@ -1,0 +1,38 @@
+bootcmd:
+  - echo ${private_ip_address} ${host_name} >> /etc/hosts # Make sure this still resolves when cutting over DNS
+  
+packages:
+  - dnsmasq
+  
+write_files: 
+  # Configure dnsmasq
+  - path: /etc/resolv.conf.new
+    # Azure DNS
+    content: |
+      # This file has been created by Terraform -> cloud-config 
+      nameserver 127.0.0.1
+      nameserver 168.63.129.16 # Fall back to Azure DNS if dnsmasq times out
+      options trust-ad
+      search ${nic_domain_suffix}
+      search ${domain_suffix}
+  - path: /etc/dnsmasq.conf
+    content: |
+      # This file has been created by Terraform -> cloud-config 
+      listen-address=::1,127.0.0.1,${private_ip_address}
+      expand-hosts
+      no-resolv
+      server=168.63.129.16
+      #server=/${domain_suffix}/168.63.129.16
+  
+runcmd:
+  # Replace resolved with dnsmasq
+  - dnsmasq --test
+  - sudo systemctl disable systemd-resolved
+  - sudo systemctl stop systemd-resolved
+  - sudo systemctl start dnsmasq.service
+  - sudo cp /etc/resolv.conf /etc/resolv.backup
+  - sudo rm /etc/resolv.conf
+  - sudo cp /etc/resolv.conf.new /etc/resolv.conf
+  - sudo chattr +i /etc/resolv.conf # Mark immutable to prevent NetworkManager from making changes
+  - sudo systemctl restart dnsmasq.service
+  - echo dmsnasq config completed

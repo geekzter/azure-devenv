@@ -56,10 +56,18 @@ variable location {}
 variable log_analytics_workspace_id {
     default                    = null
 }
+# Input for https://github.com/geekzter/bootstrap-os/blob/master/windows/bootstrap_windows.ps1
+variable packages {
+    type                       = list
+    default                    = ["Minimal"]
+}
 variable moniker {}
 variable network_watcher {
     type                       = bool
     default                    = false
+}
+variable os_image_id {
+  default                      = null
 }
 variable os_offer {
     default                    = "visualstudio2022"
@@ -78,7 +86,7 @@ variable public_access_enabled {
 }
 variable prepare_host {
   type                         = bool
-  default                      = false
+  default                      = true
 }
 variable private_dns_zone {}
 variable resource_group_name {}

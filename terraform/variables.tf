@@ -88,6 +88,13 @@ variable global_vnet_peering {
   type                         = bool
   default                      = true
 }
+variable install_tools {
+  type                         = bool
+  default                      = false
+}
+variable linux_os_image_id {
+  default                      = null
+}
 variable linux_os_offer {
   default                      = "UbuntuServer"
 }
@@ -116,7 +123,7 @@ variable log_analytics_workspace_id {
 
 variable prepare_host {
   type                         = bool
-  default                      = false
+  default                      = true
 }
 
 variable public_access_enabled {
@@ -173,16 +180,19 @@ variable windows_accelerated_networking {
   type                         = bool
   default                      = false
 }
-variable windows_offer {
+variable windows_os_offer {
   default                      = "visualstudio2022"
+}
+variable windows_os_image_id {
+  default                      = null
 }
 variable windows_os_version {
   default                      = "latest"
 }
-variable windows_publisher {
+variable windows_os_publisher {
   default                      = "microsoftvisualstudio"
 }
-variable windows_sku {
+variable windows_os_sku {
   default                      = "vs-2022-comm-latest-win11-n"
 }
 variable windows_vm_size {

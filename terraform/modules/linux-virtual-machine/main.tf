@@ -186,15 +186,53 @@ data cloudinit_config user_data {
   gzip                         = false
   base64_encode                = false
 
+  dynamic "part" {
+    for_each = range(var.os_image_id != null && var.os_image_id != "" ? 1 : 0) 
+    content {
+      content                  = templatefile("${path.root}/../cloudinit/cloud-config-post-generation.yaml",
+      {
+        user_name              = var.user_name
+      })
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
+  }
   part {
-    content                    = templatefile("${path.root}/../cloudinit/cloud-config-userdata.yaml",merge(
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-orchestration.yaml",
+    {
+      host_name                = local.computer_name
+    })
+    content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
+  }
+  dynamic "part" {
+    for_each = range(var.enable_dns_proxy ? 1 : 0)
+    content {
+      content                    = templatefile("${path.root}/../cloudinit/cloud-config-dns.yaml",
+      {
+        domain_suffix            = var.domain
+        host_name                = local.computer_name
+        nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
+        private_ip_address       = azurerm_network_interface.nic.private_ip_address
+      })
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
+  }
+  dynamic "part" {
+    for_each = range(var.install_tools ? 1 : 0)
+    content {
+      content                  = file("${path.root}/../cloudinit/cloud-config-tools.yaml")
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
+  }
+  part {
+    content                    = templatefile("${path.root}/../cloudinit/cloud-config-user.yaml",merge(
     {
       bootstrap_branch         = var.bootstrap_branch
-      domain_suffix            = var.domain
+      bootstrap_switches       = "--skip-packages" # var.install_tools ? "" : "--skip-packages"
       environment_ps1          = base64encode(templatefile("${path.module}/scripts/host/environment.ps1", local.environment_variables))
-      host_name                = local.computer_name
-      nic_domain_suffix        = azurerm_network_interface.nic.internal_domain_name_suffix
-      private_ip_address       = azurerm_network_interface.nic.private_ip_address
       setup_linux_vm_ps1       = filebase64("${path.module}/scripts/host/setup_linux_vm.ps1")
       subnet_id                = var.vm_subnet_id
       user_name                = var.user_name
@@ -204,9 +242,22 @@ data cloudinit_config user_data {
     local.environment_variables
     ))
     content_type               = "text/cloud-config"
+    merge_type                 = "list(append)+dict(recurse_array)+str()"
   }
-
-  #merge_type                   = "list(append)+dict(recurse_array)+str()"
+  # # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
+  # # Pre-installing the agent, will make the VM extension install succeed
+  # dynamic "part" {
+  #   for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
+  #   content {
+  #     content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
+  #     {
+  #       workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
+  #       workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+  #     })
+  #     content_type             = "text/cloud-config"
+  #     merge_type               = "list(append)+dict(recurse_array)+str()"
+  #   }
+  # }
 }
 
 data azurerm_platform_image latest_image {
@@ -255,12 +306,18 @@ resource azurerm_linux_virtual_machine vm {
     storage_account_type       = "Premium_LRS"
   }
 
-  source_image_reference {
-    publisher                  = var.os_publisher
-    offer                      = var.os_offer
-    sku                        = var.os_sku
-    version                    = local.os_version
-  }
+
+  source_image_id              = var.os_image_id
+
+  dynamic "source_image_reference" {
+    for_each = range(var.os_image_id == null || var.os_image_id == "" ? 1 : 0) 
+    content {
+      publisher                = var.os_publisher
+      offer                    = var.os_offer
+      sku                      = var.os_sku
+      version                  = local.os_version
+    }
+  } 
 
   tags                         = var.tags
   depends_on                   = [
@@ -271,6 +328,7 @@ resource azurerm_linux_virtual_machine vm {
     ignore_changes             = [
       # Let bootstrap-os update the host configuration
       custom_data,
+      source_image_id,
       source_image_reference.0.version
     ]
   }  
@@ -288,6 +346,8 @@ resource azurerm_monitor_diagnostic_setting vm {
       enabled                  = false
     }
   }
+
+  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
 resource azurerm_virtual_machine_extension cloud_config_status {
@@ -295,12 +355,12 @@ resource azurerm_virtual_machine_extension cloud_config_status {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Extensions"
   type                         = "CustomScript"
-  type_handler_version         = "2.0"
+  type_handler_version         = "2.1"
+  auto_upgrade_minor_version   = true
   settings                     = jsonencode({
     "commandToExecute"         = "/usr/bin/cloud-init status --long --wait ; systemctl status cloud-final.service --full --no-pager --wait"
   })
   tags                         = var.tags
-
 
   timeouts {
     create                     = "60m"
@@ -329,7 +389,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
   type                         = "OmsAgentForLinux"
-  type_handler_version         = "1.7"
+  type_handler_version         = "1.13"
   auto_upgrade_minor_version   = true
   settings                     = jsonencode({
     "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
@@ -358,6 +418,8 @@ resource azurerm_virtual_machine_extension log_analytics {
 #   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 # }
 
+# TODO: Replace with Azure Monitoring Agent
+# https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/diagnostics-linux?tabs=azcli#python-requirement
 resource azurerm_virtual_machine_extension diagnostics {
   name                         = "LinuxDiagnostic"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
