@@ -35,12 +35,8 @@ runcmd:
   - git clone https://github.com/geekzter/bootstrap-os.git /home/${user_name}/src/bootstrap-os
   - cd /home/${user_name}/src/bootstrap-os/linux
   - git checkout ${bootstrap_branch}
-  # - sudo ./bootstrap_linux2.sh ${bootstrap_switches}
   - sudo su -l -c "~/src/bootstrap-os/linux/bootstrap_linux2.sh ${bootstrap_switches}" ${user_name}
   - chown -R ${user_name}:${user_name} /home/${user_name}
   - 'su -l -c "~/.config/powershell/setup_linux_vm.ps1" ${user_name}'
 
-# TODO
-# [  160.082104] cloud-init[2633]: /root/.gitignore -> /home/eric/src/bootstrap-os/dotfiles/.gitignore
-# [  160.086548] cloud-init[2633]: /root/.tmux.conf -> /home/eric/src/bootstrap-os/dotfiles/.tmux.conf
-# [  160.090987] cloud-init[2633]: /root/.zshrc -> /home/eric/src/bootstrap-os/dotfiles/.zshrc
+final_message: "User ${user_name} configured after $UPTIME seconds"

@@ -36,3 +36,5 @@ runcmd:
   - sudo chattr +i /etc/resolv.conf # Mark immutable to prevent NetworkManager from making changes
   - sudo systemctl restart dnsmasq.service
   - echo dmsnasq config completed
+
+final_message: "dnsmasq configured after $UPTIME seconds"
