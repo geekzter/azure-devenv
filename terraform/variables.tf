@@ -30,6 +30,8 @@ variable deploy_linux {
   default                      = true
   description                  = "Disabling this, also disables DNS forwarding"
 }
+
+# BUG: Won't work with visualstudio2022 images
 variable deploy_log_analytics_extensions {
   type                         = bool
   default                      = true
