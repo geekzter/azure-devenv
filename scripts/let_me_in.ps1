@@ -37,16 +37,16 @@ Write-Verbose "`nRetrieving public IP address..."
 $ipAddress = (Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9) -replace "\n","" # Ipv4
 Write-Host "Public IP address is $ipAddress"
 
-# Get block(s) the public IP address belongs to
-$ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
-Write-Host "Public IP prefix is $ipPrefix"
+# # Get block(s) the public IP address belongs to
+# $ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
+# Write-Host "Public IP prefix is $ipPrefix"
 
 # Retrieve all NSG's
 Write-Host "Retrieving network security groups in resource group ${resourceGroup}..."
 $nsgs = $(az network nsg list -g $resourceGroup --query "[*].name" -o tsv)
+$filterAccessBy = $Close ? "Allow" : "Deny"
 foreach ($nsg in $nsgs) {
     # Get remote access rules
-    $filterAccessBy = $Close ? "Allow" : "Deny"
     $rasRuleQuery = "[?starts_with(name,'AdminRAS') && access=='${filterAccessBy}'].name"
     Write-Verbose "Retrieving remote access rules in network security group ${nsg} ($rasRuleQuery)..."
     Write-Debug "az network nsg rule list --nsg-name $nsg -g $resourceGroup --query `"$rasRuleQuery`" -o tsv"
@@ -62,7 +62,7 @@ foreach ($nsg in $nsgs) {
 
     # Current prefix needs access, check whether rule exists
     if (!$Close) {
-        $clientRuleQuery = "[?starts_with(name,'AdminRAS') && sourceAddressPrefix=='${ipPrefix}' && access=='${setAccessTo}'].name"
+        $clientRuleQuery = "[?starts_with(name,'AdminRAS') && sourceAddressPrefix=='${ipAddress}' && access=='${setAccessTo}'].name"
         if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $clientRuleQuery -o tsv)) {
             # Add rule for current prefix
             $ruleName = "AdminRAS"
@@ -71,22 +71,23 @@ foreach ($nsg in $nsgs) {
             Write-Debug "Highest priority # for admin rule is $maxPriority"
             $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
             Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
-            az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol TCP --source-address-prefixes $ipPrefix --destination-address-prefixes '*' --destination-port-ranges 22 3389 --query "name" -o tsv
+            az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol TCP --source-address-prefixes $ipAddress --destination-address-prefixes '*' --destination-port-ranges 22 3389 --query "name" -o tsv
         }
     }
 }
 
 # Update Key Vault firewall
-if ($keyVault) {
-    $ipAddress=$(Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9).Trim()
-    Write-Verbose "Public IP address is $ipAddress"
-    # Get block(s) the public IP address belongs to
-    # HACK: We need this to cater for changing public IP addresses e.g. Azure Pipelines Hosted Agents
-    $ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
-    Write-Verbose "Public IP prefix is $ipPrefix"
+if ($keyVault) {    
+    $existingRule = $(az keyvault network-rule list -g $resourceGroup -n $keyVault --query "ipRules[?starts_with(value,'${ipAddress}')]" -o tsv)
 
-    Write-Host "Adding rule for Key Vault $keyVault to allow prefix $ipPrefix..."
-    az keyvault network-rule add -g $resourceGroup -n $keyVault --ip-address $ipPrefix -o none
+    if ((!$Close) -and (!$existingRule)) {
+        Write-Host "Adding rule for Key Vault $keyVault to allow $ipAddress..."
+        az keyvault network-rule add -g $resourceGroup -n $keyVault --ip-address $ipAddress -o none
+    }
+    if ($Close -and $existingRule) {
+        Write-Host "Removing rule for Key Vault $keyVault to allow $ipAddress..."
+        az keyvault network-rule remove -g $resourceGroup -n $keyVault --ip-address "${ipAddress}/32" -o none
+    }    
 } else {
     Write-Host "Key Vault not found"
 }

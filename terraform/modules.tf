@@ -56,7 +56,7 @@ module linux_vm {
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
   tags                         = azurerm_resource_group.vm_resource_group.tags
-  terraform_cidr               = local.ipprefix
+  terraform_cidr               = local.terraform_cidr
   timezone                     = var.timezone
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   user_assigned_identity_id    = azurerm_user_assigned_identity.service_principal.id

@@ -9,21 +9,24 @@ locals {
   suffix                       = random_string.suffix.result
 
   # Networking
-  ipprefix                     = jsondecode(chomp(data.http.localpublicprefix.body)).data.prefix
-  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.ipprefix])))) # Make sure ranges have correct base address
+  terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
+  # terraform_cidr               = local.terraform_ip_prefix # Too broad
+  terraform_ip_address         = data.http.terraform_ip_address.body
+  # terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
+  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_address])))) # Make sure ranges have correct base address
 }
 
 # Data sources
 data azurerm_client_config current {}
 
-data http localpublicip {
+data http terraform_ip_address {
 # Get public IP address of the machine running this terraform template
   url                          = "https://ipinfo.io/ip"
 }
 
-data http localpublicprefix {
+data http terraform_ip_prefix {
 # Get public IP prefix of the machine running this terraform template
-  url                          = "https://stat.ripe.net/data/network-info/data.json?resource=${chomp(data.http.localpublicip.body)}"
+  url                          = "https://stat.ripe.net/data/network-info/data.json?resource=${local.terraform_ip_address}"
 }
 
 # Random resource suffix, this will prevent name collisions when creating resources in parallel
@@ -202,7 +205,7 @@ resource azurerm_key_vault vault {
     # When enabled_for_disk_encryption is true, network_acls.bypass must include "AzureServices"
     bypass                     = "AzureServices"
     ip_rules                   = [
-                                  local.ipprefix
+                                  local.terraform_ip_address
     ]
     virtual_network_subnet_ids = [for vnet in module.region_network : vnet.vm_subnet_id]
   }

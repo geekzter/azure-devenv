@@ -354,7 +354,6 @@ jobs:
 
     - bash: |
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_public_access_enabled'],'false'),'false')))
       displayName: 'Test SSH connection'
       workingDirectory: '$(scriptDirectory)'
 
