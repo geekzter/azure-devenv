@@ -9,7 +9,7 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
-variable deploy_log_analytics_extensions {
+variable deploy_azure_monitor_extensions {
   type                         = bool
 }
 variable domain {}

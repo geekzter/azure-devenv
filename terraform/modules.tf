@@ -23,13 +23,13 @@ module linux_vm {
   user_name                    = var.admin_username
   user_password                = local.password
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = true
-  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
+  dependency_monitor           = var.deploy_azure_monitor_extensions
+  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   domain                       = var.vm_domain
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
-  enable_aad_login             = false
+  enable_aad_login             = var.enable_aad_login
   enable_accelerated_networking = false
   enable_dns_proxy             = false # var.deploy_vpn
   enable_policy_extension      = var.enable_policy_extensions
@@ -43,7 +43,7 @@ module linux_vm {
   location                     = each.value
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "l"
-  network_watcher              = true
+  network_watcher              = var.deploy_azure_monitor_extensions
   os_image_id                  = var.linux_os_image_id
   os_offer                     = var.linux_os_offer
   os_publisher                 = var.linux_os_publisher
@@ -76,17 +76,17 @@ module linux_vm {
 module windows_vm {
   source                       = "./modules/windows-virtual-machine"
 
-  aad_login                    = true
   admin_cidr_ranges            = local.admin_cidr_ranges
   admin_username               = var.admin_username
   admin_password               = local.password
   bg_info                      = true
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = true
-  deploy_log_analytics_extensions = var.deploy_log_analytics_extensions
+  dependency_monitor           = var.deploy_azure_monitor_extensions
+  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
+  enable_aad_login             = var.enable_aad_login
   enable_accelerated_networking = var.windows_accelerated_networking
   enable_policy_extension      = var.enable_policy_extensions
   enable_security_center       = var.enable_policy_extensions
@@ -98,7 +98,7 @@ module windows_vm {
   location                     = each.value
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   moniker                      = "w"
-  network_watcher              = true
+  network_watcher              = var.deploy_azure_monitor_extensions
   os_image_id                  = var.windows_os_image_id
   os_offer                     = var.windows_os_offer
   os_publisher                 = var.windows_os_publisher

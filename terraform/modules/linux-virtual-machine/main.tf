@@ -247,7 +247,7 @@ data cloudinit_config user_data {
   # # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
   # # Pre-installing the agent, will make the VM extension install succeed
   # dynamic "part" {
-  #   for_each = range(var.deploy_log_analytics_extensions ? 1 : 0)
+  #   for_each = range(var.deploy_azure_monitor_extensions ? 1 : 0)
   #   content {
   #     content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
   #     {
@@ -378,7 +378,7 @@ resource null_resource prepare_log_analytics {
     interpreter                = ["pwsh","-nop","-command"]
   }
 
-  count                        = var.deploy_log_analytics_extensions ? 1 : 0
+  count                        = var.deploy_azure_monitor_extensions ? 1 : 0
   depends_on                   = [
                                   azurerm_virtual_machine_extension.cloud_config_status
   ]
@@ -398,7 +398,7 @@ resource azurerm_virtual_machine_extension log_analytics {
     "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
   })
 
-  count                        = var.deploy_log_analytics_extensions ? 1 : 0
+  count                        = var.deploy_azure_monitor_extensions ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
                                   azurerm_virtual_machine_extension.cloud_config_status,
@@ -414,6 +414,7 @@ resource azurerm_virtual_machine_extension log_analytics {
 #   type_handler_version         = "1.5"
 #   auto_upgrade_minor_version   = true
 
+#   count                        = var.deploy_azure_monitor_extensions ? 1 : 0
 #   tags                         = var.tags
 #   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 # }

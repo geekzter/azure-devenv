@@ -32,7 +32,7 @@ variable deploy_linux {
 }
 
 # BUG: Won't work with visualstudio2022 images
-variable deploy_log_analytics_extensions {
+variable deploy_azure_monitor_extensions {
   type                         = bool
   default                      = true
   description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
@@ -57,6 +57,10 @@ variable devops_pat {
 }
 variable dns_zone_id {
   default                      = null
+}
+variable enable_aad_login {
+  type                         = bool
+  default                      = false
 }
 variable enable_disk_encryption {
   type                         = bool
