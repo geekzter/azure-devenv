@@ -32,7 +32,7 @@ variable deploy_linux {
 }
 
 # BUG: Won't work with visualstudio2022 images
-variable deploy_log_analytics_extensions {
+variable deploy_azure_monitor_extensions {
   type                         = bool
   default                      = true
   description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
@@ -58,6 +58,10 @@ variable devops_pat {
 variable dns_zone_id {
   default                      = null
 }
+variable enable_aad_login {
+  type                         = bool
+  default                      = false
+}
 variable enable_disk_encryption {
   type                         = bool
   default                      = false
@@ -68,7 +72,7 @@ variable enable_policy_extensions {
 }
 variable enable_update_schedule {
   type                         = bool
-  default                      = false
+  default                      = true
 }
 variable enable_vm_diagnostics {
   type                         = bool
@@ -195,7 +199,7 @@ variable windows_os_publisher {
   default                      = "microsoftvisualstudio"
 }
 variable windows_os_sku {
-  default                      = "vs-2022-comm-latest-win11-n"
+  default                      = "vs-2022-ent-latest-win11-n" # vs-2022-comm-latest-win11-n 2022.02.18 doesn't work with Log Analytics extension
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

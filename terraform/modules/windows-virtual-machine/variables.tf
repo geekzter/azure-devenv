@@ -1,7 +1,3 @@
-variable aad_login {
-    type                       = bool
-    default                    = false
-}
 variable admin_cidr_ranges {
     type                       = list
     default                    = []
@@ -19,7 +15,7 @@ variable dependency_monitor {
     type                       = bool
     default                    = false
 }
-variable deploy_log_analytics_extensions {
+variable deploy_azure_monitor_extensions {
   type                         = bool
 }
 variable diagnostics_storage_id {}
@@ -29,6 +25,10 @@ variable disk_encryption {
 }
 variable dns_zone_id {
     default                    = null
+}
+variable enable_aad_login {
+    type                       = bool
+    default                    = false
 }
 variable enable_accelerated_networking {
     type                       = bool

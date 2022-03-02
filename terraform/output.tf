@@ -29,7 +29,7 @@ output client_cert_public_pem {
 }
 
 output dns_server_address {
-  value                        = var.deploy_vpn ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address : null
+  value                        = var.deploy_vpn && var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address : null
 }
 
 output gateway_id {
