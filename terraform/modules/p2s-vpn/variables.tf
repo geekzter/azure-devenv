@@ -1,4 +1,4 @@
-variable dns_ip_address {
+variable dns_ip_addresses {
   default                      = []
   type                         = list
 }
