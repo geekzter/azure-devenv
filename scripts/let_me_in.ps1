@@ -67,7 +67,16 @@ foreach ($nsg in $nsgs) {
             Write-Debug "Highest priority # for admin rule is $maxPriority"
             $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
             Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
-            az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol TCP --source-address-prefixes $ipAddress --destination-address-prefixes 'VirtualNetwork' --destination-port-ranges 22 3389 --query "name" -o tsv
+            az network nsg rule create -n $ruleName `
+                                       --nsg-name $nsg -g $resourceGroup `
+                                       --priority $priority `
+                                       --access $setAccessTo `
+                                       --direction Inbound `
+                                       --protocol TCP `
+                                       --source-address-prefixes $ipAddress `
+                                       --destination-address-prefixes '*' `
+                                       --destination-port-ranges 22 3389 `
+                                       --query "name" -o tsv
         }
     }
 }
