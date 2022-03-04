@@ -7,9 +7,9 @@ module region_network {
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   admin_cidr_ranges            = local.admin_cidr_ranges
   deploy_bastion               = var.deploy_bastion
+  enable_public_access         = var.enable_public_access
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
-  public_access_enabled        = var.public_access_enabled
   vpn_range                    = var.vpn_range
 
   for_each                     = toset(var.locations)
@@ -33,6 +33,7 @@ module linux_vm {
   enable_accelerated_networking = false
   enable_dns_proxy             = false # var.deploy_vpn
   enable_policy_extension      = var.enable_policy_extensions
+  enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
   enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
@@ -51,7 +52,6 @@ module linux_vm {
   os_version                   = var.linux_os_version
   prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
-  public_access_enabled        = var.public_access_enabled
   shutdown_time                = var.shutdown_time
   ssh_private_key              = var.ssh_private_key
   ssh_public_key               = var.ssh_public_key
@@ -89,6 +89,7 @@ module windows_vm {
   enable_aad_login             = var.enable_aad_login
   enable_accelerated_networking = var.windows_accelerated_networking
   enable_policy_extension      = var.enable_policy_extensions
+  enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
   enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
@@ -107,7 +108,6 @@ module windows_vm {
   packages                     = var.install_tools ? ["Developer"] : ["None"]
   prepare_host                 = var.prepare_host
   private_dns_zone             = azurerm_private_dns_zone.internal_dns.name
-  public_access_enabled        = var.public_access_enabled
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tags                         = azurerm_resource_group.vm_resource_group.tags
   shutdown_time                = var.shutdown_time

@@ -81,7 +81,7 @@ variable os_sku {
 variable os_version {
     default                    = "latest"
 }
-variable public_access_enabled {
+variable enable_public_access {
   type                         = bool
 }
 variable prepare_host {

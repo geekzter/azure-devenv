@@ -55,7 +55,7 @@ resource azurerm_network_security_rule ras {
   source_port_range            = "*"
   destination_port_ranges      = ["22","3389"]
   source_address_prefix        = var.vpn_range
-  destination_address_prefix   = "VirtualNetwork"
+  destination_address_prefixes = azurerm_subnet.vm_subnet.address_prefixes
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }
@@ -63,12 +63,12 @@ resource azurerm_network_security_rule admin_ras {
   name                         = "AdminRAS"
   priority                     = 202
   direction                    = "Inbound"
-  access                       = var.public_access_enabled ? "Allow" : "Deny"
+  access                       = var.enable_public_access ? "Allow" : "Deny"
   protocol                     = "Tcp"
   source_port_range            = "*"
   destination_port_ranges      = ["22","3389"]
   source_address_prefixes      = var.admin_cidr_ranges
-  destination_address_prefix   = "*"
+  destination_address_prefixes = azurerm_subnet.vm_subnet.address_prefixes
   resource_group_name          = azurerm_network_security_group.vm_nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.vm_nsg.name
 }

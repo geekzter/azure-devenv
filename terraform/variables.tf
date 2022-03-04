@@ -132,9 +132,9 @@ variable prepare_host {
   default                      = true
 }
 
-variable public_access_enabled {
+variable enable_public_access {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 
 variable resource_suffix {
