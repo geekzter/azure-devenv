@@ -72,7 +72,7 @@ variable enable_policy_extensions {
 }
 variable enable_update_schedule {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 variable enable_vm_diagnostics {
   type                         = bool
