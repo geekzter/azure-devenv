@@ -72,7 +72,7 @@ variable enable_policy_extensions {
 }
 variable enable_update_schedule {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 variable enable_vm_diagnostics {
   type                         = bool
@@ -132,9 +132,9 @@ variable prepare_host {
   default                      = true
 }
 
-variable public_access_enabled {
+variable enable_public_access {
   type                         = bool
-  default                      = true
+  default                      = false
 }
 
 variable resource_suffix {

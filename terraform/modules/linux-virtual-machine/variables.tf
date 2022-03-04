@@ -84,7 +84,7 @@ variable prepare_host {
   default                      = true
 }
 variable private_dns_zone {}
-variable public_access_enabled {
+variable enable_public_access {
   type                         = bool
 }
 variable resource_group_name {}

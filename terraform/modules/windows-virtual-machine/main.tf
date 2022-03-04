@@ -175,12 +175,15 @@ resource azurerm_network_security_rule rdp {
   name                         = "AdminRAS"
   priority                     = 201
   direction                    = "Inbound"
-  access                       = var.public_access_enabled ? "Allow" : "Deny"
+  access                       = var.enable_public_access ? "Allow" : "Deny"
   protocol                     = "Tcp"
   source_port_range            = "*"
   destination_port_range       = "3389"
   source_address_prefixes      = var.admin_cidr_ranges
-  destination_address_prefix   = "*"
+  destination_address_prefixes = [
+    azurerm_public_ip.pip.ip_address,
+    azurerm_network_interface.nic.ip_configuration.0.private_ip_address
+  ]
   resource_group_name          = azurerm_network_security_group.nsg.resource_group_name
   network_security_group_name  = azurerm_network_security_group.nsg.name
 }

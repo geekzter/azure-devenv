@@ -5,7 +5,7 @@
  
 .DESCRIPTION 
     This script provides "poor man's" just in time access to VM's, directly via their public IP addresses.
-    Access to these IP addreses is restricted to selected IP ranges, by default the publix prefix of the location the infrastructure was provisioned from, 
+    Access to these IP addreses is restricted to selected IP ranges, by default the publix IP address of the location the infrastructure was provisioned from, 
     more can be specified using the Terraform 'admin_ip_ranges' variable.
     You can close ports again by using the -Close switch.
 
@@ -37,13 +37,9 @@ Write-Verbose "`nRetrieving public IP address..."
 $ipAddress = (Invoke-RestMethod -Uri https://ipinfo.io/ip -MaximumRetryCount 9) -replace "\n","" # Ipv4
 Write-Host "Public IP address is $ipAddress"
 
-# # Get block(s) the public IP address belongs to
-# $ipPrefix = (Invoke-RestMethod -Uri https://stat.ripe.net/data/network-info/data.json?resource=${ipAddress} -MaximumRetryCount 9 | Select-Object -ExpandProperty data | Select-Object -ExpandProperty prefix)
-# Write-Host "Public IP prefix is $ipPrefix"
-
 # Retrieve all NSG's
 Write-Host "Retrieving network security groups in resource group ${resourceGroup}..."
-$nsgs = $(az network nsg list -g $resourceGroup --query "[*].name" -o tsv)
+$nsgs = $(az network nsg list -g $resourceGroup --query "[?!contains(name,'bastion')].name" -o tsv)
 $filterAccessBy = $Close ? "Allow" : "Deny"
 foreach ($nsg in $nsgs) {
     # Get remote access rules
@@ -60,18 +56,27 @@ foreach ($nsg in $nsgs) {
         az network nsg rule update --nsg-name $nsg -g $resourceGroup --name $rule --access $setAccessTo --query "name" -o tsv
     }
 
-    # Current prefix needs access, check whether rule exists
+    # Rule may have been removed (e.g. policy), add it back
     if (!$Close) {
-        $clientRuleQuery = "[?starts_with(name,'AdminRAS') && sourceAddressPrefix=='${ipAddress}' && access=='${setAccessTo}'].name"
-        if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query $clientRuleQuery -o tsv)) {
-            # Add rule for current prefix
+        $clientRuleQuery = "[?starts_with(name,'AdminRAS') && sourceAddressPrefixes[0]=='${ipAddress}' && access=='${setAccessTo}'].name"
+        if (-not $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query "${clientRuleQuery}" -o tsv)) {
+            # Add rule
             $ruleName = "AdminRAS"
             # Determine unique priority
             $maxPriority = $(az network nsg rule list --nsg-name $nsg -g $resourceGroup --query "max_by([?starts_with(name,'AdminRAS')],&priority).priority" -o tsv)
             Write-Debug "Highest priority # for admin rule is $maxPriority"
             $priority = [math]::max(([int]$maxPriority+1),250) # Use a priority unlikely to be taken by Terraform
             Write-Host "Adding remote access rule ${ruleName} to network security group ${nsg} with access set to '${setAccessTo}'..."
-            az network nsg rule create -n $ruleName --nsg-name $nsg -g $resourceGroup --priority $priority --access $setAccessTo --direction Inbound --protocol TCP --source-address-prefixes $ipAddress --destination-address-prefixes '*' --destination-port-ranges 22 3389 --query "name" -o tsv
+            az network nsg rule create -n $ruleName `
+                                       --nsg-name $nsg -g $resourceGroup `
+                                       --priority $priority `
+                                       --access $setAccessTo `
+                                       --direction Inbound `
+                                       --protocol TCP `
+                                       --source-address-prefixes $ipAddress `
+                                       --destination-address-prefixes '*' `
+                                       --destination-port-ranges 22 3389 `
+                                       --query "name" -o tsv
         }
     }
 }
