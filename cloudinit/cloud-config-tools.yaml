@@ -60,6 +60,7 @@ packages:
   - sed
   - snapd
   - telnet
+  - terraform
   - tmux
   - traceroute
   - tree
