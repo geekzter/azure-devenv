@@ -16,15 +16,15 @@ apt:
     git-core:
       source: "ppa:git-core/ppa"
     hashicorp:
-      source: "deb [trusted=yes] https://apt.releases.hashicorp.com bionic main"
+      source: "deb [arch=amd64] https://apt.releases.hashicorp.com $RELEASE main"
     helm-stable-debian.list:
       source: "deb https://baltocdn.com/helm/stable/debian/ all main"
     kubernetes.list:
       source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
     azure-cli.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bionic main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $RELEASE main"
     microsoft-prod.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod $RELEASE main"
 
 package_update: true
 packages:
@@ -60,6 +60,7 @@ packages:
   - sed
   - snapd
   - telnet
+  - terraform
   - tmux
   - traceroute
   - tree
@@ -87,7 +88,7 @@ runcmd:
   - sudo ACCEPT_EULA=Y apt install msodbcsql17 -y
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
   - echo Installing PowerShell modules...
-  - sudo pwsh -NoProfile -NonInteractive -Command 'Install-Module -Name Az,AzureAD,SqlServer -Scope AllUsers -Repository PSGallery -Force'
+  - sudo pwsh -NoProfile -NonInteractive -Command 'Install-Module -Name Az,AzureAD,Oh-My-Posh,Posh-Git,PSReadLine,SqlServer,Terminal-Icons -Scope AllUsers -Repository PSGallery -Force'
   - echo Installing azcopy...
   - 'wget -O - https://aka.ms/downloadazcopy-v10-linux | tar xzf - --strip-components=1 -C /tmp'
   - mv /tmp/azcopy /usr/local/bin/azcopy
