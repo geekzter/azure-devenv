@@ -88,7 +88,7 @@ runcmd:
   - sudo ACCEPT_EULA=Y apt install msodbcsql17 -y
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
   - echo Installing PowerShell modules...
-  - sudo pwsh -NoProfile -NonInteractive -Command 'Install-Module -Name Az,AzureAD,SqlServer -Scope AllUsers -Repository PSGallery -Force'
+  - sudo pwsh -NoProfile -NonInteractive -Command 'Install-Module -Name Az,AzureAD,Oh-My-Posh,PSReadLine,SqlServer,Terminal-Icons -Scope AllUsers -Repository PSGallery -Force'
   - echo Installing azcopy...
   - 'wget -O - https://aka.ms/downloadazcopy-v10-linux | tar xzf - --strip-components=1 -C /tmp'
   - mv /tmp/azcopy /usr/local/bin/azcopy
