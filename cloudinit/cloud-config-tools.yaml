@@ -16,15 +16,15 @@ apt:
     git-core:
       source: "ppa:git-core/ppa"
     hashicorp:
-      source: "deb [trusted=yes] https://apt.releases.hashicorp.com bionic main"
+      source: "deb [arch=amd64] https://apt.releases.hashicorp.com $RELEASE main"
     helm-stable-debian.list:
       source: "deb https://baltocdn.com/helm/stable/debian/ all main"
     kubernetes.list:
       source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
     azure-cli.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ bionic main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $RELEASE main"
     microsoft-prod.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod $RELEASE main"
 
 package_update: true
 packages:
