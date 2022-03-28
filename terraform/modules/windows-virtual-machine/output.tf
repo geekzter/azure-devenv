@@ -1,6 +1,9 @@
 output computer_name {
     value                      = local.computer_name
 }
+output location {
+    value                      = var.location
+}
 output name {
     value                      = azurerm_windows_virtual_machine.vm.name
 }

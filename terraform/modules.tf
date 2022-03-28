@@ -6,7 +6,7 @@ module region_network {
 
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   admin_cidr_ranges            = local.admin_cidr_ranges
-  deploy_bastion               = var.deploy_bastion
+  deploy_bastion               = var.deploy_bastion && index(var.locations,each.value) == 0
   enable_public_access         = var.enable_public_access
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name

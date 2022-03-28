@@ -7,6 +7,13 @@ output admin_username {
   value                        = var.admin_username
 }
 
+output bastion_fqdn {
+    value                      = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_fqdn : null
+}
+output bastion_name {
+    value                      = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_name : null
+}
+
 output cert_password {
   sensitive                    = true
   value                        = var.deploy_vpn ? module.vpn.0.cert_password : null
@@ -117,8 +124,10 @@ output virtual_network_id {
 
 output vm_id {
   value                        = merge(
-    {for vm in module.linux_vm : vm.name => vm.vm_id},
-    {for vm in module.windows_vm : vm.name => vm.vm_id}
+    {for vm in module.linux_vm : format("linux_%s",vm.location) => vm.vm_id},
+    {for vm in module.windows_vm : format("windows_%s",vm.location) => vm.vm_id},
+    {"linux" = module.linux_vm[azurerm_resource_group.vm_resource_group.location].vm_id},
+    {"windows" = module.windows_vm[azurerm_resource_group.vm_resource_group.location].vm_id}
   )
 }
 output vm_os_version {
