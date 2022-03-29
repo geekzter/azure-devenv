@@ -10,8 +10,8 @@ output admin_username {
 output bastion_fqdn {
     value                      = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_fqdn : null
 }
-output bastion_name {
-    value                      = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_name : null
+output bastion_id {
+    value                      = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_id : null
 }
 
 output cert_password {

@@ -14,9 +14,21 @@ param (
     $Endpoint
 
     # TODO: location
-
-    # TODO: Windows
 ) 
+
+function Connect-Rdp(
+    [parameter(Mandatory=$true)][string]$UserName,
+    [parameter(Mandatory=$true)][string]$HostName
+) {
+    if ($IsWindows) {
+        mstsc.exe /v:$HostName /f
+    }
+    if ($IsMacOS) {
+        "rdp://{0}{1}@{0}{2}" -f "`$", $UserName, $HostName | Set-Variable rdpUrl
+        Write-Verbose "Opening $rdpUrl"
+        open $rdpUrl
+    }
+}
 
 if (!$Endpoint) {
     $defaultChoice = 0
@@ -55,23 +67,20 @@ switch ($Endpoint)
                 az login -o none $($azLoginSwitches)
             }
         }
-        az network bastion ssh --ids "${bastion_id}" `
+        az network bastion rdp --ids "${bastion_id}" `
                                --resource-group "${resource_group_name}" `
-                               --target-resource-id "${vm_id}" `
-                               --auth-type "ssh-key" `
-                               --username "${user_name}" `
-                               --ssh-key ${ssh_private_key}
+                               --target-resource-id "${vm_id}"
     }
     "PrivateIP" {
-        ssh -i ${ssh_private_key} ${user_name}@${private_ip_address}
+        Connect-Rdp -UserName "${user_name}" -HostName "${private_ip_address}"
     }
     "PrivateHostname" {
-        ssh -i ${ssh_private_key} ${user_name}@${private_fqdn}
+        Connect-Rdp -UserName "${user_name}" -HostName "${private_fqdn}"
     }
     "PublicIP" {
-        ssh -i ${ssh_private_key} ${user_name}@${public_ip_address}
+        Connect-Rdp -UserName "${user_name}" -HostName "${public_ip_address}"
     }
     "PublicHostname" {
-        ssh -i ${ssh_private_key} ${user_name}@${public_fqdn}
+        Connect-Rdp -UserName "${user_name}" -HostName "${public_fqdn}"
     }
 }
