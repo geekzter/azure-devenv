@@ -122,7 +122,7 @@ output virtual_network_id {
   value                        = {for region in var.locations : region => module.region_network[region].virtual_network_id}
 }
 
-output vm_id {
+output virtual_machine_id {
   value                        = merge(
     {for vm in module.linux_vm : format("linux_%s",vm.location) => vm.vm_id},
     {for vm in module.windows_vm : format("windows_%s",vm.location) => vm.vm_id},

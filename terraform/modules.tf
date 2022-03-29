@@ -66,7 +66,6 @@ module linux_vm {
 
   for_each                     = var.deploy_linux ? toset(var.locations) : toset([])
   depends_on                   = [
-    azurerm_key_vault.vault,
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     module.region_network,
@@ -120,7 +119,6 @@ module windows_vm {
 
   for_each                     = var.deploy_windows ? toset(var.locations) : toset([])
   depends_on                   = [
-    azurerm_key_vault.vault,
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     azurerm_role_assignment.terraform_storage_owner,

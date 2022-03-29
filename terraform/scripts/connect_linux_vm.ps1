@@ -11,9 +11,13 @@ param (
     [parameter(Mandatory=$false)]
     [validateset("Bastion", "PrivateHostname", "PrivateIP", "PublicHostname", "PublicIP")]
     [string]
-    $Endpoint
+    $Endpoint,
 
-    # TODO: location
+    [parameter(Mandatory=$false)]
+    [validateset(%{ for location in locations }"${location}",%{ endfor ~}"${default_location}")]
+    [string]
+    $Location="${default_location}"
+
 
     # TODO: Windows
 ) 
@@ -33,12 +37,11 @@ if (!$Endpoint) {
     $choices[$decision].Label -replace "&", "" | Set-Variable Endpoint
 }
 
-# $vmProperties = @{
-# { for location, vm_id in virtual_machine_ids }
-#     {location} = "{vm_id}"
-# { endfor ~}
-# }
+$virtualMachineData = '${virtual_machine_data}'
+$virtualMachineData | ConvertFrom-Json -AsHashtable | Set-Variable virtualMachines
 
+"Connecting to Linux VM in '{0}' using {1}..." -f $Location, $Endpoint | Write-Host
+$virtualMachines[$Location] | Out-String | Write-Debug
 switch ($Endpoint)
 {
     "Bastion" {
@@ -55,23 +58,27 @@ switch ($Endpoint)
                 az login -o none $($azLoginSwitches)
             }
         }
+        "id: {0}" -f $virtualMachines[$Location].id | Write-Debug
         az network bastion ssh --ids "${bastion_id}" `
-                               --resource-group "${resource_group_name}" `
-                               --target-resource-id "${vm_id}" `
+                               --target-resource-id $virtualMachines[$Location].id `
                                --auth-type "ssh-key" `
                                --username "${user_name}" `
                                --ssh-key ${ssh_private_key}
     }
     "PrivateIP" {
-        ssh -i ${ssh_private_key} ${user_name}@${private_ip_address}
+        "private_ip_address: {0}" -f $virtualMachines[$Location].private_ip_address | Write-Debug
+        ssh -i ${ssh_private_key} ${user_name}@$($virtualMachines[$Location].private_ip_address)
     }
     "PrivateHostname" {
-        ssh -i ${ssh_private_key} ${user_name}@${private_fqdn}
+        "private_fqdn: {0}" -f $virtualMachines[$Location].private_fqdn | Write-Debug
+        ssh -i ${ssh_private_key} ${user_name}@$($virtualMachines[$Location].private_fqdn)
     }
     "PublicIP" {
-        ssh -i ${ssh_private_key} ${user_name}@${public_ip_address}
+        "public_ip_address: {0}" -f $virtualMachines[$Location].public_ip_address | Write-Debug
+        ssh -i ${ssh_private_key} ${user_name}@$($virtualMachines[$Location].public_ip_address)
     }
     "PublicHostname" {
-        ssh -i ${ssh_private_key} ${user_name}@${public_fqdn}
+        "public_fqdn: {0}" -f $virtualMachines[$Location].public_fqdn | Write-Debug
+        ssh -i ${ssh_private_key} ${user_name}@$($virtualMachines[$Location].public_fqdn)
     }
 }

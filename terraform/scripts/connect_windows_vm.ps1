@@ -40,7 +40,7 @@ if (!$Endpoint) {
         [System.Management.Automation.Host.ChoiceDescription]::new("Public&IP")
         [System.Management.Automation.Host.ChoiceDescription]::new("&Exit", "Abort operation")
     )
-    $decision = $Host.UI.PromptForChoice("Connect", "How do you want to connect to the Linux VM?", $choices, $defaultChoice)
+    $decision = $Host.UI.PromptForChoice("Connect", "How do you want to connect to the Windows VM?", $choices, $defaultChoice)
     Write-Host $choices[$decision].HelpMessage
     $choices[$decision].Label -replace "&", "" | Set-Variable Endpoint
 }
