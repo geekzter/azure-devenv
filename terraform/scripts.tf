@@ -9,6 +9,7 @@ resource local_file linux_bastion_script {
     resource_group_name        = azurerm_resource_group.vm_resource_group.name
     user_name                  = var.admin_username
     ssh_private_key            = var.ssh_private_key
+    subscription_id            = split("/",azurerm_resource_group.vm_resource_group.id)[2]
     vm_id                      = module.linux_vm[each.value].vm_id
   })
   filename                     = "${path.root}/../data/${terraform.workspace}/connect_linux_vm_${each.value}.ps1"

@@ -12,6 +12,10 @@ param (
     [validateset("Bastion", "PrivateHostname", "PrivateIP", "PublicHostname", "PublicIP")]
     [string]
     $Endpoint
+
+    # TODO: location
+
+    # TODO: Windows
 ) 
 
 if (!$Endpoint) {
@@ -29,11 +33,31 @@ if (!$Endpoint) {
     $choices[$decision].Label -replace "&", "" | Set-Variable Endpoint
 }
 
+# $vmProperties = @{
+# %{ for location, vm_id in virtual_machine_ids }
+#     ${location} = "${vm_id}"
+# %{ endfor ~}
+# }
+
 switch ($Endpoint)
 {
     "Bastion" {
+        # Log into Azure CLI
+        $account = $null
+        az account show 2>$null | ConvertFrom-Json | Set-Variable account
+        if (-not $account) {
+            if ($env:CODESPACES -ieq "true") {
+                $azLoginSwitches = "--use-device-code"
+            }
+            if ($env:ARM_TENANT_ID) {
+                az login -t $env:ARM_TENANT_ID -o none $($azLoginSwitches)
+            } else {
+                az login -o none $($azLoginSwitches)
+            }
+        }
         az network bastion ssh --name "${bastion_name}" `
                                --resource-group "${resource_group_name}" `
+                               --subscription "${subscription_id}" `
                                --target-resource-id "${vm_id}" `
                                --auth-type "ssh-key" `
                                --username "${user_name}" `
