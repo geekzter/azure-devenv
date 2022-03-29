@@ -1,5 +1,4 @@
 locals {
-  config_directory             = "${formatdate("YYYY",timestamp())}/${formatdate("MM",timestamp())}/${formatdate("DD",timestamp())}/${formatdate("hhmm",timestamp())}"
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
@@ -265,49 +264,10 @@ resource azurerm_storage_account automation_storage {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
-resource azurerm_storage_container configuration {
-  name                         = "configuration"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  container_access_type        = "private"
-}
-
 resource azurerm_role_assignment terraform_storage_owner {
   scope                        = azurerm_storage_account.automation_storage.id
   role_definition_name         = "Storage Blob Data Contributor"
   principal_id                 = data.azurerm_client_config.current.object_id
-}
-
-resource azurerm_storage_blob terraform_backend_configuration {
-  name                         = "${local.config_directory}/backend.tf"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/backend.tf"
-
-  count                        = fileexists("${path.root}/backend.tf") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
-}
-
-resource azurerm_storage_blob terraform_auto_vars_configuration {
-  name                         = "${local.config_directory}/config.auto.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/config.auto.tfvars"
-
-  count                        = fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
-}
-
-resource azurerm_storage_blob terraform_workspace_vars_configuration {
-  name                         = "${local.config_directory}/${terraform.workspace}.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/${terraform.workspace}.tfvars"
-
-  count                        = fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
 resource azurerm_user_assigned_identity service_principal {
