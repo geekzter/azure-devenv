@@ -9,11 +9,11 @@ locals {
   suffix                       = random_string.suffix.result
 
   # Networking
-  terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
-  # terraform_cidr               = local.terraform_ip_prefix # Too broad
+  # terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
+  terraform_cidr               = local.terraform_ip_prefix # Too broad
   terraform_ip_address         = data.http.terraform_ip_address.body
-  # terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
-  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_address])))) # Make sure ranges have correct base address
+  terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
+  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_prefix])))) # Make sure ranges have correct base address
 }
 
 # Data sources
@@ -21,7 +21,7 @@ data azurerm_client_config current {}
 
 data http terraform_ip_address {
 # Get public IP address of the machine running this terraform template
-  url                          = "https://ipinfo.io/ip"
+  url                          = "https://api.ipify.org"
 }
 
 data http terraform_ip_prefix {
@@ -204,9 +204,7 @@ resource azurerm_key_vault vault {
     default_action             = "Deny"
     # When enabled_for_disk_encryption is true, network_acls.bypass must include "AzureServices"
     bypass                     = "AzureServices"
-    ip_rules                   = [
-                                  local.terraform_ip_address
-    ]
+    ip_rules                   = local.admin_cidr_ranges
     virtual_network_subnet_ids = [for vnet in module.region_network : vnet.vm_subnet_id]
   }
 
