@@ -60,7 +60,7 @@ variable dns_zone_id {
 }
 variable enable_aad_login {
   type                         = bool
-  default                      = false
+  default                      = true
 }
 variable enable_disk_encryption {
   type                         = bool

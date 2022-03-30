@@ -97,9 +97,7 @@ resource azurerm_resource_group vm_resource_group {
 resource azurerm_role_assignment vm_admin {
   scope                        = azurerm_resource_group.vm_resource_group.id
   role_definition_name         = "Virtual Machine Administrator Login"
-  principal_id                 = var.admin_object_id
-
-  count                        = var.admin_object_id != null ? 1 : 0
+  principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azurerm_client_config.current.object_id
 }
 
 resource azurerm_virtual_network_peering main2other {
