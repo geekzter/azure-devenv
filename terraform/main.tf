@@ -1,5 +1,4 @@
 locals {
-  config_directory             = "${formatdate("YYYY",timestamp())}/${formatdate("MM",timestamp())}/${formatdate("DD",timestamp())}/${formatdate("hhmm",timestamp())}"
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
   password                     = ".Az9${random_string.password.result}"
@@ -9,11 +8,11 @@ locals {
   suffix                       = random_string.suffix.result
 
   # Networking
-  terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
-  # terraform_cidr               = local.terraform_ip_prefix # Too broad
+  # terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
+  terraform_cidr               = local.terraform_ip_prefix # Too broad
   terraform_ip_address         = data.http.terraform_ip_address.body
-  # terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
-  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_address])))) # Make sure ranges have correct base address
+  terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
+  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_prefix])))) # Make sure ranges have correct base address
 }
 
 # Data sources
@@ -21,7 +20,7 @@ data azurerm_client_config current {}
 
 data http terraform_ip_address {
 # Get public IP address of the machine running this terraform template
-  url                          = "https://ipinfo.io/ip"
+  url                          = "https://api.ipify.org"
 }
 
 data http terraform_ip_prefix {
@@ -98,9 +97,7 @@ resource azurerm_resource_group vm_resource_group {
 resource azurerm_role_assignment vm_admin {
   scope                        = azurerm_resource_group.vm_resource_group.id
   role_definition_name         = "Virtual Machine Administrator Login"
-  principal_id                 = var.admin_object_id
-
-  count                        = var.admin_object_id != null ? 1 : 0
+  principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azurerm_client_config.current.object_id
 }
 
 resource azurerm_virtual_network_peering main2other {
@@ -204,9 +201,7 @@ resource azurerm_key_vault vault {
     default_action             = "Deny"
     # When enabled_for_disk_encryption is true, network_acls.bypass must include "AzureServices"
     bypass                     = "AzureServices"
-    ip_rules                   = [
-                                  local.terraform_ip_address
-    ]
+    ip_rules                   = local.admin_cidr_ranges
     virtual_network_subnet_ids = [for vnet in module.region_network : vnet.vm_subnet_id]
   }
 
@@ -267,49 +262,10 @@ resource azurerm_storage_account automation_storage {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
-resource azurerm_storage_container configuration {
-  name                         = "configuration"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  container_access_type        = "private"
-}
-
 resource azurerm_role_assignment terraform_storage_owner {
   scope                        = azurerm_storage_account.automation_storage.id
   role_definition_name         = "Storage Blob Data Contributor"
   principal_id                 = data.azurerm_client_config.current.object_id
-}
-
-resource azurerm_storage_blob terraform_backend_configuration {
-  name                         = "${local.config_directory}/backend.tf"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/backend.tf"
-
-  count                        = fileexists("${path.root}/backend.tf") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
-}
-
-resource azurerm_storage_blob terraform_auto_vars_configuration {
-  name                         = "${local.config_directory}/config.auto.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/config.auto.tfvars"
-
-  count                        = fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
-}
-
-resource azurerm_storage_blob terraform_workspace_vars_configuration {
-  name                         = "${local.config_directory}/${terraform.workspace}.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
-  type                         = "Block"
-  source                       = "${path.root}/${terraform.workspace}.tfvars"
-
-  count                        = fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
-  depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
 resource azurerm_user_assigned_identity service_principal {

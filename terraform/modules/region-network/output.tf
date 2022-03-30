@@ -2,6 +2,12 @@ output address_space {
     value                      = var.address_space
 }
 
+output bastion_fqdn {
+    value                      = var.deploy_bastion ? azurerm_bastion_host.bastion.0.dns_name : null
+}
+output bastion_id {
+    value                      = var.deploy_bastion ? azurerm_bastion_host.bastion.0.id : null
+}
 output diagnostics_storage_id {
     value                      = azurerm_storage_account.diagnostics.id
 }

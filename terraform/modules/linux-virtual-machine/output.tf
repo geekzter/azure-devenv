@@ -4,6 +4,9 @@ output cloud_config {
 output computer_name {
     value                      = local.computer_name
 }
+output location {
+    value                      = var.location
+}
 output name {
     value                      = local.vm_name
 }

@@ -1,38 +1,21 @@
 function AzLogin (
     [parameter(Mandatory=$false)][switch]$DisplayMessages=$false
 ) {
-    # Are we logged into the wrong tenant?
-    Invoke-Command -ScriptBlock {
-        $Private:ErrorActionPreference = "Continue"
-        if ($env:ARM_TENANT_ID) {
-            $script:loggedInTenantId = $(az account show --query tenantId -o tsv 2>$null)
+    # Are we logged in? If so, is it the right tenant?
+    $azureAccount = $null
+    az account show 2>$null | ConvertFrom-Json | Set-Variable azureAccount
+    if ($azureAccount -and "${env:ARM_TENANT_ID}" -and ($azureAccount.tenantId -ine $env:ARM_TENANT_ID)) {
+        Write-Warning "Logged into tenant $($azureAccount.tenant_id) instead of $env:ARM_TENANT_ID (`$env:ARM_TENANT_ID)"
+        $azureAccount = $null
+    }
+    if (-not $azureAccount) {
+        if ($env:CODESPACES -ieq "true") {
+            $azLoginSwitches = "--use-device-code"
         }
-    }
-    if ($loggedInTenantId -and ($loggedInTenantId -ine $env:ARM_TENANT_ID)) {
-        Write-Warning "Logged into tenant $loggedInTenantId instead of $env:ARM_TENANT_ID (`$env:ARM_TENANT_ID), logging off az session"
-        az logout -o none
-    }
-
-    # Are we logged in?
-    Invoke-Command -ScriptBlock {
-        $Private:ErrorActionPreference = "Continue"
-        # Test whether we are logged in
-        $script:loginError = $(az account show -o none 2>&1)
-        if (!$loginError) {
-            $Script:userType = $(az account show --query "user.type" -o tsv)
-            if ($userType -ieq "user") {
-                # Test whether credentials have expired
-                $Script:userError = $(az ad signed-in-user show -o none 2>&1)
-            } 
-        }
-    }
-    $login = ($loginError -or $userError)
-    # Set Azure CLI context
-    if ($login) {
         if ($env:ARM_TENANT_ID) {
-            az login -t $env:ARM_TENANT_ID -o none
+            az login -t $env:ARM_TENANT_ID -o none $($azLoginSwitches)
         } else {
-            az login -o none
+            az login -o none $($azLoginSwitches)
         }
     }
 
