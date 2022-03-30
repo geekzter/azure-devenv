@@ -125,9 +125,7 @@ output virtual_network_id {
 output virtual_machine_id {
   value                        = merge(
     {for vm in module.linux_vm : format("linux_%s",vm.location) => vm.vm_id},
-    {for vm in module.windows_vm : format("windows_%s",vm.location) => vm.vm_id},
-    {"linux" = module.linux_vm[azurerm_resource_group.vm_resource_group.location].vm_id},
-    {"windows" = module.windows_vm[azurerm_resource_group.vm_resource_group.location].vm_id}
+    {for vm in module.windows_vm : format("windows_%s",vm.location) => vm.vm_id}
   )
 }
 output vm_os_version {

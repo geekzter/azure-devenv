@@ -1,7 +1,7 @@
 locals {
   connect_vm_script              = templatefile("${path.root}/scripts/connect_vm.ps1",
   {
-    bastion_id                   = module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_id
+    bastion_id                   = var.deploy_bastion ? module.region_network[azurerm_resource_group.vm_resource_group.location].bastion_id : "$null"
     default_location             = azurerm_resource_group.vm_resource_group.location
     linux_virtual_machine_data   = local.linux_virtual_machine_data
     locations                    = var.locations
