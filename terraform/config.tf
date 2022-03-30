@@ -5,9 +5,10 @@ locals {
     default_location             = azurerm_resource_group.vm_resource_group.location
     linux_virtual_machine_data   = local.linux_virtual_machine_data
     locations                    = var.locations
-    user_name                    = var.admin_username
+    resource_group_id            = azurerm_resource_group.vm_resource_group.id
     ssh_private_key              = var.ssh_private_key
     tenant_id                    = data.azurerm_client_config.current.tenant_id
+    user_name                    = var.admin_username
     windows_virtual_machine_data = local.windows_virtual_machine_data
   })
   linux_virtual_machine_data     = jsonencode({
