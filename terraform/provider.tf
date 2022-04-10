@@ -4,13 +4,13 @@ terraform {
     cloudinit                  = "~> 2.2"
     external                   = "~> 2.1"
     http                       = "~> 2.1"
-    local                      = "~> 2.1"
+    local                      = "~> 2.2"
     null                       = "~> 3.1"
     random                     = "~> 3.1"
     time                       = "~> 0.7"
-    tls                        = "~> 3.1"
+    tls                        = "~> 3.1, != 3.2.0, != 3.2.1, != 3.3"
   }
-  required_version             = ">= 0.14.0"
+  required_version             = "~> 1.0"
 }
 
 # Microsoft Azure Resource Manager Provider
