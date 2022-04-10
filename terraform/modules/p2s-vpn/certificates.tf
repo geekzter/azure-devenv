@@ -36,6 +36,9 @@ resource tls_cert_request client_cert {
   }
 }
 
+# BUG: In tls provider 3.2/3.3
+#      error creating certificate: x509: provided PrivateKey doesn't match parent's PublicKey
+#      Problem inferring key algorithm?
 resource tls_locally_signed_cert client_cert {
   allowed_uses                 = [
                                 "key_encipherment",
