@@ -43,6 +43,29 @@ param (
     $IgnoreKnownHosts
 ) 
 
+function Connect-Rdp(
+    [parameter(Mandatory=$true)][string]$HostName,
+    [parameter(Mandatory=$true)][string]$UserName,
+    [parameter(Mandatory=$false)][string]$Password,
+    [parameter(Mandatory=$false)][int]$Port=3389
+) {
+    if ($IsWindows) {
+        cmdkey.exe /generic:$HostName /user:$UserName /pass:$Password
+        $mstscHost = ("{0}:{1}" -f $HostName, $Port)
+        mstsc.exe /v:$mstscHost /f
+    }
+    if ($IsMacOS) {
+        if ($Password) {
+            $rdpUrl = ("rdp://{0}:{4}@{1}:{2}" -f $UserName, $HostName, $Port, $Password)
+            $rdpUrl -replace $Password, "XXXXXX" | Write-Information
+        } else {
+            $rdpUrl = ("rdp://{0}@{1}:{2}" -f $UserName, $HostName, $Port)
+            Write-Information $rdpUrl
+        }
+        open $rdpUrl
+    }
+}
+
 if (!$OS) {
     $defaultChoice = 0
     $choices = @(
@@ -172,9 +195,22 @@ switch ($Endpoint)
                                        --ssh-key ${ssh_private_key}
             }
         } else {
-            "id: {0}" -f $WindowsVirtualMachines[$Location].id | Write-Debug
-            az network bastion rdp --ids "${bastion_id}" `
-                                   --target-resource-id $WindowsVirtualMachines[$Location].id 
+            if ($IsWindows) {
+                "id: {0}" -f $WindowsVirtualMachines[$Location].id | Write-Debug
+                az network bastion rdp --ids "${bastion_id}" `
+                                       --target-resource-id $WindowsVirtualMachines[$Location].id 
+                }
+            if ($IsMacOS) {
+                # az network bastion rdp (currently) only works on Windows
+                $localPort = 33890
+                $targetResourceId = $linuxVirtualMachines[$Location].id
+                az network bastion tunnel --ids "${bastion_id}" `
+                                          --target-resource-id $targetResourceId `
+                                          --resource-port 3389 `
+                                          --port $localPort `
+                                          &
+                Connect-Rdp -UserName "${user_name}" -HostName 127.0.0.1 -Port $localPort
+            }
         }
     }
     "PrivateIP" {
