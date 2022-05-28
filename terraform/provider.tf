@@ -8,7 +8,8 @@ terraform {
     null                       = "~> 3.1"
     random                     = "~> 3.1"
     time                       = "~> 0.7"
-    tls                        = "~> 3.1, != 3.2.0, != 3.2.1, != 3.3"
+    # BUG: error creating certificate: x509: provided PrivateKey doesn't match parent's PublicKey
+    tls                        = "~> 3.1, != 3.2.0, != 3.2.1, != 3.3.0, != 3.4.0, != 3.4.1"
   }
   required_version             = "~> 1.0"
 }
