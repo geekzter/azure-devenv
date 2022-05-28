@@ -7,7 +7,7 @@ locals {
     locations                    = var.locations
     resource_group_id            = azurerm_resource_group.vm_resource_group.id
     ssh_private_key              = var.ssh_private_key
-    tenant_id                    = data.azurerm_client_config.current.tenant_id
+    tenant_id                    = data.azuread_client_config.current.tenant_id
     user_name                    = var.admin_username
     windows_virtual_machine_data = local.windows_virtual_machine_data
   })

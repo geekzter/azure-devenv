@@ -16,6 +16,7 @@ locals {
 }
 
 # Data sources
+data azuread_client_config current {}
 data azurerm_client_config current {}
 
 data http terraform_ip_address {
@@ -81,8 +82,8 @@ resource azurerm_resource_group vm_resource_group {
       application              = "Development Environment"
       environment              = "dev"
       provisioner              = "terraform"
-      provisioner-client-id    = data.azurerm_client_config.current.client_id
-      provisioner-object-id    = data.azurerm_client_config.current.object_id
+      provisioner-client-id    = data.azuread_client_config.current.client_id
+      provisioner-object-id    = data.azuread_client_config.current.object_id
       repository               = "azure-devenv"
       runid                    = var.run_id
       shutdown                 = "true"
@@ -97,7 +98,7 @@ resource azurerm_resource_group vm_resource_group {
 resource azurerm_role_assignment vm_admin {
   scope                        = azurerm_resource_group.vm_resource_group.id
   role_definition_name         = "Virtual Machine Administrator Login"
-  principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azurerm_client_config.current.object_id
+  principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azuread_client_config.current.object_id
 }
 
 resource azurerm_virtual_network_peering main2other {
@@ -145,7 +146,7 @@ resource azurerm_key_vault vault {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-vault"
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
-  tenant_id                    = data.azurerm_client_config.current.tenant_id
+  tenant_id                    = data.azuread_client_config.current.tenant_id
 
   enabled_for_disk_encryption  = true
   purge_protection_enabled     = false
@@ -153,8 +154,8 @@ resource azurerm_key_vault vault {
 
   # Grant access to self
   access_policy {
-    tenant_id                  = data.azurerm_client_config.current.tenant_id
-    object_id                  = data.azurerm_client_config.current.object_id
+    tenant_id                  = data.azuread_client_config.current.tenant_id
+    object_id                  = data.azuread_client_config.current.object_id
 
     key_permissions            = [
                                 "create",
@@ -265,7 +266,7 @@ resource azurerm_storage_account automation_storage {
 resource azurerm_role_assignment terraform_storage_owner {
   scope                        = azurerm_storage_account.automation_storage.id
   role_definition_name         = "Storage Blob Data Contributor"
-  principal_id                 = data.azurerm_client_config.current.object_id
+  principal_id                 = data.azuread_client_config.current.object_id
 }
 
 resource azurerm_user_assigned_identity service_principal {
