@@ -296,9 +296,9 @@ resource azurerm_linux_virtual_machine vm {
   }
 
   boot_diagnostics {
-    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${data.azurerm_storage_account_sas.diagnostics.sas}"
+    storage_account_uri        = null # Managed Storage Account
   }
-
+  
   identity {
     type                       = "SystemAssigned, UserAssigned"
     identity_ids               = [var.user_assigned_identity_id]

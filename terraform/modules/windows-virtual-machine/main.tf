@@ -260,7 +260,7 @@ resource azurerm_windows_virtual_machine vm {
   }
   
   boot_diagnostics {
-    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${data.azurerm_storage_account_sas.diagnostics.sas}"
+    storage_account_uri        = null # Managed Storage Account
   }
 
   custom_data                  = base64encode(templatefile("${path.module}/scripts/host/setup_windows_vm.ps1", merge(
