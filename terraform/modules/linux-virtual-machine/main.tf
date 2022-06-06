@@ -64,14 +64,16 @@ data azurerm_storage_account_sas diagnostics {
   expiry                       = time_offset.sas_expiry.rfc3339  
 
   permissions {
-    read                       = false
     add                        = true
     create                     = true
-    write                      = true
     delete                     = false
+    filter                     = false
     list                       = true
-    update                     = true
     process                    = false
+    read                       = false
+    tag                        = false
+    update                     = true
+    write                      = true
   }
 }
 
@@ -126,7 +128,7 @@ resource azurerm_network_interface nic {
     name                       = "ipconfig"
     subnet_id                  = var.vm_subnet_id
     primary                    = true
-    private_ip_address_allocation = "dynamic"
+    private_ip_address_allocation = "Dynamic"
     public_ip_address_id       = azurerm_public_ip.pip.id
   }
   enable_accelerated_networking = var.enable_accelerated_networking

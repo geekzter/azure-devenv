@@ -88,8 +88,6 @@ resource azurerm_log_analytics_linked_service automation {
   workspace_id                 = local.log_analytics_workspace_id
   read_access_id               = azurerm_automation_account.automation.id
 
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-
   count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
 }
 
