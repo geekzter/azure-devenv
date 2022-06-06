@@ -1,41 +1,19 @@
-# bootcmd:
-# # Disable OMI service to prevent conflict when purging Log Analytics
-# # https://superuser.com/questions/513159/how-to-remove-systemd-services
-# - '[ -f /opt/microsoft/omsagent/bin/service_control ] && sudo /opt/microsoft/omsagent/bin/service_control stop'
-# - '[ -f /opt/omi/bin/service_control ] && sudo /opt/omi/bin/service_control stop'
-# - '[ -f /opt/microsoft/omsagent/bin/service_control ] && sudo /opt/microsoft/omsagent/bin/service_control stop'
-# - '[ -f /opt/omi/bin/service_control ] && sudo /opt/omi/bin/service_control stop'
-# - systemctl list-units --type=service | grep 'omid\|omsagent' | awk '/.*\.service/ {print $1}' | xargs sudo systemctl stop
-# - systemctl list-units --type=service | grep 'omid\|omsagent' | awk '/.*\.service/ {print $1}' | xargs sudo systemctl disable
-# - systemctl list-units --type=service | grep 'omid\|omsagent' | awk '/.*\.service/ {print $1}' | xargs sudo systemctl stop
-# - systemctl list-units --type=service | grep 'omid\|omsagent' | awk '/.*\.service/ {print $1}' | xargs sudo systemctl disable
-# - rm /lib/systemd/system/omid.service 2>/dev/null
-# - rm /usr/lib/systemd/system/omid.service 2>/dev/null
-# - rm /opt/omi/bin/support/omid.systemd 2>/dev/null
-# - rm /lib/systemd/system/omsagent*.service 2>/dev/null
-# - rm /usr/lib/systemd/system/omsagent*.service 2>/dev/null
-# - systemctl daemon-reload
-# - systemctl reset-failed
-# Remove agent if it is present on the base image
-# - '[ -f /opt/microsoft/omsagent/bin/purge_omsagent.sh ] && sudo sh /opt/microsoft/omsagent/bin/purge_omsagent.sh 2>/dev/null' 
-
 packages:
-  # - python2 # This can cause issues
-  - wget
+  - python2 # This can cause issues, assume python2 is already installed
+  # - wget
 
 runcmd:
   # Configure python2 as default. This should no longer be needed, but still resolves issues.
   # https://docs.microsoft.com/en-us/azure/azure-monitor/agents/agent-linux#python-requirement
-  # https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/diagnostics-linux-v3#python-requirement
-  # - PYTHON_VERSION_MAJOR=$(python -c 'import sys; print(sys.version_info[0])')
-  # - '[ "$PYTHON_VERSION_MAJOR" != "2" ] && sudo update-alternatives --remove-all python 2>/dev/null'
-  # - '[ "$PYTHON_VERSION_MAJOR" != "2" ] && sudo update-alternatives --install /usr/bin/python python /usr/bin/python2 1'
-  # - unset PYTHON_VERSION_MAJOR
+  - PYTHON_VERSION_MAJOR=$(python -c 'import sys; print(sys.version_info[0])') 2>/dev/null
+  - '[ "$PYTHON_VERSION_MAJOR" != "2" ] && sudo update-alternatives --remove-all python 2>/dev/null'
+  - '[ "$PYTHON_VERSION_MAJOR" != "2" ] && sudo update-alternatives --install /usr/bin/python python /usr/bin/python2 1'
+  - unset PYTHON_VERSION_MAJOR
   # Install agent if it does not yet exist
   # https://docs.microsoft.com/en-us/azure/azure-monitor/agents/agent-linux#install-the-agent-using-wrapper-script
   # FIX: https://github.com/Azure/azure-linux-extensions/issues/1116
   # Remove agent if it is present on the base image
-  - '[ -f /opt/microsoft/omsagent/bin/purge_omsagent.sh ] && sudo sh /opt/microsoft/omsagent/bin/purge_omsagent.sh'
+  # - '[ -f /opt/microsoft/omsagent/bin/purge_omsagent.sh ] && sudo sh /opt/microsoft/omsagent/bin/purge_omsagent.sh'
   # - 'sudo [ -f /etc/opt/microsoft/omsagent/conf/.azure_extension_marker ] && sudo rm /etc/opt/microsoft/omsagent/conf/.azure_extension_marker'
   # - 'wget https://raw.githubusercontent.com/microsoft/OMS-Agent-for-Linux/master/tools/purge_omsagent.sh && sudo sh purge_omsagent.sh'
   # - 'wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w "${workspace_id}" -s "${workspace_key}"'
