@@ -64,14 +64,16 @@ data azurerm_storage_account_sas diagnostics {
   expiry                       = time_offset.sas_expiry.rfc3339  
 
   permissions {
-    read                       = false
     add                        = true
     create                     = true
-    write                      = true
     delete                     = false
+    filter                     = false
     list                       = true
-    update                     = true
     process                    = false
+    read                       = false
+    tag                        = false
+    update                     = true
+    write                      = true
   }
 }
 
@@ -126,7 +128,7 @@ resource azurerm_network_interface nic {
     name                       = "ipconfig"
     subnet_id                  = var.vm_subnet_id
     primary                    = true
-    private_ip_address_allocation = "dynamic"
+    private_ip_address_allocation = "Dynamic"
     public_ip_address_id       = azurerm_public_ip.pip.id
   }
   enable_accelerated_networking = var.enable_accelerated_networking
@@ -247,20 +249,19 @@ data cloudinit_config user_data {
     content_type               = "text/cloud-config"
     merge_type                 = "list(append)+dict(recurse_array)+str()"
   }
-  # # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
-  # # Pre-installing the agent, will make the VM extension install succeed
-  # dynamic "part" {
-  #   for_each = range(var.deploy_azure_monitor_extensions ? 1 : 0)
-  #   content {
-  #     content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
-  #     {
-  #       workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
-  #       workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-  #     })
-  #     content_type             = "text/cloud-config"
-  #     merge_type               = "list(append)+dict(recurse_array)+str()"
-  #   }
-  # }
+  # Azure Log Analytics VM extension fails on https://github.com/actions/virtual-environments
+  dynamic "part" {
+    for_each = range(var.deploy_azure_monitor_extensions ? 1 : 0)
+    content {
+      content                  = templatefile("${path.root}/../cloudinit/cloud-config-log-analytics.yaml",
+      {
+        workspace_id           = data.azurerm_log_analytics_workspace.monitor.workspace_id
+        workspace_key          = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
+      })
+      content_type             = "text/cloud-config"
+      merge_type               = "list(append)+dict(recurse_array)+str()"
+    }
+  }
 }
 
 data azurerm_platform_image latest_image {
@@ -296,9 +297,9 @@ resource azurerm_linux_virtual_machine vm {
   }
 
   boot_diagnostics {
-    storage_account_uri        = "${data.azurerm_storage_account.diagnostics.primary_blob_endpoint}${data.azurerm_storage_account_sas.diagnostics.sas}"
+    storage_account_uri        = null # Managed Storage Account
   }
-
+  
   identity {
     type                       = "SystemAssigned, UserAssigned"
     identity_ids               = [var.user_assigned_identity_id]

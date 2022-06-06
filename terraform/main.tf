@@ -158,21 +158,21 @@ resource azurerm_key_vault vault {
     object_id                  = data.azuread_client_config.current.object_id
 
     key_permissions            = [
-                                "create",
-                                "delete",
-                                "get",
-                                "list",
-                                "purge",
-                                "recover",
-                                "unwrapkey",
-                                "wrapkey",
+                                "Create",
+                                "Delete",
+                                "Get",
+                                "List",
+                                "Purge",
+                                "Recover",
+                                "UnwrapKey",
+                                "WrapKey",
     ]
     secret_permissions         = [
-                                "delete",
-                                "get",
-                                "list",
-                                "purge",
-                                "set",
+                                "Delete",
+                                "Get",
+                                "List",
+                                "Purge",
+                                "Set",
     ]
   }
 
@@ -252,7 +252,7 @@ resource azurerm_storage_account automation_storage {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
-  allow_blob_public_access     = false
+  allow_nested_items_to_be_public = false
   blob_properties {
     delete_retention_policy {
       days                     = 365

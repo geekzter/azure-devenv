@@ -21,10 +21,8 @@ apt:
       source: "deb https://baltocdn.com/helm/stable/debian/ all main"
     kubernetes.list:
       source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-    azure-cli.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $RELEASE main"
     microsoft-prod.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod $RELEASE main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod $RELEASE main"
 
 package_update: true
 packages:
@@ -56,7 +54,7 @@ packages:
   # - nmap
   - node-typescript
   - packer
-  - python-minimal
+  - python2-minimal
   - sed
   - snapd
   - telnet
@@ -74,7 +72,6 @@ packages:
   - helm
   - kubectl
   # Microsoft
-  - azure-cli
   - azure-functions-core-tools-3
   - blobfuse
   - dotnet-sdk-3.1
@@ -85,6 +82,7 @@ packages:
 
 
 runcmd:
+  - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
   - sudo ACCEPT_EULA=Y apt install msodbcsql17 -y
   - sudo ACCEPT_EULA=Y apt install mssql-tools -y
   - echo Installing PowerShell modules...
