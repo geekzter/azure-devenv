@@ -48,6 +48,8 @@ resource azurerm_log_analytics_solution solution {
     product                    = "OMSGallery/${each.value}"
   }
 
+  tags                         = azurerm_resource_group.vm_resource_group.tags
+
   for_each                     = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? toset([]) : toset([
     "ServiceMap",
     "Updates",
@@ -65,6 +67,8 @@ resource azurerm_log_analytics_solution security_center {
     publisher                  = "Microsoft"
     product                    = "OMSGallery/${each.value}"
   }
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 
   for_each                     = (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) && var.enable_policy_extensions ? toset([
     "Security",
