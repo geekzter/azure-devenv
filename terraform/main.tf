@@ -243,6 +243,8 @@ resource azurerm_ssh_public_key ssh_key {
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   public_key                   = file(var.ssh_public_key)
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 resource azurerm_storage_account automation_storage {
@@ -273,6 +275,8 @@ resource azurerm_user_assigned_identity service_principal {
   name                         = azurerm_resource_group.vm_resource_group.name
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   location                     = azurerm_resource_group.vm_resource_group.location
+
+  tags                         = azurerm_resource_group.vm_resource_group.tags
 }
 
 resource null_resource disk_encryption_status {
