@@ -88,6 +88,8 @@ variables:
   value: '$(Build.SourcesDirectory)/terraform'
 - name: 'TF_VAR_admin_username'
   value: 'ciuser'
+- name: 'TF_VAR_resource_prefix'
+  value: 'dev'
 - name: 'TF_VAR_run_id'
   value: '$(Build.BuildId)'
 - name: 'TF_VAR_ssh_private_key'
@@ -96,7 +98,7 @@ variables:
   value: '$(Build.SourcesDirectory)/.ssh/id_rsa_ci.pub'
 
 - name: 'resourceGroup' 
-  value: 'dev-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
+  value: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
 
 jobs:
 - job: 'Provision'

@@ -1,6 +1,7 @@
 locals {
   dns_zone_name                = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-1),null)
   dns_zone_rg                  = try(element(split("/",var.dns_zone_id),length(split("/",var.dns_zone_id))-5),null)
+  owner                        = var.application_owner != "" ? var.application_owner : data.azuread_client_config.current.object_id
   password                     = ".Az9${random_string.password.result}"
   # peering_pairs                = [for pair in setproduct(var.locations,var.locations) : pair if pair[0] != pair[1]]
   peering_pairs_main_region    = [for pair in setproduct(var.locations,var.locations) : pair if (pair[0] != pair[1]) && (pair[0] == azurerm_resource_group.vm_resource_group.location)]
@@ -34,7 +35,7 @@ resource random_string suffix {
   length                       = 4
   upper                        = false
   lower                        = true
-  number                       = false
+  numeric                      = false
   special                      = false
 }
 
@@ -43,7 +44,7 @@ resource random_string password {
   length                       = 12
   upper                        = true
   lower                        = true
-  number                       = true
+  numeric                       = true
   special                      = true
 # override_special             = "!@#$%&*()-_=+[]{}<>:?" # default
 # Avoid characters that may cause shell scripts to break
@@ -75,12 +76,13 @@ resource time_sleep script_wrapper_check {
 }
 
 resource azurerm_resource_group vm_resource_group {
-  name                         = "dev-${terraform.workspace}-${local.suffix}"
+  name                         = terraform.workspace == "default" ? "${var.resource_prefix}-${local.suffix}" : "${var.resource_prefix}-${terraform.workspace}-${local.suffix}"
   location                     = var.locations[0]
   tags                         = merge(
     {
-      application              = "Development Environment"
+      application              = var.application_name
       environment              = "dev"
+      owner                    = local.owner
       provisioner              = "terraform"
       provisioner-client-id    = data.azuread_client_config.current.client_id
       provisioner-object-id    = data.azuread_client_config.current.object_id
