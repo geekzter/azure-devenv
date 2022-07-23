@@ -27,6 +27,12 @@ variable bootstrap_branch {
     default                    = "master"
 }
 
+variable configure_access_control {
+  description                  = "Assumes the Terraform user is an owner of the subscription. Turning this off reduces functionality somewhat"
+  default                      = true
+  type                         = bool
+}
+
 variable deploy_bastion {
   type                         = bool
   default                      = true

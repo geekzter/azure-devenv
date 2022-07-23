@@ -102,6 +102,8 @@ resource azurerm_role_assignment vm_admin {
   scope                        = azurerm_resource_group.vm_resource_group.id
   role_definition_name         = "Virtual Machine Administrator Login"
   principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azuread_client_config.current.object_id
+
+  count                        = var.configure_access_control ? 1 : 0 
 }
 
 resource azurerm_virtual_network_peering main2other {
@@ -272,6 +274,8 @@ resource azurerm_role_assignment terraform_storage_owner {
   scope                        = azurerm_storage_account.automation_storage.id
   role_definition_name         = "Storage Blob Data Contributor"
   principal_id                 = data.azuread_client_config.current.object_id
+
+  count                        = var.configure_access_control ? 1 : 0 
 }
 
 resource azurerm_user_assigned_identity service_principal {
