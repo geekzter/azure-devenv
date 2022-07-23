@@ -13,10 +13,10 @@ output diagnostics_storage_id {
 }
 
 output egress_ip_address {
-    value                      = azurerm_public_ip.egress.ip_address
+    value                      = var.deploy_nat_gateway ? azurerm_public_ip.egress.0.ip_address : null
 }
 output egress_ip_address_id {
-    value                      = azurerm_public_ip.egress.id
+    value                      = var.deploy_nat_gateway ? azurerm_public_ip.egress.0.id : null
 }
 
 output virtual_network_id {

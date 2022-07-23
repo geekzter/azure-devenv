@@ -47,6 +47,12 @@ variable deploy_azure_monitor_extensions {
   default                      = true
   description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
 }
+
+variable deploy_nat_gateway {
+  default                      = true
+  type                         = bool
+}
+
 variable deploy_windows {
   type                         = bool
   default                      = true

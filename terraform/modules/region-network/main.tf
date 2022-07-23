@@ -84,25 +84,33 @@ resource azurerm_nat_gateway egress {
   sku_name                     = "Standard"
 
   tags                         = var.tags
+
+  count                        = var.deploy_nat_gateway ? 1 : 0
 }
 resource azurerm_public_ip egress {
-  name                         = "${azurerm_nat_gateway.egress.name}-ip"
+  name                         = "${azurerm_nat_gateway.egress.0.name}-ip"
   location                     = var.location
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   allocation_method            = "Static"
   sku                          = "Standard"
 
   tags                         = var.tags
+
+  count                        = var.deploy_nat_gateway ? 1 : 0
 }
 resource azurerm_nat_gateway_public_ip_association egress {
-  nat_gateway_id               = azurerm_nat_gateway.egress.id
-  public_ip_address_id         = azurerm_public_ip.egress.id
+  nat_gateway_id               = azurerm_nat_gateway.egress.0.id
+  public_ip_address_id         = azurerm_public_ip.egress.0.id
+
+  count                        = var.deploy_nat_gateway ? 1 : 0
 }
 resource azurerm_subnet_nat_gateway_association vm_subnet {
   subnet_id                    = azurerm_subnet.vm_subnet.id
-  nat_gateway_id               = azurerm_nat_gateway.egress.id
+  nat_gateway_id               = azurerm_nat_gateway.egress.0.id
 
   depends_on                   = [azurerm_nat_gateway_public_ip_association.egress]
+
+  count                        = var.deploy_nat_gateway ? 1 : 0
 }
 
 resource azurerm_private_dns_zone_virtual_network_link internal_link {
