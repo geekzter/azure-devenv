@@ -148,7 +148,7 @@ resource azurerm_private_dns_zone internal_dns {
 }
 
 resource azurerm_key_vault vault {
-  name                         = "${azurerm_resource_group.vm_resource_group.name}-vault"
+  name                         = "${azurerm_resource_group.vm_resource_group.name}-vlt"
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   tenant_id                    = data.azuread_client_config.current.tenant_id
