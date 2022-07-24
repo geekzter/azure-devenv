@@ -13,8 +13,24 @@ variable address_space {
   default                      = "10.16.0.0/12"
 }
 
+variable application_name {
+  description                  = "Value of 'application' resource tag"
+  default                      = "Development Environment"
+}
+
+variable application_owner {
+  description                  = "Value of 'owner' resource tag"
+  default                      = "" # Empty string takes objectId of current user
+}
+
 variable bootstrap_branch {
     default                    = "master"
+}
+
+variable configure_access_control {
+  description                  = "Assumes the Terraform user is an owner of the subscription. Turning this off reduces functionality somewhat"
+  default                      = true
+  type                         = bool
 }
 
 variable deploy_bastion {
@@ -37,6 +53,12 @@ variable deploy_azure_monitor_extensions {
   default                      = true
   description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
 }
+
+variable deploy_nat_gateway {
+  default                      = true
+  type                         = bool
+}
+
 variable deploy_windows {
   type                         = bool
   default                      = true
@@ -67,6 +89,10 @@ variable enable_disk_encryption {
   default                      = false
 }
 variable enable_policy_extensions {
+  type                         = bool
+  default                      = false
+}
+variable enable_public_access {
   type                         = bool
   default                      = false
 }
@@ -132,9 +158,9 @@ variable prepare_host {
   default                      = true
 }
 
-variable enable_public_access {
-  type                         = bool
-  default                      = false
+variable resource_prefix {
+  description                  = "The prefix to put at the of resource names created"
+  default                      = "dev"
 }
 
 variable resource_suffix {
@@ -165,6 +191,11 @@ variable ssh_public_key {
   default                      = "~/.ssh/id_rsa.pub"
 }
 
+variable subscription_id {
+  description                  = "Configure subscription_id independent from ARM_SUBSCRIPTION_ID"
+  default                      = null
+}
+
 variable tags {
   description                  = "A map of the tags to use for the resources that are deployed"
   type                         = map
@@ -173,6 +204,11 @@ variable tags {
     shutdown                   = "true"
   }  
 } 
+
+variable tenant_id {
+  description                  = "Configure tenant_id independent from ARM_TENANT_ID"
+  default                      = null
+}
 
 variable timezone {
   default                      = "W. Europe Standard Time"

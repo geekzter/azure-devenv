@@ -14,7 +14,7 @@ resource random_string cert_password {
   length                       = 8
   upper                        = false
   lower                        = true
-  number                       = false
+  numeric                      = false
   special                      = false
 }
 
@@ -22,7 +22,7 @@ resource random_string vpn_domain_name_label {
   length                       = 16
   upper                        = false
   lower                        = true
-  number                       = false
+  numeric                      = false
   special                      = false
 }
 

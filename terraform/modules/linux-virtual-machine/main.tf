@@ -91,7 +91,7 @@ resource random_string pip_domain_name_label {
   length                      = 16
   upper                       = false
   lower                       = true
-  number                      = false
+  numeric                     = false
   special                     = false
 }
 

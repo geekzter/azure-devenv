@@ -44,7 +44,7 @@ resource azurerm_storage_blob terraform_backend_configuration {
   type                         = "Block"
   source                       = "${path.root}/backend.tf"
 
-  count                        = fileexists("${path.root}/backend.tf") ? 1 : 0
+  count                        = var.configure_access_control && fileexists("${path.root}/backend.tf") ? 1 : 0
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
@@ -55,7 +55,7 @@ resource azurerm_storage_blob terraform_auto_vars_configuration {
   type                         = "Block"
   source                       = "${path.root}/config.auto.tfvars"
 
-  count                        = fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
+  count                        = var.configure_access_control && fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
@@ -66,7 +66,7 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
   type                         = "Block"
   source                       = "${path.root}/${terraform.workspace}.tfvars"
 
-  count                        = fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
+  count                        = var.configure_access_control && fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 
