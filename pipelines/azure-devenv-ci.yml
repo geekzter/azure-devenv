@@ -354,7 +354,9 @@ jobs:
         workingDirectory: '$(scriptDirectory)'
 
     - bash: |
+        # TODO: Test Bastion tunneled SSH
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')))
       displayName: 'Test SSH connection'
       workingDirectory: '$(scriptDirectory)'
 

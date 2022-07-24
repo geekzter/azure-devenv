@@ -92,6 +92,10 @@ variable enable_policy_extensions {
   type                         = bool
   default                      = false
 }
+variable enable_public_access {
+  type                         = bool
+  default                      = false
+}
 variable enable_update_schedule {
   type                         = bool
   default                      = false
@@ -152,11 +156,6 @@ variable log_analytics_workspace_id {
 variable prepare_host {
   type                         = bool
   default                      = true
-}
-
-variable enable_public_access {
-  type                         = bool
-  default                      = false
 }
 
 variable resource_prefix {
