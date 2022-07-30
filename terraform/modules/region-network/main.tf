@@ -1,11 +1,10 @@
-
 resource azurerm_virtual_network region_network {
   name                         = "${var.resource_group_name}-${var.location}-network"
   location                     = var.location
   resource_group_name          = var.resource_group_name
   address_space                = [var.address_space]
 
-  tags                         = var.tags
+  tags                         = local.all_bastion_tags
 }
 resource azurerm_monitor_diagnostic_setting region_network {
   name                         = "${azurerm_virtual_network.region_network.name}-diagnostics"

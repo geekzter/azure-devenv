@@ -1,10 +1,12 @@
+locals {
+  all_bastion_tags             = merge(var.bastion_tags, var.tags)
+}
+
 resource azurerm_subnet bastion_subnet {
   name                         = "AzureBastionSubnet"
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-  address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],11,0)]
-
-  count                        = var.deploy_bastion ? 1 : 0
+  address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],8,0)]
 }
 # https://docs.microsoft.com/en-us/azure/bastion/bastion-nsg
 resource azurerm_network_security_group bastion_nsg {
@@ -12,7 +14,7 @@ resource azurerm_network_security_group bastion_nsg {
   location                     = var.location
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
 
-  tags                         = var.tags
+  tags                         = local.all_bastion_tags
 
   count                        = var.deploy_bastion ? 1 : 0
 }
@@ -78,7 +80,7 @@ resource azurerm_network_security_rule bastion_host_communication_inbound {
 }
 resource azurerm_network_security_rule ras_outbound {
   name                         = "AllowSshRdpOutbound"
-  priority                     = 100
+  priority                     = 120
   direction                    = "Outbound"
   access                       = "Allow"
   protocol                     = "*"
@@ -93,7 +95,7 @@ resource azurerm_network_security_rule ras_outbound {
 }
 resource azurerm_network_security_rule azure_outbound {
   name                         = "AllowAzureCloudOutbound"
-  priority                     = 110
+  priority                     = 130
   direction                    = "Outbound"
   access                       = "Allow"
   protocol                     = "Tcp"
@@ -108,7 +110,7 @@ resource azurerm_network_security_rule azure_outbound {
 }
 resource azurerm_network_security_rule bastion_host_communication_oubound {
   name                         = "AllowBastionCommunication"
-  priority                     = 120
+  priority                     = 140
   direction                    = "Outbound"
   access                       = "Allow"
   protocol                     = "*"
@@ -123,7 +125,7 @@ resource azurerm_network_security_rule bastion_host_communication_oubound {
 }
 resource azurerm_network_security_rule get_session_oubound {
   name                         = "AllowGetSessionInformation"
-  priority                     = 130
+  priority                     = 150
   direction                    = "Outbound"
   access                       = "Allow"
   protocol                     = "*"
@@ -137,7 +139,7 @@ resource azurerm_network_security_rule get_session_oubound {
   count                        = var.deploy_bastion ? 1 : 0
 }
 resource azurerm_subnet_network_security_group_association bastion_nsg {
-  subnet_id                    = azurerm_subnet.bastion_subnet.0.id
+  subnet_id                    = azurerm_subnet.bastion_subnet.id
   network_security_group_id    = azurerm_network_security_group.bastion_nsg.0.id
 
   count                        = var.deploy_bastion ? 1 : 0
@@ -215,13 +217,13 @@ resource azurerm_bastion_host bastion {
   file_copy_enabled            = true
   ip_configuration {
     name                       = "configuration"
-    subnet_id                  = azurerm_subnet.bastion_subnet.0.id
+    subnet_id                  = azurerm_subnet.bastion_subnet.id
     public_ip_address_id       = azurerm_public_ip.bastion_ip.0.id
   }
   sku                          = "Standard"
   tunneling_enabled            = true
 
-  tags                         = var.tags
+  tags                         = local.all_bastion_tags
 
   count                        = var.deploy_bastion ? 1 : 0
   depends_on                   = [

@@ -10,7 +10,7 @@ variable admin_username {
 }
 
 variable address_space {
-  default                      = "10.16.0.0/12"
+  default                      = "10.201.0.0/16"
 }
 
 variable application_name {
@@ -23,6 +23,14 @@ variable application_owner {
   default                      = "" # Empty string takes objectId of current user
 }
 
+variable bastion_tags {
+  description                  = "A map of the tags to use for the bastion resources that are deployed"
+  type                         = map
+
+  default = {
+    bastion                    = "true"
+  }  
+} 
 variable bootstrap_branch {
     default                    = "master"
 }

@@ -6,6 +6,7 @@ module region_network {
 
   address_space                = cidrsubnet(var.address_space,4,index(var.locations,each.value))
   admin_cidr_ranges            = local.admin_cidr_ranges
+  bastion_tags                 = var.bastion_tags
   deploy_bastion               = var.deploy_bastion && index(var.locations,each.value) == 0
   deploy_nat_gateway           = var.deploy_nat_gateway
   enable_public_access         = var.enable_public_access
