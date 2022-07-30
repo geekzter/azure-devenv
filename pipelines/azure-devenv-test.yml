@@ -163,7 +163,7 @@ jobs:
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (bastion)'
       workingDirectory: '$(scriptDirectory)'
-      # env:
-      #   AZURE_EXTENSION_USE_DYNAMIC_INSTALL: 'yes_without_prompt'
+      env:
+        AZURE_EXTENSION_USE_DYNAMIC_INSTALL: 'yes_without_prompt'
 
 # /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l
