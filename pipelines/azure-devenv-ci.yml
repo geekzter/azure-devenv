@@ -359,15 +359,23 @@ jobs:
       displayName: 'Test SSH connection (public)'
       workingDirectory: '$(scriptDirectory)'
 
-    - pwsh: |
-        Write-Output 'ls -al ~' | az network bastion ssh --ids $(apply.bastion_id) `
-                                                         --target-resource-id $(apply.linux_main_id) `
-                                                         --auth-type ssh-key `
-                                                         --username $(TF_VAR_admin_username) `
-                                                         --ssh-key $(TF_VAR_ssh_private_key)
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+    - task: AzureCLI@2
       displayName: 'Test SSH connection (bastion)'
-      workingDirectory: '$(scriptDirectory)'
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+      inputs:
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          Write-Output 'ls -al ~' | az network bastion ssh --ids $(apply.bastion_id) `
+                                                            --target-resource-id $(apply.linux_main_id) `
+                                                            --auth-type ssh-key `
+                                                            --username $(TF_VAR_admin_username) `
+                                                            --ssh-key $(TF_VAR_ssh_private_key)
+        addSpnToEnvironment: true
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(scriptDirectory)'
 
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0

@@ -163,7 +163,7 @@ jobs:
           scriptLocation: inlineScript
           inlineScript: |
             az extension add --name ssh --upgrade
-            Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/virtualNetworks/ericvan-vm-upzv-westeurope-network `
+            Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
                                                               --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
                                                               --auth-type ssh-key `
                                                               --username eric `
