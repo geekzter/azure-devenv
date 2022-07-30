@@ -27,12 +27,10 @@ variable bastion_tags {
   description                  = "A map of the tags to use for the bastion resources that are deployed"
   type                         = map
 
-  default = {
-    bastion                    = "true"
-  }  
+  default                      = {}  
 } 
 variable bootstrap_branch {
-    default                    = "master"
+  default                      = "master"
 }
 
 variable configure_access_control {
@@ -114,7 +112,7 @@ variable enable_vm_diagnostics {
 }
 variable environment_variables {
   type                         = map
-  default = {
+  default                      = {
     provisioner                = "terraform"
   }
 } 
