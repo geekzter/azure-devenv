@@ -148,30 +148,170 @@ jobs:
     clean: all
 
   steps:
-    # - bash: |
-    #     ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
-    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
-    #   displayName: 'Test SSH connection (public)'
-    #   workingDirectory: '$(scriptDirectory)'
+    - ${{ if not(parameters.unpinTerraform) }}:
+      - pwsh: |
+          $terraformVersion = (Get-Content .terraform-version)
+          Write-Host "##vso[task.setvariable variable=version;isOutput=true]${terraformVersion}"
+          Copy-Item backend.tf.sample backend.tf
+        name: terraformConfig
+        displayName: 'Prepare Terraform config'
+        workingDirectory: '$(terraformDirectory)'
+    - ${{ if parameters.unpinTerraform }}:
+      - pwsh: |
+          (Get-Content ./provider.tf) -replace "required_version *= `" *(~>|=) +",'required_version = ">= ' | Out-File provider.tf
+          Get-Content ./provider.tf
+          Write-Host "##vso[task.setvariable variable=version;isOutput=true]latest"
+          Copy-Item backend.tf.sample backend.tf
+        name: terraformConfig
+        displayName: 'Prepare Terraform config (latest version)'
+        workingDirectory: '$(terraformDirectory)'
 
+    - task: TerraformInstaller@0
+      displayName: 'Install Terraform'
+      inputs:
+        terraformVersion: '$(terraformConfig.version)'
+
+    - ${{ if or(eq(parameters.unpinTerraformProviders, 'Yes'),eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
+      # Unpin version e.g. "= 2.56" -> "~> 2.56"
+      - pwsh: |
+          (Get-Content ./provider.tf) -replace " = `" *= +",' = "~> ' | Out-File provider.tf
+          Get-Content ./provider.tf
+          if (Test-Path .terraform.lock.hcl) {
+            Remove-Item .terraform.lock.hcl -Force
+          }
+        displayName: 'Unpin Terraform provider versions'
+        # condition required as '- ${{ if ' template expression is not evaluated when using a strategy
+        condition: and(succeeded(), eq(variables['unpinTerraformProviders'],'true'))
+        workingDirectory: '$(terraformDirectory)'
+
+    - task: TerraformCLI@0
+      displayName: 'Terraform init'
+      inputs:
+        command: 'init'
+        workingDirectory: '$(terraformDirectory)'
+        backendType: 'azurerm'
+        backendServiceArm: '$(subscriptionConnection)'
+        backendAzureRmResourceGroupName: '$(TF_STATE_BACKEND_RESOURCE_GROUP_NAME)'
+        backendAzureRmStorageAccountName: '$(TF_STATE_BACKEND_STORAGE_ACCOUNT_NAME)'
+        backendAzureRmContainerName: '$(TF_STATE_BACKEND_STORAGE_CONTAINER_NAME)'
+        backendAzureRmKey: 'terraform.tfstate'
+        allowTelemetryCollection: true
+
+    - publish: $(terraformDirectory)
+      displayName: 'Publish Terraform workspace'
+      artifact: $(terraformArtifactName)
+
+    - ${{ if parameters.clear }}:
       - task: AzureCLI@2
         name: cleanup
-        displayName: 'Test SSH connection (bastion)'
+        displayName: 'Clear Terraform state'
         inputs:
           azureSubscription: '$(subscriptionConnection)'
           scriptType: pscore
           scriptLocation: inlineScript
           inlineScript: |
-            az extension add --name ssh --upgrade
-            Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
-                                                              --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
-                                                              --auth-type ssh-key `
-                                                              --username eric `
-                                                              --ssh-key ~/.ssh/id_rsa_ci
+            $(scriptDirectory)/set_terraform_azurerm_vars.ps1
+
+            $terraformState = (terraform state pull | ConvertFrom-Json)
+            if ($terraformState.resources) {
+              Write-Host "Clearing Terraform state in workspace ${env:TF_WORKSPACE}..."
+              $terraformState.outputs = New-Object PSObject # Empty output
+              $terraformState.resources = @() # No resources
+              $terraformState.serial++
+              $terraformState | ConvertTo-Json | terraform state push -
+            } else {
+              Write-Host "No resources in Terraform state in workspace ${env:TF_WORKSPACE}..."
+            }
+            terraform state pull 
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(terraformDirectory)'
+
+    - ${{ if not(parameters.clear) }}:
+      - task: AzureCLI@2
+        # Punch holes in firewall for the agent this job runs on
+        displayName: 'Open ports on pre-existing virtual machines'
+        inputs:
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            ./set_terraform_azurerm_vars.ps1
+            ./let_me_in.ps1
           addSpnToEnvironment: true
           useGlobalConfig: true
           failOnStandardError: true
           workingDirectory: '$(scriptDirectory)'
+
+    - ${{ if not(parameters.clear) }}:
+      - task: AzureCLI@2
+        displayName: 'Restore SSH key pair'
+        inputs:
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            ./set_terraform_azurerm_vars.ps1
+
+            ./get_ssh_key_pair.ps1 -Keyname $(TF_VAR_ssh_private_key) -Force
+            $keyDirectory = (Split-Path $(TF_VAR_ssh_private_key) -Parent)
+            if (Test-Path $keyDirectory) {
+              ls -al $keyDirectory
+            }
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(scriptDirectory)'
+
+    - bash: |
+        if [ -f "$(TF_VAR_ssh_private_key)" ]; then
+            echo "$(TF_VAR_ssh_private_key) already exists, skipping key pair generation"
+        else 
+            echo "$(TF_VAR_ssh_private_key) does not exist, generation key pair..."
+            mkdir -p $(dirname $(TF_VAR_ssh_private_key))
+            ssh-keygen -q -m PEM -N '' -f $(TF_VAR_ssh_private_key)
+        fi
+        ls -al $(dirname $(TF_VAR_ssh_private_key))
+      displayName: 'Generate SSH key pair'
+      workingDirectory: '$(terraformDirectory)'
+
+    - task: AzureCLI@2
+      displayName: 'Test SSH connection (bastion)'
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+      inputs:
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          az extension add --name ssh --upgrade
+          Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
+                                                            --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
+                                                            --auth-type ssh-key `
+                                                            --username $(TF_VAR_admin_username) `
+                                                            --ssh-key $(TF_VAR_ssh_private_key)
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(scriptDirectory)'
+
+
+    # - task: AzureCLI@2
+    #   displayName: 'Test SSH connection (bastion)'
+    #   inputs:
+    #     azureSubscription: '$(subscriptionConnection)'
+    #     scriptType: pscore
+    #     scriptLocation: inlineScript
+    #     inlineScript: |
+    #       az extension add --name ssh --upgrade
+    #       Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
+    #                                                         --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
+    #                                                         --auth-type ssh-key `
+    #                                                         --username eric `
+    #                                                         --ssh-key ~/.ssh/id_rsa_ci
+    #     addSpnToEnvironment: true
+    #     useGlobalConfig: true
+    #     failOnStandardError: true
+    #     workingDirectory: '$(scriptDirectory)'
 
 
 # /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l
