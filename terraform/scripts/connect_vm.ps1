@@ -130,6 +130,13 @@ if ($IgnoreKnownHosts) {
     $sshOptions = '-o "StrictHostKeyChecking=no"'
 }
 
+Write-Debug "bastion_id: ${bastion_id}"
+Write-Debug "default_location: ${default_location}"
+Write-Debug "resource_group_id: ${resource_group_id}"
+Write-Debug "ssh_private_key: ${ssh_private_key}"
+Write-Debug "tenant_id: ${tenant_id}"
+Write-Debug "user_name: ${user_name}"
+
 $linuxVirtualMachineData   = '${linux_virtual_machine_data}'
 $linuxVirtualMachineData   | ConvertFrom-Json -AsHashtable | Set-Variable linuxVirtualMachines
 $windowsVirtualMachineData = '${windows_virtual_machine_data}'
@@ -161,20 +168,13 @@ switch ($Endpoint)
             }
             "id: {0}" -f $linuxVirtualMachines[$Location].id | Write-Debug
             if ($UseAADAuth) {
-                az network bastion ssh --ids "${bastion_id}" `
-                                       --target-resource-id $linuxVirtualMachines[$Location].id `
-                                       --auth-type AAD
+                az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type AAD
             } else {
-                az network bastion ssh --ids "${bastion_id}" `
-                                       --target-resource-id $linuxVirtualMachines[$Location].id `
-                                       --auth-type ssh-key `
-                                       --username ${user_name} `
-                                       --ssh-key ${ssh_private_key}
+                az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type ssh-key --username ${user_name} --ssh-key ${ssh_private_key}
             }
         } else {
             "id: {0}" -f $WindowsVirtualMachines[$Location].id | Write-Debug
-            az network bastion rdp --ids "${bastion_id}" `
-                                   --target-resource-id $WindowsVirtualMachines[$Location].id 
+            az network bastion rdp --ids "${bastion_id}" --target-resource-id $WindowsVirtualMachines[$Location].id 
         }
     }
     "PrivateIP" {
