@@ -355,7 +355,7 @@ jobs:
 
     - bash: |
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'false'),'false')))
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (public)'
       workingDirectory: '$(scriptDirectory)'
 
@@ -365,7 +365,7 @@ jobs:
                                                          --auth-type ssh-key `
                                                          --username $(TF_VAR_admin_username) `
                                                          --ssh-key $(TF_VAR_ssh_private_key)
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'false'),'false')))
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (bastion)'
       workingDirectory: '$(scriptDirectory)'
 
