@@ -142,7 +142,8 @@ resource azurerm_subnet_network_security_group_association bastion_nsg {
   subnet_id                    = azurerm_subnet.bastion_subnet.id
   network_security_group_id    = azurerm_network_security_group.bastion_nsg.0.id
 
-  count                        = var.deploy_bastion ? 1 : 0
+  # If bastion tags are set, assume NSG is managed by policy
+  count                        = var.deploy_bastion && length(var.bastion_tags) == 0 ? 1 : 0
 
   depends_on                   = [
     azurerm_network_security_rule.https_inbound,
