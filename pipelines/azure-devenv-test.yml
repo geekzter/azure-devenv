@@ -1,0 +1,169 @@
+parameters:
+- name: workspace
+  displayName: Pipeline Environment / Terraform Workspace prefix
+  type: string
+  default: ci
+  values:
+  - ci
+  - ci1
+  - ci2
+  - ci3
+  - cd1
+  - cd2
+  - cd3
+- name: clear
+  displayName: Clear State
+  type: boolean
+  default: false
+- name: destroy
+  displayName: Destroy Infrastructure
+  type: string
+  default: Always
+  values:
+  - Always
+  - Never 
+  - 'On failure'
+  - 'On success'
+- name: testReentrance
+  displayName: Test Terraform re-entrance (apply twice)
+  type: boolean
+  default: true
+- name: unpinTerraform
+  displayName: Unpin Terraform version
+  type: boolean
+  default: false
+- name: unpinTerraformProviders
+  displayName: Strategy (Terraform provider pinning, alternate variables)
+  type: string
+  default: No
+  values:
+  - No
+  - Yes
+  - Strategy
+
+name: $(Date:yyyyMMdd)$(Rev:.r)-$(Build.DefinitionVersion)-$(SourceBranchName)-${{ parameters.workspace }}-$(Build.BuildId)
+
+trigger: none
+
+pr:
+  branches:
+    include:
+    - '*'
+  paths:
+    exclude:
+    - '.devcontainer/**'  
+    - 'visuals/**'  
+    - '*.md'  
+
+schedules:
+- cron: '0 23 * * Fri'
+  displayName: 'Weekly build (UTC)'
+  # Run if there are no changes
+  always: 'true'
+  branches:
+    include:
+    - master
+
+variables:
+- group: 'devenv-ci'
+- name: 'jobTimeOutMinutes'
+  value: 180
+- name: 'repository'
+  value: 'azure-devenv'
+- name: AZURE_CORE_ONLY_SHOW_ERRORS
+  value: 'true'
+- name: AZURE_EXTENSION_USE_DYNAMIC_INSTALL
+  value: 'yes_without_prompt'
+- name: 'substituteAlternateVariables'
+  value: 'false'
+- name: 'TF_IN_AUTOMATION'
+  value: 'true'
+- name: 'TF_INPUT'
+  value: 0
+- name: 'scriptDirectory'
+  value: '$(Build.SourcesDirectory)/scripts'
+- name: 'terraformArtifactName'
+  value: 'terraform'
+- name: 'terraformDirectory'
+  value: '$(Build.SourcesDirectory)/terraform'
+- name: 'TF_VAR_admin_username'
+  value: 'ciuser'
+- name: 'TF_VAR_run_id'
+  value: '$(Build.BuildId)'
+- name: 'TF_VAR_ssh_private_key'
+  value: '$(Build.SourcesDirectory)/.ssh/id_rsa_ci'
+- name: 'TF_VAR_ssh_public_key'
+  value: '$(Build.SourcesDirectory)/.ssh/id_rsa_ci.pub'
+
+- name: 'resourceGroup' 
+  value: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
+
+jobs:
+- job: 'Provision'
+  ${{ if eq(parameters.destroy, 'Always') }}:
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy'
+  ${{ if eq(parameters.destroy, 'Never') }}:
+    displayName: 'Provision (${{ parameters.workspace }})'
+  ${{ if eq(parameters.destroy, 'On failure') }}:
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy (${{ lower(parameters.destroy) }})'
+  ${{ if eq(parameters.destroy, 'On success') }}:
+    displayName: 'Provision (${{ parameters.workspace }}) & Destroy (${{ lower(parameters.destroy) }})'
+  condition: succeeded()
+  timeoutInMinutes: $[ variables['jobTimeOutMinutes'] ]
+
+  pool:
+    name: '$(pool)'
+    vmImage: $(vmImage)
+
+  ${{ if or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual'))) }}:
+    strategy:
+      matrix:
+        primary:
+          resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}a-$(Build.BuildId)'
+          terraformArtifactName: 'terraformPrimary-$(System.JobId)'
+          substituteAlternateVariables: false
+          TF_VAR_resource_suffix: '$(Build.BuildId)'
+          TF_WORKSPACE: '${{ parameters.workspace }}a'
+          unpinTerraformProviders: ${{ lower(eq(parameters.unpinTerraformProviders, 'Yes')) }}
+        alternate:
+          resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}b-$(Build.BuildId)'
+          terraformArtifactName: 'terraformAlternate-$(System.JobId)'
+          substituteAlternateVariables: true
+          TF_VAR_resource_suffix: '$(Build.BuildId)'
+          TF_WORKSPACE: '${{ parameters.workspace }}b'
+          unpinTerraformProviders: ${{ lower(or(eq(parameters.unpinTerraformProviders, 'Yes'),eq(parameters.unpinTerraformProviders, 'Strategy'),ne(variables['Build.Reason'], 'Manual'))) }}
+      maxParallel: 2
+
+  variables:
+    ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
+      # Not running as strategy
+      terraformArtifactName: 'terraformPrimary-$(System.JobId)'
+      ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
+        TF_VAR_resource_suffix: '$(Build.BuildId)'
+      TF_WORKSPACE: '${{ parameters.workspace }}'
+      unpinTerraformProviders: ${{ eq(parameters.unpinTerraformProviders, 'Yes') }}
+    resourceGroup: '$(TF_VAR_resource_prefix)-$(TF_WORKSPACE)-$(TF_VAR_resource_suffix)'
+
+  workspace:
+    clean: all
+
+  steps:
+    # - bash: |
+    #     ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
+    #   condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+    #   displayName: 'Test SSH connection (public)'
+    #   workingDirectory: '$(scriptDirectory)'
+
+    - pwsh: |
+        Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/virtualNetworks/ericvan-vm-upzv-westeurope-network `
+                                                         --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
+                                                         --auth-type ssh-key `
+                                                         --username eric `
+                                                         --ssh-key ~/.ssh/id_rsa_ci
+      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+      displayName: 'Test SSH connection (bastion)'
+      workingDirectory: '$(scriptDirectory)'
+      # env:
+      #   AZURE_EXTENSION_USE_DYNAMIC_INSTALL: 'yes_without_prompt'
+
+# /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l
