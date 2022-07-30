@@ -139,7 +139,7 @@ module vpn {
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   organization                 = var.organization
   virtual_network_id           = module.region_network[azurerm_resource_group.vm_resource_group.location].virtual_network_id
-  subnet_range                 = cidrsubnet(module.region_network[azurerm_resource_group.vm_resource_group.location].address_space,11,4)
+  subnet_range                 = cidrsubnet(module.region_network[azurerm_resource_group.vm_resource_group.location].address_space,7,4)
   vpn_range                    = var.vpn_range
 
   count                        = var.deploy_vpn ? 1 : 0
