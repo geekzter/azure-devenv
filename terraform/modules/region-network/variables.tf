@@ -1,19 +1,23 @@
 variable address_space {
-    description                = "The IP range for the VNet"
+  description                  = "The IP range for the VNet"
 }
 variable admin_cidr_ranges {
-    type                       = list
-    default                    = []
+  type                         = list
+  default                      = []
 }
+variable bastion_tags {
+  description                  = "A map of the tags to use for the bastion resources that are deployed"
+  type                         = map
+} 
 variable deploy_bastion {
-    type                       = bool
+  type                         = bool
 }
 variable deploy_nat_gateway {
-    type                       = bool
+  type                         = bool
 }
 variable enable_vulnerability_assessment {
-    type                       = bool
-    default                    = false
+  type                         = bool
+  default                      = false
 }
 variable location {
   description                  = "The location/region where the virtual network is created. Changing this forces a new resource to be created."
@@ -33,5 +37,5 @@ variable tags {
   type                         = map
 } 
 variable vpn_range {
-    description                = "The client subnet range for VPN"
+  description                  = "The client subnet range for VPN"
 }

@@ -119,7 +119,6 @@ jobs:
     strategy:
       matrix:
         primary:
-          dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}a'
           resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}a-$(Build.BuildId)'
           terraformArtifactName: 'terraformPrimary-$(System.JobId)'
           substituteAlternateVariables: false
@@ -127,7 +126,6 @@ jobs:
           TF_WORKSPACE: '${{ parameters.workspace }}a'
           unpinTerraformProviders: ${{ lower(eq(parameters.unpinTerraformProviders, 'Yes')) }}
         alternate:
-          dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}b'
           resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}b-$(Build.BuildId)'
           terraformArtifactName: 'terraformAlternate-$(System.JobId)'
           substituteAlternateVariables: true
@@ -139,7 +137,6 @@ jobs:
   variables:
     ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
       # Not running as strategy
-      dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}'
       terraformArtifactName: 'terraformPrimary-$(System.JobId)'
       ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
         TF_VAR_resource_suffix: '$(Build.BuildId)'
@@ -278,234 +275,43 @@ jobs:
         ls -al $(dirname $(TF_VAR_ssh_private_key))
       displayName: 'Generate SSH key pair'
       workingDirectory: '$(terraformDirectory)'
-        
-    - pwsh: |
-        if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
-          $env:TF_VAR_RESOURCE_SUFFIX = $null
-          $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
-        }
-
-        # Parse alternate strategy variables
-        if ($$(substituteAlternateVariables)) {
-          foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
-            $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
-            $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
-            $variableValue = $alternateVar.Value
-
-            # Replace primary value with alternate
-            Get-ChildItem -path env: -Recurse -Include $primaryVariableName | Remove-Item
-            Set-Item env:${primaryVariableName} -Value $variableValue
-          } 
-        }
-
-        # List environment variables
-        Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*,ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
-
-        # Convert uppercased Terraform environment variables to .auto.tfvars file
-        foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
-          $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
-          $terraformVariableValue = $tfVar.Value
-
-          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
-            # Boolean or List, write as-is
-            Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
-          } else {
-            Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
-          }
-        } 
-        Write-Host "Contents of ci.auto.tfvars:"
-        Get-Content ci.auto.tfvars
-      name: terraformVariables
-      displayName: 'Prepare Terraform variables'
-      workingDirectory: '$(terraformDirectory)'
-
-    - task: AzureCLI@2
-      displayName: 'Terraform plan & apply'
-      name: apply
-      inputs:
-        azureSubscription: '$(subscriptionConnection)'
-        scriptType: pscore
-        scriptLocation: inlineScript
-        inlineScript: |
-          ./set_terraform_azurerm_vars.ps1
-          ./deploy.ps1 -apply -force
-        addSpnToEnvironment: true
-        useGlobalConfig: true
-        failOnStandardError: true
-        retryCountOnTaskFailure: 3
-        workingDirectory: '$(scriptDirectory)'
-
-    - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
-      displayName: 'Wait for disk encryption to finish'
-      workingDirectory: '$(scriptDirectory)'
-
-    - task: AzureCLI@2
-      # Punch holes in firewall for the agent this job runs on
-      displayName: 'Open ports on virtual machines'
-      inputs:
-        azureSubscription: '$(subscriptionConnection)'
-        scriptType: pscore
-        scriptLocation: inlineScript
-        inlineScript: |
-          ./set_terraform_azurerm_vars.ps1
-          ./let_me_in.ps1
-        addSpnToEnvironment: true
-        useGlobalConfig: true
-        failOnStandardError: true
-        workingDirectory: '$(scriptDirectory)'
-
-    - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
-      condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
-      displayName: 'Test SSH connection (public)'
-      timeoutInMinutes: 1
-      workingDirectory: '$(scriptDirectory)'
 
     - task: AzureCLI@2
       displayName: 'Test SSH connection (bastion)'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
-      continueOnError: true # This is experimental
-      timeoutInMinutes: 5
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./connect_vm.ps1 -Endpoint Bastion -Location $(apply.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
+          az extension add --name ssh --upgrade
+          Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
+                                                            --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
+                                                            --auth-type ssh-key `
+                                                            --username $(TF_VAR_admin_username) `
+                                                            --ssh-key $(TF_VAR_ssh_private_key)
         useGlobalConfig: true
         failOnStandardError: true
-        workingDirectory: '$(dataDirectory)'
+        workingDirectory: '$(scriptDirectory)'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform plan (re-entrance test)'
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        inputs:
-          command: 'plan'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: '-out=ci-update.tfplan'
-          allowTelemetryCollection: true
-          publishPlanResults: 'ci-update'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        displayName: 'Terraform apply (re-entrance test)'
-        inputs:
-          command: 'apply'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: 'ci-update.tfplan'
-          allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
+    # - task: AzureCLI@2
+    #   displayName: 'Test SSH connection (bastion)'
+    #   inputs:
+    #     azureSubscription: '$(subscriptionConnection)'
+    #     scriptType: pscore
+    #     scriptLocation: inlineScript
+    #     inlineScript: |
+    #       az extension add --name ssh --upgrade
+    #       Write-Output 'ls -al ~' | az network bastion ssh --ids /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Network/bastionHosts/ericvan-vm-upzv-westeurope-network-bastion `
+    #                                                         --target-resource-id /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l `
+    #                                                         --auth-type ssh-key `
+    #                                                         --username eric `
+    #                                                         --ssh-key ~/.ssh/id_rsa_ci
+    #     addSpnToEnvironment: true
+    #     useGlobalConfig: true
+    #     failOnStandardError: true
+    #     workingDirectory: '$(scriptDirectory)'
 
-    - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - pwsh: |
-          Write-Host "##vso[task.setvariable variable=result;isOutput=true]success"
-        name: provisioningResult
-        displayName: 'Indicate provisioning success'
-        condition: succeeded()
 
-    - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
-        ${{ if eq(parameters.destroy, 'Always') }}:
-          condition: succeededOrFailed()
-        ${{ if eq(parameters.destroy, 'On failure') }}:
-          condition: failed()
-        ${{ if eq(parameters.destroy, 'On success') }}:
-          condition: succeeded()
-        continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
-        inputs:
-          command: 'destroy'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
-
-    - ${{ if ne(parameters.destroy, 'Never') }}:
-      - task: AzureCLI@2
-        name: teardown
-        displayName: 'Tear down remaining resources'
-        ${{ if eq(parameters.destroy, 'Always') }}:
-          condition: or(always(),canceled())
-        ${{ if eq(parameters.destroy, 'On failure') }}:
-          condition: not(eq(variables['provisioningResult.result'],'success'))
-        ${{ if eq(parameters.destroy, 'On success') }}:
-          condition: eq(variables['provisioningResult.result'],'success')
-        inputs:
-          azureSubscription: '$(subscriptionConnection)'
-          scriptType: pscore
-          scriptLocation: inlineScript
-          inlineScript: |
-            $ErrorActionPreference = "Continue" # Continue to remove resources if remove by resource group fails
-            # Build JMESPath expression
-            $tagQuery = "[?tags.repository == '$(repository)' && tags.workspace == '$(TF_WORKSPACE)' && tags.runid == '$(Build.BuildId)' && properties.provisioningState != 'Deleting'].id"
-            Write-Host "Removing resources identified by `"$tagQuery`"..."
-
-            # Remove resource groups
-            $resourceGroupIDs = $(az group list --query "${tagQuery}" -o tsv)
-            if ($resourceGroupIDs) {
-              Write-Host "Removing resource group(s) `"${resourceGroupIDs}`"..."
-              &{ # az writes information to stderr
-                $ErrorActionPreference = 'SilentlyContinue'
-                az resource delete --ids $resourceGroupIDs 2>&1
-              }
-            } else {
-              Write-Host "No resource groups to remove"
-            }
-
-            # Remove (remaining) resources
-            $resourceIDs = $(az resource list --query "${tagQuery}" -o tsv)
-            if ($resourceIDs) {
-              Write-Host "Removing resources `"${resourceIDs}`"..."
-              &{ # az writes information to stderr
-                $ErrorActionPreference = 'SilentlyContinue'
-                az resource delete --ids $resourceIDs 2>&1
-              }
-            } else {
-              Write-Host "No resources to remove"
-            }
-          addSpnToEnvironment: true
-          useGlobalConfig: true
-          failOnStandardError: true
-          workingDirectory: '$(scriptDirectory)'
-
-    - ${{ if ne(parameters.destroy, 'Never') }}:
-      - task: AzureCLI@2
-        name: cleanup
-        displayName: 'Clean up Terraform state'
-        ${{ if eq(parameters.destroy, 'Always') }}:
-          condition: or(always(),canceled())
-        ${{ if eq(parameters.destroy, 'On failure') }}:
-          condition: not(eq(variables['provisioningResult.result'],'success'))
-        ${{ if eq(parameters.destroy, 'On success') }}:
-          condition: eq(variables['provisioningResult.result'],'success')
-        inputs:
-          azureSubscription: '$(subscriptionConnection)'
-          scriptType: pscore
-          scriptLocation: inlineScript
-          inlineScript: |
-            $(scriptDirectory)/set_terraform_azurerm_vars.ps1
-
-            $terraformState = (terraform state pull | ConvertFrom-Json)
-            if ($terraformState.resources) {
-              Write-Host "Clearing Terraform state in workspace ${env:TF_WORKSPACE}..."
-              $terraformState.outputs = New-Object PSObject # Empty output
-              $terraformState.resources = @() # No resources
-              $terraformState.serial++
-              $terraformState | ConvertTo-Json | terraform state push -
-            } else {
-              Write-Host "No resources in Terraform state in workspace ${env:TF_WORKSPACE}..."
-            }
-            terraform state pull 
-          addSpnToEnvironment: true
-          useGlobalConfig: true
-          failOnStandardError: true
-          workingDirectory: '$(terraformDirectory)'
+# /subscriptions/3f56da7f-5953-4018-8ca8-e20dbfa0a7e2/resourceGroups/ericvan-vm-upzv/providers/Microsoft.Compute/virtualMachines/ericvan-vm-upzv-westeurope-l

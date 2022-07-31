@@ -1,4 +1,7 @@
 # admin_username                 = "user"
+# bastion_tags = {
+#   bastion                      = "true"
+# } 
 # deploy_bastion                 = false
 # deploy_vpn                     = true
 # dns_zone_id                    = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/shared/providers/Microsoft.Network/dnszones/vanify.tld"
@@ -15,3 +18,4 @@
 # az vm image list-skus -l westeurope -f "visualstudio2022" -p "microsoftvisualstudio" -o table
 # windows_sku                    = "20h2-ent-g2"
 # windows_os_version             = "19042.804.2102050012" # PIN Windows version
+

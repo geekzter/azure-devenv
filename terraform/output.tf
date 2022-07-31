@@ -54,6 +54,9 @@ output linux_cloud_config {
 output linux_main_fqdn {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].public_fqdn : null
 }
+output linux_main_id {
+  value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].vm_id : null
+}
 output linux_os_image_id {
   value                        = var.deploy_linux ? module.linux_vm[azurerm_resource_group.vm_resource_group.location].os_image_id : null
 }
@@ -72,6 +75,14 @@ output linux_new_os_version_available {
 
 output log_analytics_workspace_id {
   value                        = local.log_analytics_workspace_id
+}
+
+output locations {
+  value                        = var.locations
+}
+
+output main_location {
+  value                        = azurerm_resource_group.vm_resource_group.location
 }
 
 output managed_identity_name {

@@ -40,9 +40,28 @@ param (
 
     [parameter(Mandatory=$false)]
     [switch]
-    $IgnoreKnownHosts
+    $IgnoreKnownHosts,
+
+    [parameter(Mandatory=$false)]
+    [string]
+    $SshCommand
 ) 
 
+## Functions
+function Start-VM (
+    [string]$Id
+) {
+    "Checking power state of VM with id {0}..." -f $Id | Write-Verbose
+    az vm show --ids $Id -d --query powerState | Set-Variable powerState
+    if ($powerState -imatch "deallocated") {
+        "Starting VM with id {0}..." -f $Id
+        az vm start --ids $Id
+    } else {
+        "VM with id {0} has power state {1}..." -f $Id, $powerState | Write-Verbose
+    }
+}
+
+## Validate Arguments
 if (!$OS) {
     $defaultChoice = 0
     $choices = @(
@@ -130,12 +149,21 @@ if ($IgnoreKnownHosts) {
     $sshOptions = '-o "StrictHostKeyChecking=no"'
 }
 
+## Process Arguments
+$SshCommandQuoted = $SshCommand ? "`'$SshCommand`'" : $null
 $linuxVirtualMachineData   = '${linux_virtual_machine_data}'
 $linuxVirtualMachineData   | ConvertFrom-Json -AsHashtable | Set-Variable linuxVirtualMachines
 $windowsVirtualMachineData = '${windows_virtual_machine_data}'
 $windowsVirtualMachineData | ConvertFrom-Json -AsHashtable | Set-Variable windowsVirtualMachines
 $linuxVirtualMachines[$Location]   | Out-String | Write-Debug
 $windowsVirtualMachines[$Location] | Out-String | Write-Debug
+
+Write-Debug "bastion_id: ${bastion_id}"
+Write-Debug "default_location: ${default_location}"
+Write-Debug "resource_group_id: ${resource_group_id}"
+Write-Debug "ssh_private_key: ${ssh_private_key}"
+Write-Debug "tenant_id: ${tenant_id}"
+Write-Debug "user_name: ${user_name}"
 
 "Connecting to {0} VM in '{1}' using {2}..." -f $OS, $Location, $Endpoint | Write-Host
 switch ($Endpoint)
@@ -159,28 +187,29 @@ switch ($Endpoint)
             if (!(az extension show --name ssh 2>$null)) {
                 az extension add --name ssh --yes
             }
-            "id: {0}" -f $linuxVirtualMachines[$Location].id | Write-Debug
+            Start-VM $linuxVirtualMachines[$Location].id
             if ($UseAADAuth) {
-                az network bastion ssh --ids "${bastion_id}" `
-                                       --target-resource-id $linuxVirtualMachines[$Location].id `
-                                       --auth-type AAD
+                if ($SshCommand) {
+                    Write-Output $SshCommand | az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type AAD
+                } else {
+                    az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type AAD
+                }
             } else {
-                az network bastion ssh --ids "${bastion_id}" `
-                                       --target-resource-id $linuxVirtualMachines[$Location].id `
-                                       --auth-type ssh-key `
-                                       --username ${user_name} `
-                                       --ssh-key ${ssh_private_key}
+                if ($SshCommand) {
+                    Write-Output $SshCommand | az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type ssh-key --username ${user_name} --ssh-key ${ssh_private_key}
+                } else {
+                    az network bastion ssh --ids "${bastion_id}" --target-resource-id $linuxVirtualMachines[$Location].id --auth-type ssh-key --username ${user_name} --ssh-key ${ssh_private_key}
+                }
             }
         } else {
-            "id: {0}" -f $WindowsVirtualMachines[$Location].id | Write-Debug
-            az network bastion rdp --ids "${bastion_id}" `
-                                   --target-resource-id $WindowsVirtualMachines[$Location].id 
+            Start-VM $WindowsVirtualMachines[$Location].id
+            az network bastion rdp --ids "${bastion_id}" --target-resource-id $WindowsVirtualMachines[$Location].id 
         }
     }
     "PrivateIP" {
         if ($OS -ieq "Linux") {
             "private_ip_address: {0}" -f $linuxVirtualMachines[$Location].private_ip_address | Write-Debug
-            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].private_ip_address)
+            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].private_ip_address) $SshCommandQuoted
         } else {
             Connect-Rdp -UserName "${user_name}" -HostName $windowsVirtualMachines[$Location].private_ip_address
         }
@@ -188,7 +217,7 @@ switch ($Endpoint)
     "PrivateHostname" {
         if ($OS -ieq "Linux") {
             "private_fqdn: {0}" -f $linuxVirtualMachines[$Location].private_fqdn | Write-Debug
-            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].private_fqdn)
+            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].private_fqdn) $SshCommandQuoted
         } else {
             Connect-Rdp -UserName "${user_name}" -HostName $windowsVirtualMachines[$Location].private_fqdn
         }
@@ -196,7 +225,7 @@ switch ($Endpoint)
     "PublicIP" {
         if ($OS -ieq "Linux") {
             "public_ip_address: {0}" -f $linuxVirtualMachines[$Location].public_ip_address | Write-Debug
-            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].public_ip_address)
+            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].public_ip_address) $SshCommandQuoted
         } else {
             Connect-Rdp -UserName "${user_name}" -HostName $windowsVirtualMachines[$Location].public_ip_address
         }
@@ -204,7 +233,7 @@ switch ($Endpoint)
     "PublicHostname" {
         if ($OS -ieq "Linux") {
             "public_fqdn: {0}" -f $linuxVirtualMachines[$Location].public_fqdn | Write-Debug
-            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].public_fqdn)
+            ssh $sshOptions -i ${ssh_private_key} ${user_name}@$($linuxVirtualMachines[$Location].public_fqdn) $SshCommandQuoted
         } else {
             Connect-Rdp -UserName "${user_name}" -HostName $windowsVirtualMachines[$Location].public_fqdn
         }
