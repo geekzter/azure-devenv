@@ -119,6 +119,7 @@ jobs:
     strategy:
       matrix:
         primary:
+          dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}a'
           resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}a-$(Build.BuildId)'
           terraformArtifactName: 'terraformPrimary-$(System.JobId)'
           substituteAlternateVariables: false
@@ -126,6 +127,7 @@ jobs:
           TF_WORKSPACE: '${{ parameters.workspace }}a'
           unpinTerraformProviders: ${{ lower(eq(parameters.unpinTerraformProviders, 'Yes')) }}
         alternate:
+          dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}b'
           resourceGroup: '$(TF_VAR_resource_prefix)-${{ parameters.workspace }}b-$(Build.BuildId)'
           terraformArtifactName: 'terraformAlternate-$(System.JobId)'
           substituteAlternateVariables: true
@@ -137,6 +139,7 @@ jobs:
   variables:
     ${{ if not(or(eq(parameters.unpinTerraformProviders, 'Strategy'),not(eq(variables['Build.Reason'], 'Manual')))) }}:
       # Not running as strategy
+      dataDirectory: '$(Build.SourcesDirectory)/data/${{ parameters.workspace }}'
       terraformArtifactName: 'terraformPrimary-$(System.JobId)'
       ${{ if parameters.clear }}:  # Don't reset suffix if we want to keep existing resources
         TF_VAR_resource_suffix: '$(Build.BuildId)'
@@ -370,15 +373,12 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          az extension add --name ssh --upgrade
-          Write-Output 'ls -al ~' | az network bastion ssh --ids $(apply.bastion_id) `
-                                                           --target-resource-id $(apply.linux_main_id) `
-                                                           --auth-type ssh-key `
-                                                           --username $(TF_VAR_admin_username) `
-                                                           --ssh-key $(TF_VAR_ssh_private_key)
+          ./connect_vm.ps1 -Endpoint Bastion -Location $env:TF_VAR_location -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
         useGlobalConfig: true
         failOnStandardError: true
-        workingDirectory: '$(scriptDirectory)'
+        workingDirectory: '$(dataDirectory)'
+      env:
+        TF_VAR_location: coalesce(variables['TF_VAR_location'],'westeurope')
 
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0
