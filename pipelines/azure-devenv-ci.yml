@@ -360,25 +360,23 @@ jobs:
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (public)'
-      timeoutInMinutes: 10
+      timeoutInMinutes: 1
       workingDirectory: '$(scriptDirectory)'
 
     - task: AzureCLI@2
       displayName: 'Test SSH connection (bastion)'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       continueOnError: true # This is experimental
-      timeoutInMinutes: 10
+      timeoutInMinutes: 5
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./connect_vm.ps1 -Endpoint Bastion -Location $env:TF_VAR_location -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
+          ./connect_vm.ps1 -Endpoint Bastion -Location $(apply.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
         useGlobalConfig: true
         failOnStandardError: true
         workingDirectory: '$(dataDirectory)'
-      env:
-        TF_VAR_location: coalesce(variables['TF_VAR_location'],'westeurope')
 
     - ${{ if parameters.testReentrance }}:
       - task: TerraformCLI@0

@@ -77,6 +77,14 @@ output log_analytics_workspace_id {
   value                        = local.log_analytics_workspace_id
 }
 
+output locations {
+  value                        = var.locations
+}
+
+output main_location {
+  value                        = azurerm_resource_group.vm_resource_group.location
+}
+
 output managed_identity_name {
   value                        = azurerm_user_assigned_identity.service_principal.name
 }
