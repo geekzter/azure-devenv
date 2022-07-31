@@ -357,11 +357,14 @@ jobs:
         ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (public)'
+      timeoutInMinutes: 10
       workingDirectory: '$(scriptDirectory)'
 
     - task: AzureCLI@2
       displayName: 'Test SSH connection (bastion)'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_deploy_bastion'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
+      continueOnError: true # This is experimental
+      timeoutInMinutes: 10
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
