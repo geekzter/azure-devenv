@@ -304,11 +304,7 @@ function Invoke (
 ) {
     Write-Host "`n$cmd" -ForegroundColor Green 
     Invoke-Expression $cmd
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        Write-Warning "'$cmd' exited with status $exitCode"
-        exit $exitCode
-    }
+    Validate-ExitCode $cmd
 }
 
 function Set-PipelineVariablesFromTerraform () {
@@ -431,4 +427,14 @@ function Update-OpenVPNProfile (
     Write-Output "`ndhcp-option DNS ${DnsServer}`n" | Out-File $profileFileName -Append
 
     Write-Debug "OpenVPN Profile:`n$(Get-Content $profileFileName -Raw)"
+}
+
+function Validate-ExitCode (
+    [string]$cmd
+) {
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        Write-Warning "'$cmd' exited with status $exitCode"
+        exit $exitCode
+    }
 }
