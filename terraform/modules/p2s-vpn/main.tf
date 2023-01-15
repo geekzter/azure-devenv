@@ -88,45 +88,40 @@ resource azurerm_monitor_diagnostic_setting vpn_logs {
   target_resource_id           = azurerm_virtual_network_gateway.vpn_gw.id
   log_analytics_workspace_id   = var.log_analytics_workspace_id
 
-  log {
+  enabled_log {
     category                   = "GatewayDiagnosticLog"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false
     }
   }
 
-  log {
+  enabled_log {
     category                   = "TunnelDiagnosticLog"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false
     }
   }
 
-  log {
+  enabled_log {
     category                   = "RouteDiagnosticLog"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false
     }
   }
 
-  log {
+  enabled_log {
     category                   = "IKEDiagnosticLog"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false
     }
   }
 
-  log {
+  enabled_log {
     category                   = "P2SDiagnosticLog"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false

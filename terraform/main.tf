@@ -9,10 +9,10 @@ locals {
   suffix                       = random_string.suffix.result
 
   # Networking
-  terraform_cidr               = "${chomp(data.http.terraform_ip_address.body)}/32"
+  terraform_cidr               = "${chomp(data.http.terraform_ip_address.response_body)}/32"
   # terraform_cidr               = local.terraform_ip_prefix # Too broad
-  terraform_ip_address         = data.http.terraform_ip_address.body
-  terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.body)).data.prefix
+  terraform_ip_address         = data.http.terraform_ip_address.response_body
+  terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.response_body)).data.prefix
   # admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_prefix])))) # Make sure ranges have correct base address
   admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_cidr])))) # Make sure ranges have correct base address
 }
@@ -218,9 +218,8 @@ resource azurerm_monitor_diagnostic_setting key_vault {
   target_resource_id           = azurerm_key_vault.vault.id
   log_analytics_workspace_id   = local.log_analytics_workspace_id
 
-  log {
+  enabled_log {
     category                   = "AuditEvent"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false

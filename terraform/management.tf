@@ -18,9 +18,8 @@ resource azurerm_monitor_diagnostic_setting monitor {
   target_resource_id           = azurerm_log_analytics_workspace.monitor.0.id
   storage_account_id           = local.diagnostics_storage_id
 
-  log {
+  enabled_log {
     category                   = "Audit"
-    enabled                    = true
 
     retention_policy {
       enabled                  = false
