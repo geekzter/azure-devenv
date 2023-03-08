@@ -166,6 +166,7 @@ resource azurerm_key_vault vault {
                                 "Create",
                                 "Delete",
                                 "Get",
+                                "GetRotationPolicy",
                                 "List",
                                 "Purge",
                                 "Recover",
@@ -191,6 +192,7 @@ resource azurerm_key_vault vault {
       key_permissions          = [
                                 "Create",
                                 "Get",
+                                "GetRotationPolicy",
                                 "List",
                                 "Purge",
       ]
