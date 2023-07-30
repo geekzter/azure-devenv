@@ -498,7 +498,7 @@ resource azurerm_virtual_machine_extension policy {
   depends_on                   = [azurerm_virtual_machine_extension.disk_encryption]
 }
 
-resource azurerm_security_center_server_vulnerability_assessment qualys {
+resource azurerm_security_center_server_vulnerability_assessment_virtual_machine qualys {
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
 
   depends_on                   = [

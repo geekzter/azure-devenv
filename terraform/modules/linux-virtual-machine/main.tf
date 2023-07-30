@@ -516,7 +516,7 @@ resource azurerm_virtual_machine_extension policy {
   ]
 }
 
-resource azurerm_security_center_server_vulnerability_assessment qualys {
+resource azurerm_security_center_server_vulnerability_assessment_virtual_machine qualys {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
 
   count                        = var.enable_security_center ? 1 : 0
@@ -551,7 +551,7 @@ resource time_sleep vm_sleep {
 
   count                        = var.disk_encryption ? 1 : 0
   depends_on                   = [
-                                  azurerm_security_center_server_vulnerability_assessment.qualys,
+                                  azurerm_security_center_server_vulnerability_assessment_virtual_machine.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
                                   # azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.diagnostics,
@@ -584,7 +584,7 @@ resource azurerm_virtual_machine_extension disk_encryption {
   tags                         = var.tags
 
   depends_on                   = [
-                                  azurerm_security_center_server_vulnerability_assessment.qualys,
+                                  azurerm_security_center_server_vulnerability_assessment_virtual_machine.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
                                   # azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.diagnostics,
