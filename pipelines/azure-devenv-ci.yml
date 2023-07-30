@@ -68,6 +68,7 @@ resources:
     type: github
     endpoint: github.com # Service Connection name
     name: ericvan/azure-identity-scripts
+    
 
 variables:
 - group: 'devenv-ci'
