@@ -248,11 +248,11 @@ resource azurerm_key_vault_secret user_name {
   value                        = var.admin_username
   key_vault_id                 = azurerm_key_vault.vault.id
 }
-# resource azurerm_key_vault_secret user_password {
-#   name                         = "user-password"
-#   value                        = local.password
-#   key_vault_id                 = azurerm_key_vault.vault.id
-# }
+resource azurerm_key_vault_secret user_password {
+  name                         = "user-password"
+  value                        = local.password
+  key_vault_id                 = azurerm_key_vault.vault.id
+}
 resource azurerm_ssh_public_key ssh_key {
   name                         = azurerm_resource_group.vm_resource_group.name
   location                     = azurerm_resource_group.vm_resource_group.location
