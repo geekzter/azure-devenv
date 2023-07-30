@@ -44,7 +44,6 @@ parameters:
 name: $(Date:yyyyMMdd)$(Rev:.r)-$(Build.DefinitionVersion)-$(SourceBranchName)-${{ parameters.workspace }}-$(Build.BuildId)
 
 trigger: none
-
 pr:
   branches:
     include:
@@ -54,7 +53,6 @@ pr:
     - '.devcontainer/**'  
     - 'visuals/**'  
     - '*.md'  
-
 schedules:
 - cron: '0 23 * * Fri'
   displayName: 'Weekly build (UTC)'
