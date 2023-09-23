@@ -330,8 +330,8 @@ jobs:
         addSpnToEnvironment: true
         useGlobalConfig: true
         failOnStandardError: true
-        retryCountOnTaskFailure: 3
         workingDirectory: '$(scriptDirectory)'
+      retryCountOnTaskFailure: 3
 
     - pwsh: |
         ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
@@ -400,7 +400,7 @@ jobs:
           runAzLogin: true
           commandOptions: 'ci-update.tfplan'
           allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
+        retryCountOnTaskFailure: 3
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
       - pwsh: |
@@ -425,7 +425,7 @@ jobs:
           environmentServiceName: '$(subscriptionConnection)'
           runAzLogin: true
           allowTelemetryCollection: true
-          retryCountOnTaskFailure: 3
+        retryCountOnTaskFailure: 3
 
     - ${{ if ne(parameters.destroy, 'Never') }}:
       - task: AzureCLI@2

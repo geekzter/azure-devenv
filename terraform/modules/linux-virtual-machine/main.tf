@@ -345,10 +345,6 @@ resource azurerm_monitor_diagnostic_setting vm {
 
   metric {
     category                   = "AllMetrics"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
