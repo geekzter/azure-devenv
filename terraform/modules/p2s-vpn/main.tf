@@ -90,49 +90,25 @@ resource azurerm_monitor_diagnostic_setting vpn_logs {
 
   enabled_log {
     category                   = "GatewayDiagnosticLog"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   enabled_log {
     category                   = "TunnelDiagnosticLog"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   enabled_log {
     category                   = "RouteDiagnosticLog"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   enabled_log {
     category                   = "IKEDiagnosticLog"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   enabled_log {
     category                   = "P2SDiagnosticLog"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 
   metric {
     category                   = "AllMetrics"
-
-    retention_policy {
-      enabled                  = false
-    }
   }
 }
