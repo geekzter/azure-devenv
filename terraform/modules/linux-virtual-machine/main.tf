@@ -367,32 +367,16 @@ resource azurerm_virtual_machine_extension cloud_config_status {
   }  
 }
 
-# Remove conflicting extensions
-resource null_resource prepare_log_analytics {
-  triggers                     = {
-    vm                         = azurerm_linux_virtual_machine.vm.id
-  }
-
-  provisioner local-exec {
-    command                    = "${path.root}/../scripts/remove_vm_extension.ps1 -VmName ${azurerm_linux_virtual_machine.vm.name} -ResourceGroupName ${var.resource_group_name} -Publisher Microsoft.EnterpriseCloud.Monitoring -ExtensionType OmsAgentForLinux -SkipExtensionName OmsAgentForMe"
-    interpreter                = ["pwsh","-nop","-command"]
-  }
-
-  count                        = var.deploy_azure_monitor_extensions ? 1 : 0
-  depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status
-  ]
-}
-
 resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "OmsAgentForMe"
+  name                         = "OMSExtension"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
   type                         = "OmsAgentForLinux"
-  type_handler_version         = "1.13"
+  type_handler_version         = "1.16"
   auto_upgrade_minor_version   = true
   settings                     = jsonencode({
     "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
+    "stopOnMultipleConnections"= "true"
   })
   protected_settings           = jsonencode({
     "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
@@ -401,8 +385,7 @@ resource azurerm_virtual_machine_extension log_analytics {
   count                        = var.deploy_azure_monitor_extensions ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  null_resource.prepare_log_analytics
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
 }
 
