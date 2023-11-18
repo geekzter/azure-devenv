@@ -130,6 +130,8 @@ resource azurerm_automation_software_update_configuration windows_updates {
   windows {
     classifications_included   = [
       "Critical",
+      "Definition",
+      "FeaturePack",
       "Security",
       "ServicePack",
       "UpdateRollup",
