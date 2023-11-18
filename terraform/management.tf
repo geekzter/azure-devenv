@@ -82,77 +82,70 @@ resource azurerm_log_analytics_linked_service automation {
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
   workspace_id                 = local.log_analytics_workspace_id
   read_access_id               = azurerm_automation_account.automation.id
-
-  count                        = var.log_analytics_workspace_id != "" && var.log_analytics_workspace_id != null ? 0 : 1
 }
 
 locals {
   update_time                  = timeadd("${formatdate("YYYY-MM-DD",timestamp())}T${var.shutdown_time}:00+00:00","-2h30m")
 }
 
-resource azurerm_resource_group_template_deployment linux_updates {
+resource azurerm_automation_software_update_configuration linux_updates {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-linux-updates"
-  resource_group_name          = azurerm_automation_account.automation.resource_group_name
-  deployment_mode              = "Incremental"
-  parameters_content           = jsonencode({
-    automationAccountName      = {
-      value                    = azurerm_automation_account.automation.name
-    }
-    interval                   = {
-      value                    = 1
-    }
-    operatingSystem            = {
-      value                    = "Linux"
-    }
-    scheduleName               = {
-      value                    = "${azurerm_resource_group.vm_resource_group.name}-linux-update-schedule"
-    }
-    scope                      = {
-      value                    = [azurerm_resource_group.vm_resource_group.id]
-    }
-    startTime                  = {
-      value                    = local.update_time
-    }
-    timeZone                   = {
-      value                    = var.timezone
-    }
-  })
-  template_content             = file("${path.module}/../arm/update-management-linux.json")
+  automation_account_id        = azurerm_automation_account.automation.id
 
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-  count                        = var.enable_update_schedule && (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) ? 1 : 0
-  depends_on                   = [azurerm_log_analytics_linked_service.automation]
+  schedule {
+    description                = "Managed by Terraform"
+    frequency                  = "Day"
+    interval                   = 1
+    start_time                 = local.update_time
+    time_zone                  = var.timezone
+  }
+
+  linux {
+    classifications_included   = [
+      "Critical",
+      "Security"
+    ]
+    excluded_packages          = ["apt"]
+    reboot                     = "IfRequired"
+  }
+  virtual_machine_ids          = [for vm in module.linux_vm : vm.vm_id] 
+
+  count                        = var.enable_update_schedule ? 1 : 0
+  depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
+    module.linux_vm
+  ]
 }
-resource azurerm_resource_group_template_deployment windows_updates {
-  name                         = "${azurerm_resource_group.vm_resource_group.name}-windows-updates"
-  resource_group_name          = azurerm_automation_account.automation.resource_group_name
-  deployment_mode              = "Incremental"
-  parameters_content           = jsonencode({
-    automationAccountName      = {
-      value                    = azurerm_automation_account.automation.name
-    }
-    interval                   = {
-      value                    = 1
-    }
-    operatingSystem            = {
-      value                    = "Windows"
-    }
-    scheduleName               = {
-      value                    = "${azurerm_resource_group.vm_resource_group.name}-windows-update-schedule"
-    }
-    scope                      = {
-      value                    = [azurerm_resource_group.vm_resource_group.id]
-    }
-    startTime                  = {
-      value                    = local.update_time
-    }
-    timeZone                   = {
-      value                    = var.timezone
-    }
-  })
-  template_content             = file("${path.module}/../arm/update-management-windows.json")
 
-  tags                         = azurerm_resource_group.vm_resource_group.tags
-  count                        = var.enable_update_schedule && (var.log_analytics_workspace_id == "" || var.log_analytics_workspace_id == null) ? 1 : 0
-  depends_on                   = [azurerm_log_analytics_linked_service.automation]
+resource azurerm_automation_software_update_configuration windows_updates {
+  name                         = "${azurerm_resource_group.vm_resource_group.name}-windows-updates"
+  automation_account_id        = azurerm_automation_account.automation.id
+
+  schedule {
+    description                = "Managed by Terraform"
+    frequency                  = "Day"
+    interval                   = 1
+    start_time                 = local.update_time
+    time_zone                  = var.timezone
+  }
+
+  virtual_machine_ids          = [for vm in module.windows_vm : vm.vm_id] 
+  windows {
+    classifications_included   = [
+      "Critical",
+      "Definition",
+      "FeaturePack",
+      "Security",
+      "ServicePack",
+      "UpdateRollup",
+      "Updates"
+    ]
+    reboot                     = "IfRequired"
+  }
+
+  count                        = var.enable_update_schedule ? 1 : 0
+  depends_on                   = [
+    azurerm_log_analytics_linked_service.automation,
+    module.windows_vm
+  ]
 }
