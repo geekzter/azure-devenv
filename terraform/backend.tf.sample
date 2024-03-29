@@ -7,7 +7,7 @@ terraform {
     #storage_account_name      = "tfbackend"
     container_name             = "devenv" 
     key                        = "terraform.tfstate"
-    use_azuread_auth           = true
+    # use_azuread_auth           = true
     use_oidc                   = true  
   }
 }
