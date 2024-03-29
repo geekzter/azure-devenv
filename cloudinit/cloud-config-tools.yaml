@@ -8,8 +8,8 @@ bootcmd:
   - sudo apt-add-repository https://cli.github.com/packages
   - curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -           # Hashicorp
   - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -                  # Helm
-  - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add # Kubernetes
-  - curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add - # Microsoft
+  - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg # Kubernetes
+  - curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null # Microsoft
 
 apt:
   sources:
@@ -20,7 +20,7 @@ apt:
     helm-stable-debian.list:
       source: "deb https://baltocdn.com/helm/stable/debian/ all main"
     kubernetes.list:
-      source: "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+      source: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
     microsoft-prod.list:
       source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod $RELEASE main"
 
@@ -74,8 +74,8 @@ packages:
   # Microsoft
   - azure-functions-core-tools-3
   - blobfuse
-  - dotnet-sdk-3.1
   - dotnet-sdk-6.0
+  # - dotnet-sdk-8.0
   # - msodbcsql17
   # - mssql-tools
   - powershell
