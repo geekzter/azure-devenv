@@ -190,18 +190,32 @@ jobs:
         condition: and(succeeded(), eq(variables['unpinTerraformProviders'],'true'))
         workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformCLI@1
+    # - task: TerraformCLI@1
+    #   displayName: 'Terraform init'
+    #   inputs:
+    #     command: 'init'
+    #     workingDirectory: '$(terraformDirectory)'
+    #     backendType: 'azurerm'
+    #     backendServiceArm: '$(subscriptionConnection)'
+    #     backendAzureRmResourceGroupName: '$(TF_STATE_BACKEND_RESOURCE_GROUP_NAME)'
+    #     backendAzureRmStorageAccountName: '$(TF_STATE_BACKEND_STORAGE_ACCOUNT_NAME)'
+    #     backendAzureRmContainerName: '$(TF_STATE_BACKEND_STORAGE_CONTAINER_NAME)'
+    #     backendAzureRmKey: 'terraform.tfstate'
+    #     allowTelemetryCollection: true
+
+    - task: AzureCLI@2
       displayName: 'Terraform init'
       inputs:
-        command: 'init'
-        workingDirectory: '$(terraformDirectory)'
-        backendType: 'azurerm'
-        backendServiceArm: '$(subscriptionConnection)'
-        backendAzureRmResourceGroupName: '$(TF_STATE_BACKEND_RESOURCE_GROUP_NAME)'
-        backendAzureRmStorageAccountName: '$(TF_STATE_BACKEND_STORAGE_ACCOUNT_NAME)'
-        backendAzureRmContainerName: '$(TF_STATE_BACKEND_STORAGE_CONTAINER_NAME)'
-        backendAzureRmKey: 'terraform.tfstate'
-        allowTelemetryCollection: true
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+          ./deploy.ps1 -Init
+        addSpnToEnvironment: true
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(scriptDirectory)'
 
     - publish: $(terraformDirectory)
       displayName: 'Publish Terraform workspace'
@@ -381,30 +395,46 @@ jobs:
         failOnStandardError: true
         workingDirectory: '$(dataDirectory)'
 
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@1
-        displayName: 'Terraform plan (re-entrance test)'
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        inputs:
-          command: 'plan'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: '-out=ci-update.tfplan'
-          allowTelemetryCollection: true
-          publishPlanResults: 'ci-update'
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@1
+    #     displayName: 'Terraform plan (re-entrance test)'
+    #     continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
+    #     inputs:
+    #       command: 'plan'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: '-out=ci-update.tfplan'
+    #       allowTelemetryCollection: true
+    #       publishPlanResults: 'ci-update'
+
+    # - ${{ if parameters.testReentrance }}:
+    #   - task: TerraformCLI@1
+    #     continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
+    #     displayName: 'Terraform apply (re-entrance test)'
+    #     inputs:
+    #       command: 'apply'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       commandOptions: 'ci-update.tfplan'
+    #       allowTelemetryCollection: true
+    #     retryCountOnTaskFailure: 3
 
     - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@1
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        displayName: 'Terraform apply (re-entrance test)'
+      - task: AzureCLI@2
+        displayName: 'Terraform plan & apply (re-entrance test)'
         inputs:
-          command: 'apply'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: 'ci-update.tfplan'
-          allowTelemetryCollection: true
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+            ./deploy.ps1 -apply -force
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(scriptDirectory)'
         retryCountOnTaskFailure: 3
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
@@ -414,8 +444,26 @@ jobs:
         displayName: 'Indicate provisioning success'
         condition: succeeded()
 
+    # - ${{ if not(eq(parameters.destroy, 'Never')) }}:
+    #   - task: TerraformCLI@1
+    #     displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
+    #     ${{ if eq(parameters.destroy, 'Always') }}:
+    #       condition: succeededOrFailed()
+    #     ${{ if eq(parameters.destroy, 'On failure') }}:
+    #       condition: failed()
+    #     ${{ if eq(parameters.destroy, 'On success') }}:
+    #       condition: succeeded()
+    #     continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
+    #     inputs:
+    #       command: 'destroy'
+    #       workingDirectory: '$(terraformDirectory)'
+    #       environmentServiceName: '$(subscriptionConnection)'
+    #       runAzLogin: true
+    #       allowTelemetryCollection: true
+    #     retryCountOnTaskFailure: 3
+
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - task: TerraformCLI@1
+      - task: AzureCLI@2
         displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
         ${{ if eq(parameters.destroy, 'Always') }}:
           condition: succeededOrFailed()
@@ -425,11 +473,16 @@ jobs:
           condition: succeeded()
         continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
         inputs:
-          command: 'destroy'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          allowTelemetryCollection: true
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+            ./deploy.ps1 -destroy -force
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(scriptDirectory)'
         retryCountOnTaskFailure: 3
 
     - ${{ if ne(parameters.destroy, 'Never') }}:
