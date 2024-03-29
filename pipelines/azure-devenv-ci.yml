@@ -172,7 +172,7 @@ jobs:
         displayName: 'Prepare Terraform config (latest version)'
         workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformInstaller@0
+    - task: TerraformInstaller@1
       displayName: 'Install Terraform'
       inputs:
         terraformVersion: '$(terraformConfig.version)'
@@ -190,7 +190,7 @@ jobs:
         condition: and(succeeded(), eq(variables['unpinTerraformProviders'],'true'))
         workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformCLI@0
+    - task: TerraformCLI@1
       displayName: 'Terraform init'
       inputs:
         command: 'init'
@@ -382,7 +382,7 @@ jobs:
         workingDirectory: '$(dataDirectory)'
 
     - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
+      - task: TerraformCLI@1
         displayName: 'Terraform plan (re-entrance test)'
         continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
         inputs:
@@ -395,7 +395,7 @@ jobs:
           publishPlanResults: 'ci-update'
 
     - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
+      - task: TerraformCLI@1
         continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
         displayName: 'Terraform apply (re-entrance test)'
         inputs:
@@ -415,7 +415,7 @@ jobs:
         condition: succeeded()
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - task: TerraformCLI@0
+      - task: TerraformCLI@1
         displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
         ${{ if eq(parameters.destroy, 'Always') }}:
           condition: succeededOrFailed()
