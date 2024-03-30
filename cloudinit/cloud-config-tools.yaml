@@ -5,7 +5,7 @@ bootcmd:
   #- while ( fuser /var/lib/dpkg/lock >/dev/null 2>&1 ); do sleep 5; done;
   # Get apt repository signing keys
   # https://github.com/cli/cli/blob/trunk/docs/install_linux.md#installing-gh-on-linux-and-bsd
-  # - sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null # GitHub
+  - sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg # GitHub
   - curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -           # Hashicorp
   - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -                  # Helm
   - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg # Kubernetes
@@ -15,8 +15,8 @@ apt:
   sources:
     git-core:
       source: "ppa:git-core/ppa"
-    # github:
-    #   source: "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable ma"
+    github-cli.list:
+      source: "deb [arch=amd64 signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main"
     hashicorp:
       source: "deb [arch=amd64] https://apt.releases.hashicorp.com $RELEASE main"
     helm-stable-debian.list:
@@ -68,8 +68,8 @@ packages:
   - unzip
   - wget
   - whois
-#   # GitHub
-#   # - gh
+  # GitHub
+  - gh
   # Kubernetes
   - helm
   - kubectl
@@ -81,7 +81,6 @@ packages:
   # - msodbcsql17
   # - mssql-tools
   - powershell
-
 
 runcmd:
   - curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
