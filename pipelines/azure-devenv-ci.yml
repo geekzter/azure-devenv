@@ -172,7 +172,7 @@ jobs:
         displayName: 'Prepare Terraform config (latest version)'
         workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformInstaller@0
+    - task: TerraformInstaller@1
       displayName: 'Install Terraform'
       inputs:
         terraformVersion: '$(terraformConfig.version)'
@@ -190,18 +190,19 @@ jobs:
         condition: and(succeeded(), eq(variables['unpinTerraformProviders'],'true'))
         workingDirectory: '$(terraformDirectory)'
 
-    - task: TerraformCLI@0
+    - task: AzureCLI@2
       displayName: 'Terraform init'
       inputs:
-        command: 'init'
-        workingDirectory: '$(terraformDirectory)'
-        backendType: 'azurerm'
-        backendServiceArm: '$(subscriptionConnection)'
-        backendAzureRmResourceGroupName: '$(TF_STATE_BACKEND_RESOURCE_GROUP_NAME)'
-        backendAzureRmStorageAccountName: '$(TF_STATE_BACKEND_STORAGE_ACCOUNT_NAME)'
-        backendAzureRmContainerName: '$(TF_STATE_BACKEND_STORAGE_CONTAINER_NAME)'
-        backendAzureRmKey: 'terraform.tfstate'
-        allowTelemetryCollection: true
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+          ./deploy.ps1 -Init
+        addSpnToEnvironment: true
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(scriptDirectory)'
 
     - publish: $(terraformDirectory)
       displayName: 'Publish Terraform workspace'
@@ -282,56 +283,66 @@ jobs:
       displayName: 'Generate SSH key pair'
       workingDirectory: '$(terraformDirectory)'
         
-    - pwsh: |
-        if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
-          $env:TF_VAR_RESOURCE_SUFFIX = $null
-          $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
-        }
-
-        # Parse alternate strategy variables
-        if ($$(substituteAlternateVariables)) {
-          foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
-            $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
-            $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
-            $variableValue = $alternateVar.Value
-
-            # Replace primary value with alternate
-            Get-ChildItem -path env: -Recurse -Include $primaryVariableName | Remove-Item
-            Set-Item env:${primaryVariableName} -Value $variableValue
-          } 
-        }
-
-        # List environment variables
-        Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*,ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
-
-        # Convert uppercased Terraform environment variables to .auto.tfvars file
-        foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
-          $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
-          $terraformVariableValue = $tfVar.Value
-
-          if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
-            # Boolean or List, write as-is
-            Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
-          } else {
-            Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
-          }
-        } 
-        Write-Host "Contents of ci.auto.tfvars:"
-        Get-Content ci.auto.tfvars
+    - task: AzureCLI@2
       name: terraformVariables
       displayName: 'Prepare Terraform variables'
-      workingDirectory: '$(terraformDirectory)'
-
-    - task: AzureCLI@2
-      displayName: 'Terraform plan & apply'
-      name: apply
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
           $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
-          ./deploy.ps1 -apply -force
+
+          if ($${{ not(parameters.clear) }} -and (!((terraform output resource_suffix 2>&1) -match "Warning"))) {
+            $env:TF_VAR_RESOURCE_SUFFIX = $null
+            $env:TF_VAR_resource_suffix = "$(terraform output -raw resource_suffix 2>$null)"
+          }
+
+          # Parse alternate strategy variables
+          if ($$(substituteAlternateVariables)) {
+            foreach ($alternateVar in $(Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_TF_VAR_*)) {
+              $primaryTerraformVariableName = $alternateVar.Name.Substring(17).ToLowerInvariant()
+              $primaryVariableName = "TF_VAR_${primaryTerraformVariableName}"
+              $variableValue = $alternateVar.Value
+
+              # Replace primary value with alternate
+              Get-ChildItem -path env: -Recurse -Include $primaryVariableName | Remove-Item
+              Set-Item env:${primaryVariableName} -Value $variableValue
+            } 
+          }
+
+          # List environment variables
+          Get-ChildItem -Path Env: -Recurse -Include ALTERNATE_*,ARM_*,AZURE_*,GEEKZTER_*,TF_*,SYSTEM_* | Sort-Object -Property Name
+
+          # Convert uppercased Terraform environment variables to .auto.tfvars file
+          foreach ($tfvar in $(Get-ChildItem -Path Env: -Recurse -Include TF_VAR_*)) {
+            $terraformVariableName = $tfvar.Name.Substring(7).ToLowerInvariant()
+            $terraformVariableValue = $tfVar.Value
+
+            if ($terraformVariableValue -imatch "^\W*(true|false|\[[^\]]*\]|\{[^\}]*\})\W*$") {
+              # Boolean or List, write as-is
+              Write-Output "${terraformVariableName} = ${terraformVariableValue}" | Out-File ci.auto.tfvars -Append -Force
+            } else {
+              Write-Output "${terraformVariableName} = `"${terraformVariableValue}`"" | Out-File ci.auto.tfvars -Append -Force
+            }
+          } 
+          Write-Host "Contents of ci.auto.tfvars:"
+          Get-Content ci.auto.tfvars     
+        addSpnToEnvironment: true
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(terraformDirectory)'
+
+    - task: AzureCLI@2
+      displayName: 'Terraform plan & apply'
+      name: terraform
+      inputs:
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+          ./deploy.ps1 -apply -force -output
         addSpnToEnvironment: true
         useGlobalConfig: true
         failOnStandardError: true
@@ -339,7 +350,7 @@ jobs:
       retryCountOnTaskFailure: 3
 
     - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
+        ./disk_encryption_status.ps1 -ResourceGroup $(terraform.resource_group_name) -Wait
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
       displayName: 'Wait for disk encryption to finish'
       workingDirectory: '$(scriptDirectory)'
@@ -360,7 +371,7 @@ jobs:
         workingDirectory: '$(scriptDirectory)'
 
     - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
+        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(terraform.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (public)'
       timeoutInMinutes: 1
@@ -376,35 +387,25 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./connect_vm.ps1 -Endpoint Bastion -Location $(apply.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
+          ./connect_vm.ps1 -Endpoint Bastion -Location $(terraform.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
         useGlobalConfig: true
         failOnStandardError: true
         workingDirectory: '$(dataDirectory)'
 
     - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        displayName: 'Terraform plan (re-entrance test)'
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
+      - task: AzureCLI@2
+        displayName: 'Terraform plan & apply (re-entrance test)'
         inputs:
-          command: 'plan'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: '-out=ci-update.tfplan'
-          allowTelemetryCollection: true
-          publishPlanResults: 'ci-update'
-
-    - ${{ if parameters.testReentrance }}:
-      - task: TerraformCLI@0
-        continueOnError: true # Treat failure as warning during re-entrance, we should have a testable infrastructure now
-        displayName: 'Terraform apply (re-entrance test)'
-        inputs:
-          command: 'apply'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          commandOptions: 'ci-update.tfplan'
-          allowTelemetryCollection: true
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+            ./deploy.ps1 -apply -force
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(scriptDirectory)'
         retryCountOnTaskFailure: 3
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
@@ -415,7 +416,7 @@ jobs:
         condition: succeeded()
 
     - ${{ if not(eq(parameters.destroy, 'Never')) }}:
-      - task: TerraformCLI@0
+      - task: AzureCLI@2
         displayName: 'Terraform destroy (${{ lower(parameters.destroy) }})'
         ${{ if eq(parameters.destroy, 'Always') }}:
           condition: succeededOrFailed()
@@ -425,11 +426,16 @@ jobs:
           condition: succeeded()
         continueOnError: true # Treat failure as warning during destroy, we will clean up anyway
         inputs:
-          command: 'destroy'
-          workingDirectory: '$(terraformDirectory)'
-          environmentServiceName: '$(subscriptionConnection)'
-          runAzLogin: true
-          allowTelemetryCollection: true
+          azureSubscription: '$(subscriptionConnection)'
+          scriptType: pscore
+          scriptLocation: inlineScript
+          inlineScript: |
+            $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+            ./deploy.ps1 -destroy -force
+          addSpnToEnvironment: true
+          useGlobalConfig: true
+          failOnStandardError: true
+          workingDirectory: '$(scriptDirectory)'
         retryCountOnTaskFailure: 3
 
     - ${{ if ne(parameters.destroy, 'Never') }}:

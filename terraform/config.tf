@@ -77,6 +77,7 @@ resource azurerm_storage_blob connect_vm_script {
   type                         = "Block"
   source_content               = local.connect_vm_script
 
+  count                        = var.configure_access_control ? 1 : 0
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
 }
 resource local_file connect_vm_script {

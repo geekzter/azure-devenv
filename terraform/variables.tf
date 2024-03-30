@@ -134,13 +134,13 @@ variable linux_os_image_id {
   default                      = null
 }
 variable linux_os_offer {
-  default                      = "0001-com-ubuntu-server-focal"
+  default                      = "0001-com-ubuntu-server-jammy"
 }
 variable linux_os_publisher {
   default                      = "Canonical"
 }
 variable linux_os_sku {
-  default                      = "20_04-lts"
+  default                      = "22_04-lts"
 }
 variable linux_os_version {
   default                      = "latest"

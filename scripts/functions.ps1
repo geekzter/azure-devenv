@@ -312,9 +312,13 @@ function Set-PipelineVariablesFromTerraform () {
     foreach ($outputVariable in $json.keys) {
         $value = $json[$outputVariable].value
         if ($value) {
-            # Write variable output in the format a Pipeline can understand
-            # https://github.com/Microsoft/azure-pipelines-agent/blob/master/docs/preview/outputvariable.md
-            Write-Host "##vso[task.setvariable variable=${outputVariable};isOutput=true]${value}"
+            if ($value -notmatch "`n") {
+                $sensitive = $json[$outputVariable].sensitive.ToString().ToLower()
+                # Write variable output in the format a Pipeline can understand
+                "##vso[task.setvariable variable={0};isOutput=true;issecret={2}]{1}" -f $outputVariable, $value, $sensitive | Write-Host
+            } else {
+                Write-Verbose "Ignoring multi-line output variable '${outputVariable}'"
+            }
         }
     }
 }
