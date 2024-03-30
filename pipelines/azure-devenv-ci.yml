@@ -335,14 +335,14 @@ jobs:
 
     - task: AzureCLI@2
       displayName: 'Terraform plan & apply'
-      name: apply
+      name: terraform
       inputs:
         azureSubscription: '$(subscriptionConnection)'
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
           $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
-          ./deploy.ps1 -apply -force
+          ./deploy.ps1 -apply -force -output
         addSpnToEnvironment: true
         useGlobalConfig: true
         failOnStandardError: true
@@ -350,7 +350,7 @@ jobs:
       retryCountOnTaskFailure: 3
 
     - pwsh: |
-        ./disk_encryption_status.ps1 -ResourceGroup $(apply.resource_group_name) -Wait
+        ./disk_encryption_status.ps1 -ResourceGroup $(terraform.resource_group_name) -Wait
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_disk_encryption'],'false'),'false')))
       displayName: 'Wait for disk encryption to finish'
       workingDirectory: '$(scriptDirectory)'
@@ -371,7 +371,7 @@ jobs:
         workingDirectory: '$(scriptDirectory)'
 
     - bash: |
-        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(apply.linux_main_fqdn) 'ls -al ~'
+        ssh -o "IdentitiesOnly=yes" -o "StrictHostKeyChecking=no" -i $(TF_VAR_ssh_private_key) $(TF_VAR_admin_username)@$(terraform.linux_main_fqdn) 'ls -al ~'
       condition: and(succeeded(), not(eq(coalesce(variables['TF_VAR_enable_public_access'],'false'),'false')), not(eq(coalesce(variables['TF_VAR_deploy_linux'],'true'),'false')))
       displayName: 'Test SSH connection (public)'
       timeoutInMinutes: 1
@@ -387,7 +387,7 @@ jobs:
         scriptType: pscore
         scriptLocation: inlineScript
         inlineScript: |
-          ./connect_vm.ps1 -Endpoint Bastion -Location $(apply.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
+          ./connect_vm.ps1 -Endpoint Bastion -Location $(terraform.main_location) -OS Linux -SshCommand 'ls -al ~' -UseAADAuth:$false
         useGlobalConfig: true
         failOnStandardError: true
         workingDirectory: '$(dataDirectory)'
