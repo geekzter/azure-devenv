@@ -208,12 +208,12 @@ try {
 
     if ($Output) {
         Invoke "terraform output"
-    }
 
-    if (($Apply -or $Output) -and $pipeline) {
-        # Export Terraform output as Pipeline output variables for subsequent tasks
-        Set-PipelineVariablesFromTerraform
-    }    
+        if ($pipeline) {
+            # Export Terraform output as Pipeline output variables for subsequent tasks
+            Set-PipelineVariablesFromTerraform
+        }    
+    }
 
     if ($Destroy) {
         Invoke "terraform destroy $varArgs $forceArgs"
