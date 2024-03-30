@@ -77,7 +77,7 @@ packages:
   - azure-functions-core-tools-3
   # - blobfuse
   - dotnet-sdk-6.0
-  # - dotnet-sdk-8.0
+  - dotnet-sdk-8.0
   # - msodbcsql17
   # - mssql-tools
   - powershell
