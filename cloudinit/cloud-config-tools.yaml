@@ -4,8 +4,8 @@ bootcmd:
   # - sudo apt remove unattended-upgrades -y
   #- while ( fuser /var/lib/dpkg/lock >/dev/null 2>&1 ); do sleep 5; done;
   # Get apt repository signing keys
-  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0    # GitHub
-  - sudo apt-add-repository https://cli.github.com/packages
+  # https://github.com/cli/cli/blob/trunk/docs/install_linux.md#installing-gh-on-linux-and-bsd
+  # - sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null # GitHub
   - curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -           # Hashicorp
   - curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -                  # Helm
   - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg # Kubernetes
@@ -15,6 +15,8 @@ apt:
   sources:
     git-core:
       source: "ppa:git-core/ppa"
+    # github:
+    #   source: "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable ma"
     hashicorp:
       source: "deb [arch=amd64] https://apt.releases.hashicorp.com $RELEASE main"
     helm-stable-debian.list:
@@ -22,7 +24,7 @@ apt:
     kubernetes.list:
       source: "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /"
     microsoft-prod.list:
-      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/20.04/prod $RELEASE main"
+      source: "deb [arch=amd64] https://packages.microsoft.com/ubuntu/22.04/prod $RELEASE main"
 
 package_update: true
 packages:
@@ -36,21 +38,21 @@ packages:
   - software-properties-common
   - wget
   # Tools
-  - ansible
+  # - ansible
   - coreutils
   - dnsutils
   - docker
   - dos2unix
   - findutils
-  - fish
-  - fuse
+  # - fish
+  # - fuse
   - git
-  - htop
+  # - htop
   - jq
-  - less
-  - man
+  # - less
+  # - man
   - mc
-  - nano
+  # - nano
   # - nmap
   - node-typescript
   - packer
@@ -66,14 +68,14 @@ packages:
   - unzip
   - wget
   - whois
-  # GitHub
-  # - gh
+#   # GitHub
+#   # - gh
   # Kubernetes
   - helm
   - kubectl
   # Microsoft
   - azure-functions-core-tools-3
-  - blobfuse
+  # - blobfuse
   - dotnet-sdk-6.0
   # - dotnet-sdk-8.0
   # - msodbcsql17
