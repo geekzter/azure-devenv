@@ -110,7 +110,7 @@ resource azurerm_automation_software_update_configuration linux_updates {
   }
   virtual_machine_ids          = [for vm in module.linux_vm : vm.vm_id] 
 
-  count                        = var.enable_update_schedule ? 1 : 0
+  count                        = var.enable_update_schedule && var.deploy_linux ? 1 : 0
   depends_on                   = [
     azurerm_log_analytics_linked_service.automation,
     module.linux_vm
@@ -143,7 +143,7 @@ resource azurerm_automation_software_update_configuration windows_updates {
     reboot                     = "IfRequired"
   }
 
-  count                        = var.enable_update_schedule ? 1 : 0
+  count                        = var.enable_update_schedule && var.deploy_windows ? 1 : 0
   depends_on                   = [
     azurerm_log_analytics_linked_service.automation,
     module.windows_vm
