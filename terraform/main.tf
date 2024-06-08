@@ -262,12 +262,14 @@ resource azurerm_storage_account automation_storage {
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
   allow_nested_items_to_be_public = false
+  default_to_oauth_authentication = true
   blob_properties {
     delete_retention_policy {
       days                     = 365
     }
   }
   enable_https_traffic_only    = true
+  shared_access_key_enabled    = false
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
 }
