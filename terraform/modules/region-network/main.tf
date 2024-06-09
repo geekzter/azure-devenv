@@ -119,7 +119,9 @@ resource azurerm_storage_account diagnostics {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
+  default_to_oauth_authentication = true
   enable_https_traffic_only    = true
+  shared_access_key_enabled    = false
 
   tags                         = var.tags
 }
