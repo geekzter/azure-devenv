@@ -284,7 +284,7 @@ resource azurerm_role_assignment terraform_storage_owner {
 # Wait to prevent race condition during storage access
 resource time_sleep terraform_storage_owner {
   depends_on                   = [azurerm_role_assignment.terraform_storage_owner]
-  destroy_duration             = "60s"
+  destroy_duration             = "120s"
 
   count                        = var.configure_access_control ? 1 : 0 
 }
