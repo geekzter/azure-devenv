@@ -73,6 +73,8 @@ resource azurerm_automation_account automation {
   name                         = "${azurerm_resource_group.vm_resource_group.name}-automation"
   location                     = azurerm_resource_group.vm_resource_group.location
   resource_group_name          = azurerm_resource_group.vm_resource_group.name
+
+  local_authentication_enabled = var.enable_update_schedule
   sku_name                     = "Basic"
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
