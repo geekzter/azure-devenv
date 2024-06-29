@@ -43,7 +43,7 @@ resource azurerm_public_ip vpn_pip {
   resource_group_name          = local.resource_group_name
 
   allocation_method            = "Dynamic"
-  sku                          = "Basic"
+  sku                          = "Standard"
   domain_name_label            = random_string.vpn_domain_name_label.result
 
   tags                         = var.tags
