@@ -140,7 +140,7 @@ resource azurerm_network_interface nic {
     public_ip_address_id       = azurerm_public_ip.pip.id
     private_ip_address_allocation = "Dynamic"
   }
-  enable_accelerated_networking = var.enable_accelerated_networking
+  accelerated_networking_enabled = var.enable_accelerated_networking
 
   tags                         = var.tags
 }
