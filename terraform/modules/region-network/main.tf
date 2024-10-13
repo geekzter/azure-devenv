@@ -24,7 +24,7 @@ resource azurerm_subnet vm_subnet {
   name                         = "VirtualMachines"
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-  address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],8,1)]
+  address_prefixes             = [cidrsubnet(tolist(azurerm_virtual_network.region_network.address_space)[0],8,1)]
   service_endpoints            = [
                                   "Microsoft.KeyVault",
   ]
@@ -119,7 +119,7 @@ resource azurerm_storage_account diagnostics {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
-  enable_https_traffic_only    = true
+  https_traffic_only_enabled   = true
 
   tags                         = var.tags
 }

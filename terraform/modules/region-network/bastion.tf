@@ -6,7 +6,7 @@ resource azurerm_subnet bastion_subnet {
   name                         = "AzureBastionSubnet"
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
-  address_prefixes             = [cidrsubnet(azurerm_virtual_network.region_network.address_space[0],8,0)]
+  address_prefixes             = [cidrsubnet(tolist(azurerm_virtual_network.region_network.address_space)[0],8,0)]
 }
 # https://docs.microsoft.com/en-us/azure/bastion/bastion-nsg
 resource azurerm_network_security_group bastion_nsg {
