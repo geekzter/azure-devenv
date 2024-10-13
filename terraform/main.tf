@@ -268,7 +268,7 @@ resource azurerm_storage_account automation_storage {
       days                     = 365
     }
   }
-  enable_https_traffic_only    = true
+  https_traffic_only_enabled   = true
   shared_access_key_enabled    = false
 
   tags                         = azurerm_resource_group.vm_resource_group.tags
