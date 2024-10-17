@@ -41,10 +41,6 @@ variable enable_security_center {
     type                       = bool
     default                    = false
 }
-variable enable_vm_diagnostics {
-    type                       = bool
-    default                    = false
-}
 variable environment_variables {
   type                         = map
 } 

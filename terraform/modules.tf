@@ -26,7 +26,7 @@ module linux_vm {
   user_password                = local.password
   bootstrap_branch             = var.bootstrap_branch
   dependency_monitor           = var.deploy_azure_monitor_extensions
-  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
+  deploy_azure_monitor_extensions = var.deploy_service_map
   domain                       = var.vm_domain
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
@@ -37,7 +37,6 @@ module linux_vm {
   enable_policy_extension      = var.enable_policy_extensions
   enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
-  enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
@@ -85,7 +84,7 @@ module windows_vm {
   bg_info                      = true
   bootstrap_branch             = var.bootstrap_branch
   dependency_monitor           = var.deploy_azure_monitor_extensions
-  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
+  deploy_azure_monitor_extensions = var.deploy_service_map
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
@@ -94,7 +93,6 @@ module windows_vm {
   enable_policy_extension      = var.enable_policy_extensions
   enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
-  enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name

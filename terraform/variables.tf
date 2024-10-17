@@ -65,6 +65,11 @@ variable deploy_nat_gateway {
   type                         = bool
 }
 
+variable deploy_service_map {
+  type                         = bool
+  default                      = false
+}
+
 variable deploy_windows {
   type                         = bool
   default                      = true
@@ -103,10 +108,6 @@ variable enable_public_access {
   default                      = false
 }
 variable enable_update_schedule {
-  type                         = bool
-  default                      = false
-}
-variable enable_vm_diagnostics {
   type                         = bool
   default                      = false
 }

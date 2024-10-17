@@ -353,7 +353,7 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Monitoring.DependencyAgent"
   type                         = "DependencyAgentLinux"
-  type_handler_version         = "9.5"
+  type_handler_version         = "9.10"
   auto_upgrade_minor_version   = true
 
   count                        = var.dependency_monitor ? 1 : 0
