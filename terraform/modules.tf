@@ -25,8 +25,8 @@ module linux_vm {
   user_name                    = var.admin_username
   user_password                = local.password
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = var.deploy_azure_monitor_extensions
-  deploy_azure_monitor_extensions = var.deploy_service_map
+  dependency_monitor           = var.deploy_service_map
+  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   domain                       = var.vm_domain
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
@@ -83,8 +83,8 @@ module windows_vm {
   admin_password               = local.password
   bg_info                      = true
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = var.deploy_azure_monitor_extensions
-  deploy_azure_monitor_extensions = var.deploy_service_map
+  dependency_monitor           = var.deploy_service_map
+  deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
   dns_zone_id                  = var.dns_zone_id
