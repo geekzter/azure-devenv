@@ -70,6 +70,7 @@ module linux_vm {
   depends_on                   = [
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
+    azurerm_role_assignment.vm_contributor,
     module.region_network,
     time_sleep.script_wrapper_check
   ]
@@ -124,6 +125,7 @@ module windows_vm {
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     azurerm_role_assignment.terraform_storage_owner,
+    azurerm_role_assignment.vm_contributor,
     module.region_network,
     time_sleep.script_wrapper_check
   ]

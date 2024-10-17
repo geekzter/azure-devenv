@@ -106,6 +106,13 @@ resource azurerm_role_assignment vm_admin {
   count                        = var.configure_access_control ? 1 : 0 
 }
 
+resource azurerm_role_assignment vm_contributor {
+  scope                        = azurerm_resource_group.vm_resource_group.id
+  role_definition_name         = "Virtual Machine Contributor"
+  principal_id                 = var.admin_object_id != null ? var.admin_object_id : data.azuread_client_config.current.object_id
+
+  count                        = var.configure_access_control ? 1 : 0
+}
 resource azurerm_virtual_network_peering main2other {
   name                         = "${module.region_network[local.peering_pairs_main_region[count.index][0]].virtual_network_name}-${local.peering_pairs_main_region[count.index][1]}-peering"
   resource_group_name          = azurerm_resource_group.vm_resource_group.name

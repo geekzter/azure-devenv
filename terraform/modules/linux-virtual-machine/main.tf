@@ -33,50 +33,6 @@ locals {
 
 data azurerm_client_config current {}
 
-data azurerm_storage_account diagnostics {
-  name                         = local.diagnostics_storage_name
-  resource_group_name          = local.diagnostics_storage_rg
-}
-resource time_offset sas_expiry {
-  offset_years                 = 1
-}
-resource time_offset sas_start {
-  offset_days                  = -10
-}
-data azurerm_storage_account_sas diagnostics {
-  connection_string            = data.azurerm_storage_account.diagnostics.primary_connection_string
-  https_only                   = true
-
-  resource_types {
-    service                    = false
-    container                  = true
-    object                     = true
-  }
-
-  services {
-    blob                       = true
-    queue                      = false
-    table                      = true
-    file                       = false
-  }
-
-  start                        = time_offset.sas_start.rfc3339
-  expiry                       = time_offset.sas_expiry.rfc3339  
-
-  permissions {
-    add                        = true
-    create                     = true
-    delete                     = false
-    filter                     = false
-    list                       = true
-    process                    = false
-    read                       = false
-    tag                        = false
-    update                     = true
-    write                      = true
-  }
-}
-
 data azurerm_key_vault vault {
   name                         = local.key_vault_name
   resource_group_name          = local.key_vault_rg
