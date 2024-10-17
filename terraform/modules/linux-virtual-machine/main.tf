@@ -346,8 +346,6 @@ resource azurerm_monitor_diagnostic_setting vm {
   metric {
     category                   = "AllMetrics"
   }
-
-  depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
 }
 
 resource azurerm_virtual_machine_extension cloud_config_status {
@@ -367,67 +365,16 @@ resource azurerm_virtual_machine_extension cloud_config_status {
   }  
 }
 
-resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "OMSExtension"
+resource azurerm_virtual_machine_extension azure_monitor {
+  name                         = "AzureMonitorLinuxAgent"
   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
-  type                         = "OmsAgentForLinux"
-  type_handler_version         = "1.16"
+  publisher                    = "Microsoft.Azure.Monitor"
+  type                         = "AzureMonitorLinuxAgent"
+  type_handler_version         = "1.33"
   auto_upgrade_minor_version   = true
-  settings                     = jsonencode({
-    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
-    "stopOnMultipleConnections"= "true"
-  })
-  protected_settings           = jsonencode({
-    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-  })
 
   count                        = var.deploy_azure_monitor_extensions ? 1 : 0
   tags                         = var.tags
-  depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status
-  ]
-}
-
-# resource azurerm_virtual_machine_extension azure_monitor {
-#   name                         = "AzureMonitorLinuxAgent"
-#   virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-#   publisher                    = "Microsoft.Azure.Monitor"
-#   type                         = "AzureMonitorLinuxAgent"
-#   type_handler_version         = "1.5"
-#   auto_upgrade_minor_version   = true
-
-#   count                        = var.deploy_azure_monitor_extensions ? 1 : 0
-#   tags                         = var.tags
-#   depends_on                   = [azurerm_virtual_machine_extension.log_analytics]
-# }
-
-# TODO: Replace with Azure Monitoring Agent
-# https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/diagnostics-linux?tabs=azcli#python-requirement
-resource azurerm_virtual_machine_extension diagnostics {
-  name                         = "LinuxDiagnostic"
-  virtual_machine_id           = azurerm_linux_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Diagnostics"
-  type                         = "LinuxDiagnostic"
-  type_handler_version         = "3.0"
-  auto_upgrade_minor_version   = true
-
-  settings                     = templatefile("${path.module}/scripts/vmdiagnostics.json", { 
-    storage_account_name       = data.azurerm_storage_account.diagnostics.name, 
-    virtual_machine_id         = azurerm_linux_virtual_machine.vm.id
-  })
-  protected_settings           = jsonencode({
-    storageAccountName         = data.azurerm_storage_account.diagnostics.name
-    storageAccountSasToken     = trimprefix(data.azurerm_storage_account_sas.diagnostics.sas,"?")
-    storageAccountEndPoint     = "https://core.windows.net"
-  })
-
-  count                        = var.enable_vm_diagnostics ? 1 : 0
-  tags                         = var.tags
-  depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.log_analytics
-  ]
 }
 
 resource azurerm_virtual_machine_extension aad_login {
@@ -440,9 +387,8 @@ resource azurerm_virtual_machine_extension aad_login {
 
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
   count                        = var.enable_aad_login ? 1 : 0
 } 
@@ -457,9 +403,8 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
 }
 resource azurerm_virtual_machine_extension network_watcher {
@@ -473,9 +418,8 @@ resource azurerm_virtual_machine_extension network_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
 }
 resource azurerm_virtual_machine_extension policy {
@@ -489,9 +433,8 @@ resource azurerm_virtual_machine_extension policy {
   count                        = var.enable_policy_extension ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.cloud_config_status,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.azure_monitor,
+                                  azurerm_virtual_machine_extension.cloud_config_status
   ]
 }
 
@@ -501,9 +444,8 @@ resource azurerm_security_center_server_vulnerability_assessment_virtual_machine
   count                        = var.enable_security_center ? 1 : 0
   depends_on                   = [
                                   azurerm_virtual_machine_extension.aad_login,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.diagnostics,
-                                  azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
                                   azurerm_virtual_machine_extension.policy
   ]
@@ -532,10 +474,8 @@ resource time_sleep vm_sleep {
   depends_on                   = [
                                   azurerm_security_center_server_vulnerability_assessment_virtual_machine.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
-                                  # azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
                                   azurerm_virtual_machine_extension.policy
   ]
@@ -565,10 +505,8 @@ resource azurerm_virtual_machine_extension disk_encryption {
   depends_on                   = [
                                   azurerm_security_center_server_vulnerability_assessment_virtual_machine.qualys,
                                   azurerm_virtual_machine_extension.aad_login,
-                                  # azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.diagnostics,
+                                  azurerm_virtual_machine_extension.azure_monitor,
                                   azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
                                   azurerm_virtual_machine_extension.policy,
                                   time_sleep.vm_sleep
