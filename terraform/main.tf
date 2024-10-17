@@ -282,7 +282,7 @@ resource azurerm_storage_account automation_storage {
 }
 
 resource azurerm_role_assignment terraform_storage_owner {
-  scope                        = azurerm_storage_account.automation_storage.id
+  scope                        = azurerm_resource_group.vm_resource_group.id
   role_definition_name         = "Storage Blob Data Contributor"
   principal_id                 = data.azuread_client_config.current.object_id
 
