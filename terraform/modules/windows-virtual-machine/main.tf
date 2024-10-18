@@ -34,51 +34,6 @@ data azurerm_resource_group vm_resource_group {
   name                         = var.resource_group_name
 }
 
-data azurerm_storage_account diagnostics {
-  name                         = local.diagnostics_storage_name
-  resource_group_name          = local.diagnostics_storage_rg
-}
-resource time_offset sas_expiry {
-  offset_years                 = 1
-}
-resource time_offset sas_start {
-  offset_days                  = -10
-}
-data azurerm_storage_account_sas diagnostics {
-  connection_string            = data.azurerm_storage_account.diagnostics.primary_connection_string
-  https_only                   = true
-
-  resource_types {
-    service                    = false
-    container                  = true
-    object                     = true
-  }
-
-  services {
-    blob                       = true
-    queue                      = false
-    table                      = true
-    file                       = false
-  }
-
-  start                        = time_offset.sas_start.rfc3339
-  expiry                       = time_offset.sas_expiry.rfc3339  
-
-  permissions {
-    add                        = true
-    create                     = true
-    delete                     = false
-    filter                     = false
-    list                       = true
-    process                    = false
-    read                       = false
-    tag                        = false
-    update                     = true
-    write                      = true
-  }
-}
-
-
 data azurerm_key_vault vault {
   name                         = local.key_vault_name
   resource_group_name          = local.key_vault_rg
@@ -320,38 +275,16 @@ resource azurerm_monitor_diagnostic_setting vm {
   }
 }
 
-resource azurerm_virtual_machine_extension log_analytics {
-  name                         = "MMAExtension"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.EnterpriseCloud.Monitoring"
-  type                         = "MicrosoftMonitoringAgent"
-  type_handler_version         = "1.0"
-  auto_upgrade_minor_version   = true
-  settings                     = jsonencode({
-    "workspaceId"              = data.azurerm_log_analytics_workspace.monitor.workspace_id
-  })
-  protected_settings           = jsonencode({
-    "workspaceKey"             = data.azurerm_log_analytics_workspace.monitor.primary_shared_key
-  })
-
-  count                        = var.deploy_azure_monitor_extensions ? 1 : 0
-  tags                         = var.tags
-}
-
 resource azurerm_virtual_machine_extension azure_monitor {
   name                         = "AzureMonitorWindowsAgent"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
   publisher                    = "Microsoft.Azure.Monitor"
   type                         = "AzureMonitorWindowsAgent"
-  type_handler_version         = "1.0"
+  type_handler_version         = "1.30"
   auto_upgrade_minor_version   = true
 
   tags                         = var.tags
   count                        = var.deploy_azure_monitor_extensions ? 1 : 0
-
-  depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics
-  ]
 }
 
 # Delay DiskEncryption to mitigate race condition
@@ -360,7 +293,7 @@ resource time_sleep vm_sleep {
 
   count                        = var.disk_encryption ? 1 : 0
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.log_analytics,
+                                  azurerm_virtual_machine_extension.azure_monitor,
   ]
 }
 
@@ -387,7 +320,6 @@ resource azurerm_virtual_machine_extension disk_encryption {
 
   depends_on                   = [
                                   azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.log_analytics,
                                   time_sleep.vm_sleep
                                   ]
 }
@@ -403,7 +335,7 @@ resource azurerm_virtual_machine_extension aad_login {
   count                        = var.enable_aad_login ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics,
+    azurerm_virtual_machine_extension.azure_monitor,
     azurerm_virtual_machine_extension.disk_encryption
   ]
 } 
@@ -419,37 +351,11 @@ resource azurerm_virtual_machine_extension bginfo {
   count                        = var.bg_info ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics,
+    azurerm_virtual_machine_extension.azure_monitor,
     azurerm_virtual_machine_extension.disk_encryption
   ]
 }
 
-resource azurerm_virtual_machine_extension diagnostics {
-  name                         = "Microsoft.Insights.VMDiagnosticsSettings"
-  virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
-  publisher                    = "Microsoft.Azure.Diagnostics"
-  type                         = "IaaSDiagnostics"
-  type_handler_version         = "1.17"
-  auto_upgrade_minor_version   = true
-
-  settings                     = templatefile("${path.module}/scripts/vmdiagnostics.json", { 
-    storage_account_name       = data.azurerm_storage_account.diagnostics.name, 
-    virtual_machine_id         = azurerm_windows_virtual_machine.vm.id, 
-  # application_insights_key   = azurerm_application_insights.app_insights.instrumentation_key
-  })
-  protected_settings           = jsonencode({
-    "storageAccountName"       = data.azurerm_storage_account.diagnostics.name
-    "storageAccountKey"        = data.azurerm_storage_account.diagnostics.primary_access_key
-    "storageAccountEndPoint"   = "https://core.windows.net"
-  })
-
-  count                        = var.enable_vm_diagnostics ? 1 : 0
-  tags                         = var.tags
-  depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics,
-    azurerm_virtual_machine_extension.disk_encryption
-  ]
-}
 resource azurerm_virtual_machine_extension dependency_monitor {
   name                         = "DAExtension"
   virtual_machine_id           = azurerm_windows_virtual_machine.vm.id
@@ -461,8 +367,7 @@ resource azurerm_virtual_machine_extension dependency_monitor {
   count                        = var.dependency_monitor ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-                                  azurerm_virtual_machine_extension.azure_monitor,
-                                  azurerm_virtual_machine_extension.log_analytics
+                                  azurerm_virtual_machine_extension.azure_monitor
                                  ] 
 }
 resource azurerm_virtual_machine_extension network_watcher {
@@ -476,7 +381,7 @@ resource azurerm_virtual_machine_extension network_watcher {
   count                        = var.network_watcher ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics,
+    azurerm_virtual_machine_extension.azure_monitor,
     azurerm_virtual_machine_extension.disk_encryption
   ]
 }
@@ -491,7 +396,7 @@ resource azurerm_virtual_machine_extension policy {
   count                        = var.enable_policy_extension ? 1 : 0
   tags                         = var.tags
   depends_on                   = [
-    azurerm_virtual_machine_extension.log_analytics,
+    azurerm_virtual_machine_extension.azure_monitor,
     azurerm_virtual_machine_extension.disk_encryption
   ]
 }
@@ -504,9 +409,7 @@ resource azurerm_security_center_server_vulnerability_assessment_virtual_machine
                                   azurerm_virtual_machine_extension.azure_monitor,
                                   # azurerm_virtual_machine_extension.bginfo,
                                   azurerm_virtual_machine_extension.dependency_monitor,
-                                  azurerm_virtual_machine_extension.diagnostics,
                                   azurerm_virtual_machine_extension.disk_encryption,
-                                  azurerm_virtual_machine_extension.log_analytics,
                                   azurerm_virtual_machine_extension.network_watcher,
                                   azurerm_virtual_machine_extension.policy
                                  ]

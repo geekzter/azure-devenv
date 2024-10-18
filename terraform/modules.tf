@@ -25,7 +25,7 @@ module linux_vm {
   user_name                    = var.admin_username
   user_password                = local.password
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = var.deploy_azure_monitor_extensions
+  dependency_monitor           = var.deploy_service_map
   deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   domain                       = var.vm_domain
   disk_encryption              = var.enable_disk_encryption
@@ -37,7 +37,6 @@ module linux_vm {
   enable_policy_extension      = var.enable_policy_extensions
   enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
-  enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
@@ -70,6 +69,7 @@ module linux_vm {
   depends_on                   = [
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
+    azurerm_role_assignment.vm_contributor,
     module.region_network,
     time_sleep.script_wrapper_check
   ]
@@ -83,7 +83,7 @@ module windows_vm {
   admin_password               = local.password
   bg_info                      = true
   bootstrap_branch             = var.bootstrap_branch
-  dependency_monitor           = var.deploy_azure_monitor_extensions
+  dependency_monitor           = var.deploy_service_map
   deploy_azure_monitor_extensions = var.deploy_azure_monitor_extensions
   disk_encryption              = var.enable_disk_encryption
   diagnostics_storage_id       = module.region_network[each.key].diagnostics_storage_id
@@ -93,7 +93,6 @@ module windows_vm {
   enable_policy_extension      = var.enable_policy_extensions
   enable_public_access         = var.enable_public_access
   enable_security_center       = var.enable_policy_extensions
-  enable_vm_diagnostics        = var.enable_vm_diagnostics
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
@@ -124,6 +123,7 @@ module windows_vm {
     azurerm_log_analytics_linked_service.automation,
     azurerm_log_analytics_solution.security_center,
     azurerm_role_assignment.terraform_storage_owner,
+    azurerm_role_assignment.vm_contributor,
     module.region_network,
     time_sleep.script_wrapper_check
   ]

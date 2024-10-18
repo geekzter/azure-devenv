@@ -120,6 +120,7 @@ resource azurerm_storage_account diagnostics {
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
   https_traffic_only_enabled   = true
+  shared_access_key_enabled    = false
 
   tags                         = var.tags
 }

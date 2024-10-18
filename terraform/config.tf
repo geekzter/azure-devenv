@@ -35,6 +35,10 @@ resource azurerm_storage_container configuration {
   name                         = "configuration"
   storage_account_name         = azurerm_storage_account.automation_storage.name
   container_access_type        = "private"
+
+  depends_on                   = [
+    time_sleep.terraform_storage_owner
+  ]
 }
 
 resource azurerm_storage_blob terraform_backend_configuration {
@@ -45,7 +49,6 @@ resource azurerm_storage_blob terraform_backend_configuration {
   source                       = "${path.root}/backend.tf"
 
   count                        = var.configure_access_control && fileexists("${path.root}/backend.tf") ? 1 : 0
-  depends_on                   = [time_sleep.terraform_storage_owner]
 }
 
 resource azurerm_storage_blob terraform_auto_vars_configuration {
@@ -56,7 +59,6 @@ resource azurerm_storage_blob terraform_auto_vars_configuration {
   source                       = "${path.root}/config.auto.tfvars"
 
   count                        = var.configure_access_control && fileexists("${path.root}/config.auto.tfvars") ? 1 : 0
-  depends_on                   = [time_sleep.terraform_storage_owner]
 }
 
 resource azurerm_storage_blob terraform_workspace_vars_configuration {
@@ -67,7 +69,6 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
   source                       = "${path.root}/${terraform.workspace}.tfvars"
 
   count                        = var.configure_access_control && fileexists("${path.root}/${terraform.workspace}.tfvars") ? 1 : 0
-  depends_on                   = [time_sleep.terraform_storage_owner]
 }
 
 resource azurerm_storage_blob connect_vm_script {
@@ -78,7 +79,6 @@ resource azurerm_storage_blob connect_vm_script {
   source_content               = local.connect_vm_script
 
   count                        = var.configure_access_control ? 1 : 0
-  depends_on                   = [time_sleep.terraform_storage_owner]
 }
 resource local_file connect_vm_script {
   content                      = local.connect_vm_script
