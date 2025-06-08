@@ -7,7 +7,7 @@ resource azurerm_subnet bastion_subnet {
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   address_prefixes             = [cidrsubnet(tolist(azurerm_virtual_network.region_network.address_space)[0],8,0)]
-  default_outbound_access_enabled = !var.deploy_nat_gateway
+  default_outbound_access_enabled = false
 }
 # https://docs.microsoft.com/en-us/azure/bastion/bastion-nsg
 resource azurerm_network_security_group bastion_nsg {

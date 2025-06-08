@@ -8,7 +8,6 @@ module region_network {
   admin_cidr_ranges            = local.admin_cidr_ranges
   bastion_tags                 = var.bastion_tags
   deploy_bastion               = var.deploy_bastion && index(var.locations,each.value) == 0
-  deploy_nat_gateway           = var.deploy_nat_gateway
   enable_public_access         = var.enable_public_access
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
