@@ -230,7 +230,7 @@ variable windows_accelerated_networking {
   default                      = false
 }
 variable windows_os_offer {
-  default                      = "visualstudio2022"
+  default                      = "visualstudioplustools"
 }
 variable windows_os_image_id {
   default                      = null
