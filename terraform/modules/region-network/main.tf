@@ -25,6 +25,7 @@ resource azurerm_subnet vm_subnet {
   virtual_network_name         = azurerm_virtual_network.region_network.name
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   address_prefixes             = [cidrsubnet(tolist(azurerm_virtual_network.region_network.address_space)[0],8,1)]
+  default_outbound_access_enabled = !var.deploy_nat_gateway
   service_endpoints            = [
                                   "Microsoft.KeyVault",
   ]
@@ -93,6 +94,14 @@ resource azurerm_nat_gateway_public_ip_association egress {
   public_ip_address_id         = azurerm_public_ip.egress.0.id
 
   count                        = var.deploy_nat_gateway ? 1 : 0
+}
+resource azurerm_subnet_nat_gateway_association bastion_subnet {
+  subnet_id                    = azurerm_subnet.bastion_subnet.id
+  nat_gateway_id               = azurerm_nat_gateway.egress.0.id
+
+  depends_on                   = [azurerm_nat_gateway_public_ip_association.egress]
+
+  count                        = var.deploy_bastion && var.deploy_nat_gateway ? 1 : 0
 }
 resource azurerm_subnet_nat_gateway_association vm_subnet {
   subnet_id                    = azurerm_subnet.vm_subnet.id
