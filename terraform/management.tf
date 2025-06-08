@@ -21,7 +21,7 @@ resource azurerm_monitor_diagnostic_setting monitor {
   enabled_log {
     category                   = "Audit"
   }
-  metric {
+  enabled_metric {
     category                   = "AllMetrics"
   }
 

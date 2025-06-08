@@ -108,7 +108,7 @@ resource azurerm_monitor_diagnostic_setting vpn_logs {
     category                   = "P2SDiagnosticLog"
   }
 
-  metric {
+  enabled_metric {
     category                   = "AllMetrics"
   }
 }

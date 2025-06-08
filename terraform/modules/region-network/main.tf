@@ -15,7 +15,7 @@ resource azurerm_monitor_diagnostic_setting region_network {
     category                   = "VMProtectionAlerts"
   }
 
-  metric {
+  enabled_metric {
     category                   = "AllMetrics"
   }
 }
