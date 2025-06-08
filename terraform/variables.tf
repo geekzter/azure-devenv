@@ -60,11 +60,6 @@ variable deploy_azure_monitor_extensions {
   description                  = "Disabling to prevent collisions with agents provisioned through other means e.g. inherited policy"
 }
 
-variable deploy_nat_gateway {
-  default                      = true
-  type                         = bool
-}
-
 variable deploy_service_map {
   type                         = bool
   default                      = false
@@ -230,7 +225,7 @@ variable windows_accelerated_networking {
   default                      = false
 }
 variable windows_os_offer {
-  default                      = "visualstudio2022"
+  default                      = "visualstudioplustools"
 }
 variable windows_os_image_id {
   default                      = null
@@ -241,8 +236,11 @@ variable windows_os_version {
 variable windows_os_publisher {
   default                      = "microsoftvisualstudio"
 }
+# az vm image list-offers -l westeurope -p "microsoftvisualstudio" -o table
+# az vm image list-skus -l westeurope -f "visualstudioplustools" -p "microsoftvisualstudio" -o table
+# az vm image list -l westeurope -f "visualstudioplustools" -p "microsoftvisualstudio" -s "vs-2022-ent-general-win11-m365-gen2" -o table --all
 variable windows_os_sku {
-  default                      = "vs-2022-ent-latest-win11-n" # vs-2022-comm-latest-win11-n 2022.02.18 doesn't work with Log Analytics extension
+  default                      = "vs-2022-ent-general-win11-m365-gen2"
 }
 variable windows_vm_size {
   default                      = "Standard_B2ms"

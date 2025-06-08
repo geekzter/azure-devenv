@@ -299,7 +299,7 @@ resource azurerm_monitor_diagnostic_setting vm {
   target_resource_id           = azurerm_linux_virtual_machine.vm.id
   storage_account_id           = var.diagnostics_storage_id
 
-  metric {
+  enabled_metric {
     category                   = "AllMetrics"
   }
 }

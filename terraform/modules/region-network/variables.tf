@@ -12,9 +12,6 @@ variable bastion_tags {
 variable deploy_bastion {
   type                         = bool
 }
-variable deploy_nat_gateway {
-  type                         = bool
-}
 variable enable_vulnerability_assessment {
   type                         = bool
   default                      = false
