@@ -56,6 +56,7 @@ resource azurerm_public_ip pip {
   location                     = var.location
   resource_group_name          = var.resource_group_name
   allocation_method            = "Static"
+  ip_tags                      = var.ip_tags
   sku                          = "Standard"
   domain_name_label            = random_string.pip_domain_name_label.result
 

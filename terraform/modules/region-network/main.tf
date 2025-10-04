@@ -81,6 +81,7 @@ resource azurerm_public_ip egress {
   location                     = var.location
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   allocation_method            = "Static"
+  ip_tags                      = var.ip_tags
   sku                          = "Standard"
 
   tags                         = var.tags
@@ -118,7 +119,10 @@ resource azurerm_storage_account diagnostics {
   account_kind                 = "StorageV2"
   account_tier                 = "Standard"
   account_replication_type     = "LRS"
+  allow_nested_items_to_be_public = false
+  default_to_oauth_authentication = true
   https_traffic_only_enabled   = true
+  public_network_access_enabled = false
   shared_access_key_enabled    = false
 
   tags                         = var.tags

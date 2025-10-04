@@ -34,6 +34,7 @@ resource azurerm_subnet vpn_subnet {
   name                         = "GatewaySubnet"
   resource_group_name          = local.resource_group_name
   virtual_network_name         = local.virtual_network_name
+  default_outbound_access_enabled = false
   address_prefixes             = [var.subnet_range]
 }
 
@@ -43,6 +44,7 @@ resource azurerm_public_ip vpn_pip {
   resource_group_name          = local.resource_group_name
 
   allocation_method            = "Static"
+  ip_tags                      = var.ip_tags
   sku                          = "Standard"
   domain_name_label            = random_string.vpn_domain_name_label.result
 

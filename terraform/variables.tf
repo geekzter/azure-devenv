@@ -122,6 +122,12 @@ variable global_vnet_peering {
   type                         = bool
   default                      = true
 }
+variable ip_tags {
+  description                  = "A map of the ip_tags to use for public ip addresses"
+  type                         = map
+
+  default                      = {}  
+} 
 variable install_tools {
   type                         = bool
   default                      = false
