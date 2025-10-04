@@ -334,7 +334,22 @@ jobs:
         workingDirectory: '$(terraformDirectory)'
 
     - task: AzureCLI@2
-      displayName: 'Terraform plan & apply'
+      displayName: 'Terraform apply'
+      inputs:
+        azureSubscription: '$(subscriptionConnection)'
+        scriptType: pscore
+        scriptLocation: inlineScript
+        inlineScript: |
+          $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
+          ./deploy.ps1 -apply -force
+        addSpnToEnvironment: true
+        useGlobalConfig: true
+        failOnStandardError: true
+        workingDirectory: '$(scriptDirectory)'
+      retryCountOnTaskFailure: 3
+
+    - task: AzureCLI@2
+      displayName: 'Terraform output'
       name: terraform
       inputs:
         azureSubscription: '$(subscriptionConnection)'
@@ -342,7 +357,7 @@ jobs:
         scriptLocation: inlineScript
         inlineScript: |
           $(identityScriptDirectory)/set_terraform_azurerm_vars.ps1
-          ./deploy.ps1 -apply -force -output
+          ./deploy.ps1 -output
         addSpnToEnvironment: true
         useGlobalConfig: true
         failOnStandardError: true
