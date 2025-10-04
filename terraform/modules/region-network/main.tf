@@ -81,6 +81,7 @@ resource azurerm_public_ip egress {
   location                     = var.location
   resource_group_name          = azurerm_virtual_network.region_network.resource_group_name
   allocation_method            = "Static"
+  ip_tags                      = var.ip_tags
   sku                          = "Standard"
 
   tags                         = var.tags

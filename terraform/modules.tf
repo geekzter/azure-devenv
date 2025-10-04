@@ -9,6 +9,7 @@ module region_network {
   bastion_tags                 = var.bastion_tags
   deploy_bastion               = var.deploy_bastion && index(var.locations,each.value) == 0
   enable_public_access         = var.enable_public_access
+  ip_tags                      = var.ip_tags
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   private_dns_zone_name        = azurerm_private_dns_zone.internal_dns.name
   vpn_range                    = var.vpn_range
@@ -40,6 +41,7 @@ module linux_vm {
   git_email                    = var.git_email
   git_name                     = var.git_name
   install_tools                = var.install_tools
+  ip_tags                      = var.ip_tags
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
   log_analytics_workspace_id   = local.log_analytics_workspace_id
@@ -95,6 +97,7 @@ module windows_vm {
   environment_variables        = var.environment_variables
   git_email                    = var.git_email
   git_name                     = var.git_name
+  ip_tags                      = var.ip_tags
   key_vault_id                 = azurerm_key_vault.vault.id
   location                     = each.value
   log_analytics_workspace_id   = local.log_analytics_workspace_id
@@ -135,6 +138,7 @@ module vpn {
   tags                         = azurerm_resource_group.vm_resource_group.tags
 
   dns_ip_addresses             = var.deploy_linux ? [module.linux_vm[azurerm_resource_group.vm_resource_group.location].private_ip_address] : []
+  ip_tags                      = var.ip_tags
   log_analytics_workspace_id   = local.log_analytics_workspace_id
   organization                 = var.organization
   virtual_network_id           = module.region_network[azurerm_resource_group.vm_resource_group.location].virtual_network_id

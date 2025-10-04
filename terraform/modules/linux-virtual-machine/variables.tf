@@ -50,6 +50,9 @@ variable install_tools {
   type                         = bool
   default                      = false
 }
+variable ip_tags {
+  type                         = map
+} 
 variable key_vault_id {}
 variable location {}
 variable log_analytics_workspace_id {
