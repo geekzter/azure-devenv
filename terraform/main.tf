@@ -13,8 +13,22 @@ locals {
   # terraform_cidr               = local.terraform_ip_prefix # Too broad
   terraform_ip_address         = data.http.terraform_ip_address.response_body
   terraform_ip_prefix          = jsondecode(chomp(data.http.terraform_ip_prefix.response_body)).data.prefix
-  # admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_ip_prefix])))) # Make sure ranges have correct base address
-  admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_cidr])))) # Make sure ranges have correct base address
+  # admin_cidr_ranges            = sort(distinct(concat([for range in var.admin_ip_ranges : cidrsubnet(range,0,0)],tolist([local.terraform_cidr])))) # Make sure ranges have correct base address
+
+  # Remove overlapping ranges
+  admin_cidr_candidates = distinct([
+    for range in concat(var.admin_ip_ranges, [local.terraform_cidr]) :
+    cidrsubnet(range, 0, 0)
+  ])
+
+  admin_cidr_ranges = sort([
+    for candidate in local.admin_cidr_candidates : candidate
+    if !anytrue([
+      for other in local.admin_cidr_candidates :
+      tonumber(split("/", other)[1]) < tonumber(split("/", candidate)[1]) ?
+      cidrsubnet("${cidrhost(candidate, 0)}/${split("/", other)[1]}", 0, 0) == other : false
+    ])
+  ])
 }
 
 # Data sources
