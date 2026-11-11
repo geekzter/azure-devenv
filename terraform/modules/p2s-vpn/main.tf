@@ -60,7 +60,7 @@ resource azurerm_virtual_network_gateway vpn_gw {
   vpn_type                     = "RouteBased"
 
   active_active                = false
-  enable_bgp                   = false
+  bgp_enabled                  = false
   generation                   = "Generation2"
   sku                          = "VpnGw2AZ"
 

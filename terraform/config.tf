@@ -43,8 +43,7 @@ resource azurerm_storage_container configuration {
 
 resource azurerm_storage_blob terraform_backend_configuration {
   name                         = "terraform/backend.tf"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
+  storage_container_id         = azurerm_storage_container.configuration.id
   type                         = "Block"
   source                       = "${path.root}/backend.tf"
 
@@ -53,8 +52,7 @@ resource azurerm_storage_blob terraform_backend_configuration {
 
 resource azurerm_storage_blob terraform_auto_vars_configuration {
   name                         = "terraform/config.auto.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
+  storage_container_id         = azurerm_storage_container.configuration.id
   type                         = "Block"
   source                       = "${path.root}/config.auto.tfvars"
 
@@ -63,8 +61,7 @@ resource azurerm_storage_blob terraform_auto_vars_configuration {
 
 resource azurerm_storage_blob terraform_workspace_vars_configuration {
   name                         = "terraform/${terraform.workspace}.tfvars"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
+  storage_container_id         = azurerm_storage_container.configuration.id
   type                         = "Block"
   source                       = "${path.root}/${terraform.workspace}.tfvars"
 
@@ -73,8 +70,7 @@ resource azurerm_storage_blob terraform_workspace_vars_configuration {
 
 resource azurerm_storage_blob connect_vm_script {
   name                         = "data/${terraform.workspace}/connect_vm.ps1"
-  storage_account_name         = azurerm_storage_account.automation_storage.name
-  storage_container_name       = azurerm_storage_container.configuration.name
+  storage_container_id         = azurerm_storage_container.configuration.id
   type                         = "Block"
   source_content               = local.connect_vm_script
 
